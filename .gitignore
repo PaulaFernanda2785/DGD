@@ -1,0 +1,35 @@
+# Configuracoes sensiveis
+.env
+.env.*
+!.env.example
+
+# Uploads, logs e arquivos temporarios
+/storage/uploads/*
+/storage/logs/*
+/storage/cache/*
+/storage/tmp/*
+/storage/certs/*
+!/storage/uploads/.gitkeep
+!/storage/uploads/decretos/
+!/storage/uploads/decretos/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+!/storage/tmp/.gitkeep
+
+# Backups e dumps locais
+/database/backups/
+*.sql.bak
+*.dump
+*.backup
+*.zip
+*.rar
+*.7z
+
+# Sistema operacional e editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencias opcionais
+/vendor/

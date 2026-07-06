@@ -1,0 +1,3 @@
+-- Seed 001 - Perfis, permissoes e dominios iniciais do DGD
+-- Conteudo espelhado em database/seed.sql.
+-- Para evitar divergencia nesta fase inicial, usar database/seed.sql como fonte de importacao.

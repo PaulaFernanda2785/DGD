@@ -1,0 +1,3 @@
+-- Migration 001 - Base estrutural do DGD
+-- Conteudo espelhado em database/schema.sql.
+-- Para evitar divergencia nesta fase inicial, usar database/schema.sql como fonte de importacao.

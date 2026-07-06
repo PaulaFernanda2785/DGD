@@ -1,0 +1,100 @@
+-- DGD - Views operacionais
+
+SET NAMES utf8mb4;
+
+DROP VIEW IF EXISTS vw_painel_resumo;
+DROP VIEW IF EXISTS vw_decretos_listagem;
+
+CREATE VIEW vw_decretos_listagem AS
+SELECT
+    d.id,
+    d.protocolo_dgd,
+    d.protocolo_ano,
+    d.protocolo_sequencial,
+    d.municipio_id,
+    m.nome AS municipio,
+    d.ubm_id,
+    u.nome AS ubm_atuante,
+    td.nome AS tipo_decreto,
+    cs.codigo AS cobrade_codigo,
+    cs.nome AS cobrade_subtipo,
+    ct.nome AS cobrade_tipo,
+    csg.nome AS cobrade_subgrupo,
+    cg.nome AS cobrade_grupo,
+    d.data_desastre,
+    d.protocolo_s2id,
+    d.numero_decreto_municipal,
+    d.data_decreto_municipal,
+    CASE
+        WHEN d.data_decreto_municipal IS NULL THEN NULL
+        ELSE DATEDIFF(CURRENT_DATE, d.data_decreto_municipal)
+    END AS total_dias_decreto,
+    d.homologacao_status_id,
+    sh.codigo AS homologacao_codigo,
+    sh.nome AS homologacao,
+    d.reconhecimento_status_id,
+    sr.codigo AS reconhecimento_codigo,
+    sr.nome AS reconhecimento,
+    d.protocolo_pae_pge,
+    d.data_envio_pge,
+    CASE
+        WHEN d.data_decreto_municipal IS NULL THEN NULL
+        ELSE DATEDIFF(COALESCE(d.data_envio_pge, CURRENT_DATE), d.data_decreto_municipal)
+    END AS duracao_pge_dias,
+    d.status_envio_pge_id,
+    sep.codigo AS status_envio_pge_codigo,
+    sep.nome AS status_envio_pge,
+    CASE
+        WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'
+        WHEN d.data_decreto_municipal IS NULL THEN 'SEM DATA'
+        WHEN DATEDIFF(COALESCE(d.data_envio_pge, CURRENT_DATE), d.data_decreto_municipal) BETWEEN 1 AND 7 THEN 'NO PRAZO'
+        WHEN DATEDIFF(COALESCE(d.data_envio_pge, CURRENT_DATE), d.data_decreto_municipal) > 7 THEN 'PENDENTE'
+        ELSE 'NAO INICIADO'
+    END AS status_prazo_pge_calculado,
+    d.analista_id,
+    analista.nome AS analista,
+    rr.nome AS recurso_resposta,
+    rc.nome AS recurso_reconstrucao,
+    d.numero_obitos,
+    d.numero_feridos,
+    d.numero_enfermos,
+    d.numero_desabrigados,
+    d.numero_desalojados,
+    d.numero_outros_afetados,
+    d.total_afetados,
+    d.ativo,
+    d.criado_em,
+    d.atualizado_em,
+    d.excluido_em
+FROM desastres d
+INNER JOIN municipios m ON m.id = d.municipio_id
+LEFT JOIN ubms u ON u.id = d.ubm_id
+INNER JOIN tipos_decreto td ON td.id = d.tipo_decreto_id
+INNER JOIN cobrade_subtipos cs ON cs.id = d.cobrade_subtipo_id
+INNER JOIN cobrade_tipos ct ON ct.id = cs.tipo_id
+INNER JOIN cobrade_subgrupos csg ON csg.id = ct.subgrupo_id
+INNER JOIN cobrade_grupos cg ON cg.id = csg.grupo_id
+INNER JOIN status_homologacao sh ON sh.id = d.homologacao_status_id
+INNER JOIN status_reconhecimento sr ON sr.id = d.reconhecimento_status_id
+INNER JOIN status_envio_pge sep ON sep.id = d.status_envio_pge_id
+INNER JOIN status_recurso rr ON rr.id = d.recurso_resposta_status_id
+INNER JOIN status_recurso rc ON rc.id = d.recurso_reconstrucao_status_id
+LEFT JOIN usuarios analista ON analista.id = d.analista_id
+WHERE d.excluido_em IS NULL;
+
+CREATE VIEW vw_painel_resumo AS
+SELECT
+    YEAR(CURRENT_DATE) AS ano_referencia,
+    COUNT(*) AS total_desastres,
+    SUM(CASE WHEN numero_decreto_municipal IS NOT NULL AND numero_decreto_municipal <> '' THEN 1 ELSE 0 END) AS total_decretos_municipais,
+    SUM(CASE WHEN homologacao_codigo = 'SOLICITADO' THEN 1 ELSE 0 END) AS homologacoes_solicitadas,
+    SUM(CASE WHEN homologacao_codigo = 'HOMOLOGADO' THEN 1 ELSE 0 END) AS homologados,
+    SUM(CASE WHEN homologacao_codigo = 'NAO_HOMOLOGADO' THEN 1 ELSE 0 END) AS nao_homologados,
+    SUM(CASE WHEN reconhecimento_codigo = 'SOLICITADO' THEN 1 ELSE 0 END) AS reconhecimentos_solicitados,
+    SUM(CASE WHEN reconhecimento_codigo = 'RECONHECIDO' THEN 1 ELSE 0 END) AS reconhecidos,
+    SUM(CASE WHEN status_envio_pge_codigo = 'ENVIADO_PGE' THEN 1 ELSE 0 END) AS enviados_pge,
+    SUM(CASE WHEN status_prazo_pge_calculado = 'PENDENTE' THEN 1 ELSE 0 END) AS pendentes_pge,
+    SUM(total_afetados) AS total_afetados
+FROM vw_decretos_listagem
+WHERE ativo = 1
+  AND protocolo_ano = YEAR(CURRENT_DATE);
