@@ -164,3 +164,37 @@ function status_badge(?string $text): string
 
     return '<span class="status-badge ' . e($class) . '">' . e($text ?: '-') . '</span>';
 }
+
+function compdec_photo_url(?string $path): ?string
+{
+    $path = trim((string) $path);
+
+    if ($path === '') {
+        return null;
+    }
+
+    $filename = basename(str_replace('\\', '/', $path));
+
+    if ($filename === '' || $filename !== basename($filename)) {
+        return null;
+    }
+
+    $publicPath = PUBLIC_PATH . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'compdec' . DIRECTORY_SEPARATOR . 'coordenadores' . DIRECTORY_SEPARATOR . $filename;
+
+    if (!is_file($publicPath)) {
+        return null;
+    }
+
+    return url('/uploads/compdec/coordenadores/' . rawurlencode($filename));
+}
+
+function compdec_photo_thumb(?string $path, ?string $alt = null, string $class = 'compdec-photo-thumb'): string
+{
+    $photoUrl = compdec_photo_url($path);
+
+    if ($photoUrl === null) {
+        return '<span class="' . e($class) . ' compdec-photo-placeholder" aria-label="Sem foto">SF</span>';
+    }
+
+    return '<img class="' . e($class) . '" src="' . e($photoUrl) . '" alt="' . e($alt ?: 'Foto do coordenador') . '" loading="lazy">';
+}

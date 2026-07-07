@@ -17,7 +17,7 @@
             <tr>
                 <th>Seq.</th>
                 <th>Protocolo</th>
-                <th>Municipio</th>
+                <th>Município</th>
                 <th>Tipo de desastre</th>
                 <th>Data decreto</th>
                 <th>Dias decreto</th>

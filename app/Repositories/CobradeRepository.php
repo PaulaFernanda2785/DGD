@@ -10,7 +10,7 @@ class CobradeRepository
 {
     public function grupos(): array
     {
-        $stmt = Database::connection()->query('SELECT id, codigo, nome FROM cobrade_grupos WHERE ativo = 1 ORDER BY nome ASC');
+        $stmt = Database::connection()->query('SELECT id, codigo, nome FROM cobrade_grupos WHERE ativo = 1 ORDER BY codigo ASC');
 
         return $stmt->fetchAll();
     }
@@ -25,7 +25,7 @@ class CobradeRepository
             $params['grupo_id'] = $grupoId;
         }
 
-        $sql .= ' ORDER BY nome ASC';
+        $sql .= ' ORDER BY codigo ASC';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
 
@@ -42,7 +42,7 @@ class CobradeRepository
             $params['subgrupo_id'] = $subgrupoId;
         }
 
-        $sql .= ' ORDER BY nome ASC';
+        $sql .= ' ORDER BY codigo ASC';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
 
@@ -59,9 +59,36 @@ class CobradeRepository
             $params['tipo_id'] = $tipoId;
         }
 
-        $sql .= ' ORDER BY nome ASC';
+        $sql .= ' ORDER BY codigo ASC';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    public function subtiposComHierarquia(): array
+    {
+        $stmt = Database::connection()->query(
+            'SELECT
+                cs.id,
+                cs.tipo_id,
+                cs.codigo,
+                cs.nome,
+                cs.descricao,
+                cs.simbologia,
+                ct.id AS tipo_id,
+                ct.nome AS tipo_nome,
+                csg.id AS subgrupo_id,
+                csg.nome AS subgrupo_nome,
+                cg.id AS grupo_id,
+                cg.nome AS grupo_nome
+             FROM cobrade_subtipos cs
+             INNER JOIN cobrade_tipos ct ON ct.id = cs.tipo_id
+             INNER JOIN cobrade_subgrupos csg ON csg.id = ct.subgrupo_id
+             INNER JOIN cobrade_grupos cg ON cg.id = csg.grupo_id
+             WHERE cs.ativo = 1 AND ct.ativo = 1 AND csg.ativo = 1 AND cg.ativo = 1
+             ORDER BY cs.codigo ASC'
+        );
 
         return $stmt->fetchAll();
     }

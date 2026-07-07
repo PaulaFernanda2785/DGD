@@ -108,6 +108,76 @@ function option(value, label) {
     return item;
 }
 
+function cobradeImageUrl(data) {
+    var path = data && data.simbologia ? String(data.simbologia).trim() : '';
+    var codigo = data && data.codigo ? String(data.codigo).trim() : '';
+
+    if (path) {
+        path = path.replace(/^\/+/, '');
+        path = path.replace(/^cobrade_simbologia\//, 'assets/images/cobrade_simbologia/');
+        return appBaseUrl() + '/' + path;
+    }
+
+    if (!codigo) {
+        return '';
+    }
+
+    return appBaseUrl() + '/assets/images/cobrade_simbologia/simbologia_cobrade_' + codigo.replace(/\./g, '_') + '.png';
+}
+
+function renderCobradePreview(data) {
+    var preview = document.querySelector('[data-cobrade-preview]');
+    var previewImg = document.querySelector('[data-cobrade-preview-img]');
+    var previewSymbol = document.querySelector('[data-cobrade-preview-symbol]');
+    var previewTitle = document.querySelector('[data-cobrade-preview-title]');
+    var previewMeta = document.querySelector('[data-cobrade-preview-meta]');
+    var previewDescricao = document.querySelector('[data-cobrade-preview-descricao]');
+
+    if (!(preview instanceof HTMLElement)) {
+        return;
+    }
+
+    if (!data || !data.id) {
+        preview.hidden = true;
+        return;
+    }
+
+    var codigo = data.codigo || '';
+    var nome = data.nome || '';
+    var descricao = data.descricao || 'Sem descricao cadastrada.';
+    var imageUrl = cobradeImageUrl(data);
+
+    if (previewTitle instanceof HTMLElement) {
+        previewTitle.textContent = (codigo ? codigo + ' - ' : '') + nome;
+    }
+
+    if (previewMeta instanceof HTMLElement) {
+        previewMeta.textContent = [data.grupo_nome, data.subgrupo_nome, data.tipo_nome].filter(Boolean).join(' / ');
+    }
+
+    if (previewDescricao instanceof HTMLElement) {
+        previewDescricao.textContent = descricao;
+    }
+
+    if (previewSymbol instanceof HTMLElement) {
+        previewSymbol.textContent = codigo || 'COBRADE';
+    }
+
+    if (previewImg instanceof HTMLImageElement) {
+        if (imageUrl) {
+            previewImg.src = imageUrl;
+            previewImg.alt = codigo ? 'Simbologia COBRADE ' + codigo : 'Simbologia COBRADE';
+            previewImg.hidden = false;
+        } else {
+            previewImg.removeAttribute('src');
+            previewImg.alt = '';
+            previewImg.hidden = true;
+        }
+    }
+
+    preview.hidden = false;
+}
+
 function fillSelect(select, items, placeholder) {
     if (!select) {
         return;
@@ -117,7 +187,15 @@ function fillSelect(select, items, placeholder) {
     select.appendChild(option('', placeholder));
 
     items.forEach(function (item) {
-        select.appendChild(option(item.id, item.codigo ? item.codigo + ' - ' + item.nome : item.nome));
+        var element = option(item.id, item.codigo ? item.codigo + ' - ' + item.nome : item.nome);
+
+        ['grupo_id', 'subgrupo_id', 'tipo_id', 'codigo', 'nome', 'descricao', 'simbologia', 'grupo_nome', 'subgrupo_nome', 'tipo_nome'].forEach(function (key) {
+            if (item[key] !== undefined && item[key] !== null) {
+                element.dataset[key.replace(/_/g, '-')] = item[key];
+            }
+        });
+
+        select.appendChild(element);
     });
 }
 
@@ -128,54 +206,228 @@ function fetchJson(path) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     }).then(function (response) {
-        return response.json();
+        var contentType = response.headers.get('content-type') || '';
+
+        if (contentType.indexOf('application/json') === -1) {
+            return response.text().then(function (text) {
+                throw {
+                    status: response.status,
+                    message: text ? text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : 'Resposta invalida do servidor'
+                };
+            });
+        }
+
+        return response.json().then(function (payload) {
+            if (!response.ok) {
+                payload.status = response.status;
+                throw payload;
+            }
+
+            return payload;
+        });
     });
 }
 
-document.addEventListener('change', function (event) {
-    var target = event.target;
+function appBaseUrl() {
+    var configuredBaseUrl = document.documentElement.getAttribute('data-app-base-url');
 
-    if (!(target instanceof HTMLSelectElement)) {
+    if (configuredBaseUrl) {
+        return configuredBaseUrl.replace(/\/$/, '');
+    }
+
+    var path = window.location.pathname || '';
+    var routeMarkers = ['/decretos', '/compdecs', '/usuarios', '/painel', '/alterar-senha', '/cobrade', '/anexos'];
+    var basePath = '';
+
+    routeMarkers.some(function (marker) {
+        var index = path.indexOf(marker);
+
+        if (index >= 0) {
+            basePath = path.substring(0, index);
+            return true;
+        }
+
+        return false;
+    });
+
+    return window.location.origin + basePath.replace(/\/$/, '');
+}
+
+function cobradeLoadError(select, message) {
+    fillSelect(select, [], message || 'Nao foi possivel carregar');
+}
+
+function payloadItems(payload) {
+    return payload && Array.isArray(payload.data) ? payload.data : [];
+}
+
+function errorMessage(error, fallback) {
+    var status = error && error.status ? 'HTTP ' + error.status + ': ' : '';
+    var message = error && error.message ? error.message : fallback;
+
+    return status + message;
+}
+
+function appRoute(path) {
+    return appBaseUrl() + '/' + String(path || '').replace(/^\/+/, '');
+}
+
+function initCobradeCascade() {
+    var grupoSelect = document.querySelector('[data-cobrade="grupo"]');
+    var subgrupoSelect = document.querySelector('[data-cobrade="subgrupo"]');
+    var tipoSelect = document.querySelector('[data-cobrade="tipo"]');
+    var subtipoSelect = document.querySelector('[data-cobrade="subtipo"]');
+
+    if (!(grupoSelect instanceof HTMLSelectElement)
+        || !(subgrupoSelect instanceof HTMLSelectElement)
+        || !(tipoSelect instanceof HTMLSelectElement)
+        || !(subtipoSelect instanceof HTMLSelectElement)) {
         return;
     }
 
-    var role = target.getAttribute('data-cobrade');
-    var baseUrl = document.querySelector('link[rel="stylesheet"]').href.replace('/assets/css/app.css', '');
+    var subgrupoOptions = Array.prototype.slice.call(subgrupoSelect.querySelectorAll('option[data-grupo-id]'));
+    var tipoOptions = Array.prototype.slice.call(tipoSelect.querySelectorAll('option[data-subgrupo-id]'));
+    var subtipoOptions = Array.prototype.slice.call(subtipoSelect.querySelectorAll('option[data-tipo-id]'));
+    var selectedSubgrupo = subgrupoSelect.dataset.current || '';
+    var selectedTipo = tipoSelect.dataset.current || '';
+    var selectedSubtipo = subtipoSelect.dataset.current || '';
 
-    if (role === 'grupo') {
-        fetchJson(baseUrl + '/cobrade/subgrupos?grupo_id=' + encodeURIComponent(target.value))
-            .then(function (payload) {
-                fillSelect(document.querySelector('[data-cobrade="subgrupo"]'), payload.data || [], 'Selecione');
-                fillSelect(document.querySelector('[data-cobrade="tipo"]'), [], 'Selecione');
-                fillSelect(document.querySelector('[data-cobrade="subtipo"]'), [], 'Selecione');
-            });
+    function placeholder(text) {
+        return option('', text);
     }
 
-    if (role === 'subgrupo') {
-        fetchJson(baseUrl + '/cobrade/tipos?subgrupo_id=' + encodeURIComponent(target.value))
-            .then(function (payload) {
-                fillSelect(document.querySelector('[data-cobrade="tipo"]'), payload.data || [], 'Selecione');
-                fillSelect(document.querySelector('[data-cobrade="subtipo"]'), [], 'Selecione');
-            });
+    function filtrarSubgrupos() {
+        var grupoId = grupoSelect.value;
+
+        subgrupoSelect.replaceChildren(placeholder(grupoId ? 'Selecione um subgrupo' : 'Selecione um grupo primeiro'));
+        subgrupoSelect.disabled = !grupoId;
+
+        if (!grupoId) {
+            filtrarTipos();
+            renderCobradePreview(null);
+            return;
+        }
+
+        subgrupoOptions.forEach(function (sourceOption) {
+            if (sourceOption.dataset.grupoId !== grupoId) {
+                return;
+            }
+
+            var clone = sourceOption.cloneNode(true);
+
+            if (clone.value === selectedSubgrupo) {
+                clone.selected = true;
+            }
+
+            subgrupoSelect.appendChild(clone);
+        });
+
+        selectedSubgrupo = '';
+        filtrarTipos();
     }
 
-    if (role === 'tipo') {
-        fetchJson(baseUrl + '/cobrade/subtipos?tipo_id=' + encodeURIComponent(target.value))
-            .then(function (payload) {
-                fillSelect(document.querySelector('[data-cobrade="subtipo"]'), payload.data || [], 'Selecione');
-            });
+    function filtrarTipos() {
+        var subgrupoId = subgrupoSelect.value;
+
+        tipoSelect.replaceChildren(placeholder(subgrupoId ? 'Selecione um tipo' : 'Selecione um subgrupo primeiro'));
+        tipoSelect.disabled = !subgrupoId;
+
+        if (!subgrupoId) {
+            filtrarSubtipos();
+            renderCobradePreview(null);
+            return;
+        }
+
+        tipoOptions.forEach(function (sourceOption) {
+            if (sourceOption.dataset.subgrupoId !== subgrupoId) {
+                return;
+            }
+
+            var clone = sourceOption.cloneNode(true);
+
+            if (clone.value === selectedTipo) {
+                clone.selected = true;
+            }
+
+            tipoSelect.appendChild(clone);
+        });
+
+        selectedTipo = '';
+        filtrarSubtipos();
     }
 
-    if (role === 'subtipo' && target.value) {
-        fetchJson(baseUrl + '/cobrade/' + encodeURIComponent(target.value) + '/detalhe')
-            .then(function (payload) {
-                var box = document.getElementById('cobrade-descricao');
-                if (box && payload.data) {
-                    box.textContent = payload.data.descricao || payload.data.nome || 'Sem descricao cadastrada.';
-                }
-            });
+    function filtrarSubtipos() {
+        var tipoId = tipoSelect.value;
+
+        subtipoSelect.replaceChildren(placeholder(tipoId ? 'Selecione um subtipo' : 'Selecione um tipo primeiro'));
+        subtipoSelect.disabled = !tipoId;
+
+        if (!tipoId) {
+            renderCobradePreview(null);
+            return;
+        }
+
+        subtipoOptions.forEach(function (sourceOption) {
+            if (sourceOption.dataset.tipoId !== tipoId) {
+                return;
+            }
+
+            var clone = sourceOption.cloneNode(true);
+
+            if (clone.value === selectedSubtipo) {
+                clone.selected = true;
+            }
+
+            subtipoSelect.appendChild(clone);
+        });
+
+        selectedSubtipo = '';
+        atualizarPreview();
     }
-});
+
+    function atualizarPreview() {
+        var selectedOption = subtipoSelect.selectedOptions[0];
+
+        if (!(selectedOption instanceof HTMLOptionElement) || !selectedOption.value) {
+            renderCobradePreview(null);
+            return;
+        }
+
+        renderCobradePreview({
+            id: selectedOption.value,
+            codigo: selectedOption.dataset.codigo || '',
+            nome: selectedOption.dataset.nome || selectedOption.textContent || '',
+            descricao: selectedOption.dataset.descricao || '',
+            simbologia: selectedOption.dataset.simbologia || '',
+            grupo_nome: selectedOption.dataset.grupoNome || '',
+            subgrupo_nome: selectedOption.dataset.subgrupoNome || '',
+            tipo_nome: selectedOption.dataset.tipoNome || ''
+        });
+    }
+
+    grupoSelect.addEventListener('change', function () {
+        selectedSubgrupo = '';
+        selectedTipo = '';
+        selectedSubtipo = '';
+        filtrarSubgrupos();
+    });
+
+    subgrupoSelect.addEventListener('change', function () {
+        selectedTipo = '';
+        selectedSubtipo = '';
+        filtrarTipos();
+    });
+
+    tipoSelect.addEventListener('change', function () {
+        selectedSubtipo = '';
+        filtrarSubtipos();
+    });
+
+    subtipoSelect.addEventListener('change', atualizarPreview);
+    filtrarSubgrupos();
+}
+
+document.addEventListener('DOMContentLoaded', initCobradeCascade);
 
 function updateAffectedTotal() {
     var total = 0;
@@ -198,6 +450,200 @@ document.addEventListener('input', function (event) {
 });
 
 document.addEventListener('DOMContentLoaded', updateAffectedTotal);
+
+document.addEventListener('DOMContentLoaded', function () {
+    var municipioSelect = document.querySelector('[data-ubm-municipio]');
+    var compdecFields = document.querySelectorAll('[data-compdec-field]');
+
+    if (!(municipioSelect instanceof HTMLSelectElement)) {
+        return;
+    }
+
+    var notRegisteredText = 'Não foi registrado';
+
+    function fieldValue(data, key) {
+        if (!data || data[key] === null || data[key] === undefined || String(data[key]).trim() === '') {
+            return notRegisteredText;
+        }
+
+        return String(data[key]);
+    }
+
+    function fillCompdecFields(data) {
+        compdecFields.forEach(function (field) {
+            if (!(field instanceof HTMLInputElement)) {
+                return;
+            }
+
+            var key = field.getAttribute('data-compdec-field') || '';
+            field.value = fieldValue(data, key);
+        });
+    }
+
+    function loadCompdec() {
+        var municipioId = municipioSelect.value || '';
+
+        if (municipioId === '') {
+            fillCompdecFields(null);
+            return;
+        }
+
+        fetchJson(appBaseUrl() + '/compdecs/municipio/' + encodeURIComponent(municipioId))
+            .then(function (payload) {
+                var data = payload.data || null;
+                fillCompdecFields(data);
+            })
+            .catch(function () {
+                fillCompdecFields({
+                    situacao_compdec: notRegisteredText,
+                    ubm_nome: notRegisteredText,
+                    regiao_integracao: notRegisteredText,
+                    prefeito: notRegisteredText,
+                    coordenador: notRegisteredText,
+                    telefone: notRegisteredText,
+                    email: notRegisteredText
+                });
+            });
+    }
+
+    municipioSelect.addEventListener('change', loadCompdec);
+
+    if (municipioSelect.value) {
+        loadCompdec();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    var zones = document.querySelectorAll('[data-attachment-zone]');
+    var allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+
+    function extension(file) {
+        var parts = String(file.name || '').split('.');
+
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
+
+    function validFiles(files) {
+        return Array.prototype.slice.call(files || []).filter(function (file) {
+            return allowedExtensions.indexOf(extension(file)) >= 0;
+        });
+    }
+
+    function setFiles(input, files) {
+        var dataTransfer = new DataTransfer();
+
+        files.forEach(function (file) {
+            dataTransfer.items.add(file);
+        });
+
+        input.files = dataTransfer.files;
+    }
+
+    function currentFiles(input) {
+        return Array.prototype.slice.call(input.files || []);
+    }
+
+    function addFiles(input, files) {
+        setFiles(input, currentFiles(input).concat(validFiles(files)));
+    }
+
+    function formatSize(size) {
+        if (!size) {
+            return '0 KB';
+        }
+
+        if (size >= 1024 * 1024) {
+            return (size / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
+        }
+
+        return (size / 1024).toFixed(1).replace('.', ',') + ' KB';
+    }
+
+    function renderList(zone) {
+        var input = zone.querySelector('[data-attachment-input]');
+        var list = zone.querySelector('[data-attachment-list]');
+
+        if (!(input instanceof HTMLInputElement) || !(list instanceof HTMLElement)) {
+            return;
+        }
+
+        var files = currentFiles(input);
+        list.innerHTML = '';
+
+        if (files.length === 0) {
+            var empty = document.createElement('li');
+            empty.textContent = 'Nenhum arquivo selecionado.';
+            list.appendChild(empty);
+            return;
+        }
+
+        files.forEach(function (file, index) {
+            var item = document.createElement('li');
+            var name = document.createElement('span');
+            var remove = document.createElement('button');
+
+            name.textContent = file.name + ' (' + formatSize(file.size) + ')';
+            remove.type = 'button';
+            remove.textContent = 'Remover';
+            remove.addEventListener('click', function () {
+                var updatedFiles = currentFiles(input).filter(function (_, fileIndex) {
+                    return fileIndex !== index;
+                });
+                setFiles(input, updatedFiles);
+                renderList(zone);
+            });
+
+            item.appendChild(name);
+            item.appendChild(remove);
+            list.appendChild(item);
+        });
+    }
+
+    zones.forEach(function (zone) {
+        var input = zone.querySelector('[data-attachment-input]');
+
+        if (!(zone instanceof HTMLElement) || !(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        input.addEventListener('change', function () {
+            renderList(zone);
+        });
+
+        if (typeof DataTransfer === 'undefined') {
+            renderList(zone);
+            return;
+        }
+
+        zone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            zone.classList.add('is-dragover');
+        });
+
+        zone.addEventListener('dragleave', function () {
+            zone.classList.remove('is-dragover');
+        });
+
+        zone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            zone.classList.remove('is-dragover');
+            addFiles(input, event.dataTransfer ? event.dataTransfer.files : []);
+            renderList(zone);
+        });
+
+        zone.addEventListener('paste', function (event) {
+            if (!event.clipboardData || !event.clipboardData.files || event.clipboardData.files.length === 0) {
+                return;
+            }
+
+            event.preventDefault();
+            addFiles(input, event.clipboardData.files);
+            renderList(zone);
+        });
+
+        renderList(zone);
+    });
+});
 
 document.addEventListener('DOMContentLoaded', function () {
     function renderQr(target, options) {

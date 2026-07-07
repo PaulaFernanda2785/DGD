@@ -13,8 +13,13 @@
 </div>
 
 <section class="detail-grid">
-    <div><strong>Municipio</strong><span><?= e($registro['municipio']); ?></span></div>
+    <div><strong>Município</strong><span><?= e($registro['municipio']); ?></span></div>
     <div><strong>UBM atuante</strong><span><?= e($registro['ubm_atuante'] ?? '-'); ?></span></div>
+    <div><strong>Regiao de integracao</strong><span><?= e($registro['compdec_regiao_integracao'] ?? '-'); ?></span></div>
+    <div><strong>Prefeito</strong><span><?= e($registro['compdec_prefeito'] ?? '-'); ?></span></div>
+    <div><strong>Coordenador COMPDEC</strong><span><?= e($registro['compdec_coordenador'] ?? '-'); ?></span></div>
+    <div><strong>Telefone COMPDEC</strong><span><?= e($registro['compdec_telefone'] ?? '-'); ?></span></div>
+    <div><strong>E-mail COMPDEC</strong><span><?= e($registro['compdec_email'] ?? '-'); ?></span></div>
     <div><strong>Tipo de decreto</strong><span><?= e($registro['tipo_decreto']); ?></span></div>
     <div><strong>Data do desastre</strong><span><?= e($registro['data_desastre']); ?></span></div>
     <div><strong>COBRADE</strong><span><?= e($registro['cobrade_codigo'] . ' - ' . $registro['cobrade_subtipo']); ?></span></div>

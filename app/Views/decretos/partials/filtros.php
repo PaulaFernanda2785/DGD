@@ -3,7 +3,7 @@
     <input name="protocolo" value="<?= e($filtros['protocolo'] ?? ''); ?>" placeholder="Protocolo DGD">
 
     <select name="municipio_id">
-        <option value="">Municipio</option>
+        <option value="">Município</option>
         <?php foreach ($dominios['municipios'] as $municipio): ?>
             <option value="<?= e($municipio['id']); ?>" <?= (string) ($filtros['municipio_id'] ?? '') === (string) $municipio['id'] ? 'selected' : ''; ?>>
                 <?= e($municipio['nome']); ?>

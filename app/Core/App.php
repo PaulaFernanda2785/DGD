@@ -30,6 +30,14 @@ class App
             $this->router->dispatch();
         } catch (HttpException $exception) {
             $this->response->setStatusCode($exception->statusCode());
+
+            if ($this->request->expectsJson()) {
+                $this->response->json([
+                    'success' => false,
+                    'message' => $exception->getMessage(),
+                ], $exception->statusCode());
+            }
+
             View::renderError($exception->statusCode(), $exception->getMessage());
         } catch (Throwable $exception) {
             Logger::error($exception);
@@ -38,6 +46,13 @@ class App
             $message = $this->config['debug']
                 ? $exception->getMessage()
                 : 'Nao foi possivel processar a solicitacao.';
+
+            if ($this->request->expectsJson()) {
+                $this->response->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 500);
+            }
 
             View::renderError(500, $message);
         }

@@ -11,12 +11,14 @@
 ## 1. Arquivos entregues
 
 1. `database/schema.sql` - cria a estrutura principal do banco.
-2. `database/seed.sql` - insere perfis, permissoes, dominios, configuracoes e seed COBRADE minimo.
+2. `database/seed.sql` - insere perfis, permissoes, dominios, configuracoes, municipios, COMPDECs e catalogo COBRADE completo.
 3. `database/views.sql` - cria `vw_decretos_listagem` e `vw_painel_resumo`.
 4. `database/install.sql` - orientador de instalacao completa.
 5. `database/migrations/001_create_base_dgd.sql` - marcador da migration inicial.
 6. `database/seeds/001_seed_perfis_permissoes_dominios.sql` - marcador do seed inicial.
 7. `database/seeds/002_seed_municipios_pa.sql` - carga de municipios do Para gerada do CSV local.
+8. `database/seeds/003_seed_compdecs.sql` - carga oficial de COMPDECs e sincronizacao das UBMs atuantes.
+9. `database/seeds/004_seed_cobrade_catalogo_completo.sql` - carga COBRADE completa com grupo, subgrupo, tipo, subtipo e simbologia.
 
 ---
 
@@ -95,6 +97,8 @@ O arquivo `database/install.sql` foi gerado como SQL concatenado, sem depender d
 10. A view de listagem calcula duracao e status de prazo PGE.
 11. `recuperacoes_senha.token_hash` armazena apenas hash do token de recuperacao.
 12. `usuarios.two_factor_*` controla credenciamento e validacao TOTP.
+13. `compdecs` e a fonte oficial para regiao de integracao, prefeito, coordenador, telefone, e-mail e `ubm_nome`.
+14. `desastres.compdec_*` guarda snapshot dos dados da COMPDEC usados no cadastro.
 
 ---
 
@@ -146,7 +150,42 @@ Antes da producao, a CEDEC-PA deve validar os nomes oficiais, codigos IBGE e geo
 
 ---
 
-## 7. Carga COBRADE
+## 7. Carga de COMPDECs e UBMs
+
+A tabela `compdecs` foi importada do arquivo `compdecs.sql`, fornecido a partir da base COMPDEC do Sistema Multirriscos/Defesa Civil.
+
+A carga foi gerada em:
+
+```text
+database/seeds/003_seed_compdecs.sql
+```
+
+E tambem foi incorporada a:
+
+```text
+database/seed.sql
+database/install.sql
+```
+
+A importacao usa `municipios.codigo_ibge` para relacionar cada municipio a `compdecs.municipio_codigo`. A tabela `ubms` passa a ser sincronizada a partir de `compdecs.ubm_nome`; os registros sincronizados ficam identificados com:
+
+```text
+Fonte: COMPDEC DGD
+```
+
+No formulario de novo cadastro de desastre, ao selecionar o municipio, o sistema busca a COMPDEC correspondente e preenche automaticamente:
+
+1. UBM atuante.
+2. Regiao de integracao.
+3. Prefeito.
+4. Coordenador.
+5. Telefone.
+6. E-mail.
+
+Esses campos sao gravados em `desastres` como snapshot para preservar o historico do cadastro.
+
+---
+## 8. Carga COBRADE
 
 Existe base local em:
 
@@ -160,7 +199,7 @@ Tambem existem imagens de simbologia em:
 cobrade_simbologia_png/cobrade_simbologia/
 ```
 
-O `seed.sql` inclui apenas um registro COBRADE minimo para teste estrutural. A base completa deve ser convertida a partir da planilha validada, preservando:
+O `seed.sql` inclui a base COBRADE completa, convertida a partir da planilha validada e preservando:
 
 1. grupo;
 2. subgrupo;
@@ -172,7 +211,7 @@ O `seed.sql` inclui apenas um registro COBRADE minimo para teste estrutural. A b
 
 ---
 
-## 8. Compatibilidade e fallback
+## 9. Compatibilidade e fallback
 
 ### Coluna gerada
 

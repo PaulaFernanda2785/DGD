@@ -35,7 +35,9 @@ class DominioRepository
 
     public function tiposAnexo(): array
     {
-        return $this->all('tipos_anexo');
+        $stmt = Database::connection()->query('SELECT id, codigo, nome, obrigatorio FROM tipos_anexo WHERE ativo = 1 ORDER BY ordem ASC, nome ASC');
+
+        return $stmt->fetchAll();
     }
 
     public function municipios(): array
@@ -74,6 +76,25 @@ class DominioRepository
         $municipio = $stmt->fetch();
 
         return $municipio ?: null;
+    }
+
+    public function findUbmForMunicipio(int $ubmId, int $municipioId): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT id, nome, municipio_id
+             FROM ubms
+             WHERE id = :id
+               AND municipio_id = :municipio_id
+               AND ativo = 1
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'id' => $ubmId,
+            'municipio_id' => $municipioId,
+        ]);
+        $ubm = $stmt->fetch();
+
+        return $ubm ?: null;
     }
 
     private function all(string $table): array

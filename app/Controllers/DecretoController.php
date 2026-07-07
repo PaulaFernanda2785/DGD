@@ -40,7 +40,7 @@ class DecretoController extends Controller
 
     public function store(): void
     {
-        $result = $this->decretoService->cadastrar($this->request->post());
+        $result = $this->decretoService->cadastrar($this->request->post(), $this->request->files());
 
         if (!$result['success']) {
             Session::flash('errors', $result['errors']);
@@ -49,6 +49,9 @@ class DecretoController extends Controller
         }
 
         Session::flash('success', 'Registro cadastrado com sucesso.');
+        if (!empty($result['warnings'])) {
+            Session::flash('warning', implode(' ', $result['warnings']));
+        }
         $this->redirect('/decretos/' . $result['id']);
     }
 
@@ -73,7 +76,7 @@ class DecretoController extends Controller
 
     public function update(string $id): void
     {
-        $result = $this->decretoService->atualizar((int) $id, $this->request->post());
+        $result = $this->decretoService->atualizar((int) $id, $this->request->post(), $this->request->files());
 
         if (!$result['success']) {
             Session::flash('errors', $result['errors']);
@@ -82,6 +85,9 @@ class DecretoController extends Controller
         }
 
         Session::flash('success', 'Registro atualizado com sucesso.');
+        if (!empty($result['warnings'])) {
+            Session::flash('warning', implode(' ', $result['warnings']));
+        }
         $this->redirect('/decretos/' . $id);
     }
 

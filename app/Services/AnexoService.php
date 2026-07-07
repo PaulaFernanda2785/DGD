@@ -72,6 +72,35 @@ class AnexoService
         return ['success' => true, 'id' => $id];
     }
 
+    public function salvarMultiplos(int $desastreId, array $files, array $descriptions = []): array
+    {
+        $saved = [];
+        $errors = [];
+
+        foreach ($this->normalizarArquivosPorTipo($files) as $tipoAnexoId => $fileList) {
+            foreach ($fileList as $file) {
+                if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+
+                $result = $this->salvar($desastreId, $file, [
+                    'tipo_anexo_id' => $tipoAnexoId,
+                    'descricao' => $descriptions[$tipoAnexoId] ?? '',
+                ]);
+
+                if ($result['success']) {
+                    $saved[] = $result['id'];
+                    continue;
+                }
+
+                $fileName = (string) ($file['name'] ?? 'arquivo');
+                $errors[] = $fileName . ': ' . $result['message'];
+            }
+        }
+
+        return ['saved' => $saved, 'errors' => $errors];
+    }
+
     public function buscarParaDownload(int $id): array
     {
         $anexo = $this->anexos->findById($id);
@@ -120,5 +149,34 @@ class AnexoService
         }
 
         return null;
+    }
+
+    private function normalizarArquivosPorTipo(array $files): array
+    {
+        if (($files['name'] ?? null) === null || !is_array($files['name'])) {
+            return [];
+        }
+
+        $normalizados = [];
+
+        foreach ($files['name'] as $tipoAnexoId => $names) {
+            $tipoAnexoId = (int) $tipoAnexoId;
+
+            if ($tipoAnexoId < 1) {
+                continue;
+            }
+
+            foreach ((array) $names as $index => $name) {
+                $normalizados[$tipoAnexoId][] = [
+                    'name' => $name,
+                    'type' => $files['type'][$tipoAnexoId][$index] ?? '',
+                    'tmp_name' => $files['tmp_name'][$tipoAnexoId][$index] ?? '',
+                    'error' => $files['error'][$tipoAnexoId][$index] ?? UPLOAD_ERR_NO_FILE,
+                    'size' => $files['size'][$tipoAnexoId][$index] ?? 0,
+                ];
+            }
+        }
+
+        return $normalizados;
     }
 }

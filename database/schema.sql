@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS cobrade_tipos;
 DROP TABLE IF EXISTS cobrade_subgrupos;
 DROP TABLE IF EXISTS cobrade_grupos;
 DROP TABLE IF EXISTS ubms;
+DROP TABLE IF EXISTS compdecs;
 DROP TABLE IF EXISTS municipios;
 DROP TABLE IF EXISTS login_logs;
 DROP TABLE IF EXISTS usuarios_sessoes;
@@ -177,6 +178,33 @@ CREATE TABLE municipios (
     INDEX idx_municipios_nome (nome),
     INDEX idx_municipios_uf (uf),
     INDEX idx_municipios_ativo (ativo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE compdecs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    municipio_codigo VARCHAR(7) NULL,
+    municipio VARCHAR(150) NOT NULL,
+    regiao_integracao VARCHAR(100) NULL,
+    tem_compdec TINYINT(1) NOT NULL DEFAULT 0,
+    prefeito VARCHAR(180) NULL,
+    ubm_nome VARCHAR(180) NULL,
+    coordenador VARCHAR(180) NULL,
+    foto_coordenador VARCHAR(255) NULL,
+    telefone VARCHAR(80) NULL,
+    email VARCHAR(180) NULL,
+    endereco VARCHAR(255) NULL,
+    data_atualizacao VARCHAR(40) NULL,
+    latitude DECIMAL(11,8) NULL,
+    longitude DECIMAL(11,8) NULL,
+    fonte_hash CHAR(64) NULL,
+    sincronizado_em DATETIME NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_compdecs_municipio (municipio),
+    UNIQUE KEY uq_compdecs_municipio_codigo (municipio_codigo),
+    INDEX idx_compdecs_regiao_integracao (regiao_integracao),
+    INDEX idx_compdecs_tem_compdec (tem_compdec),
+    INDEX idx_compdecs_ubm_nome (ubm_nome)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE ubms (
@@ -343,6 +371,12 @@ CREATE TABLE desastres (
     protocolo_sequencial INT UNSIGNED NOT NULL,
     municipio_id INT UNSIGNED NOT NULL,
     ubm_id INT UNSIGNED NULL,
+    compdec_id INT UNSIGNED NULL,
+    compdec_regiao_integracao VARCHAR(100) NULL,
+    compdec_prefeito VARCHAR(180) NULL,
+    compdec_coordenador VARCHAR(180) NULL,
+    compdec_telefone VARCHAR(80) NULL,
+    compdec_email VARCHAR(180) NULL,
     tipo_decreto_id TINYINT UNSIGNED NOT NULL,
     cobrade_subtipo_id INT UNSIGNED NOT NULL,
     data_desastre DATE NOT NULL,
@@ -380,6 +414,8 @@ CREATE TABLE desastres (
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_desastres_ubm FOREIGN KEY (ubm_id) REFERENCES ubms(id)
         ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT fk_desastres_compdec FOREIGN KEY (compdec_id) REFERENCES compdecs(id)
+        ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT fk_desastres_tipo_decreto FOREIGN KEY (tipo_decreto_id) REFERENCES tipos_decreto(id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_desastres_cobrade_subtipo FOREIGN KEY (cobrade_subtipo_id) REFERENCES cobrade_subtipos(id)
@@ -404,6 +440,8 @@ CREATE TABLE desastres (
         ON UPDATE CASCADE ON DELETE SET NULL,
     UNIQUE KEY uq_desastres_ano_sequencial (protocolo_ano, protocolo_sequencial),
     INDEX idx_desastres_municipio (municipio_id),
+    INDEX idx_desastres_ubm (ubm_id),
+    INDEX idx_desastres_compdec (compdec_id),
     INDEX idx_desastres_cobrade_subtipo (cobrade_subtipo_id),
     INDEX idx_desastres_data_desastre (data_desastre),
     INDEX idx_desastres_data_decreto_municipal (data_decreto_municipal),

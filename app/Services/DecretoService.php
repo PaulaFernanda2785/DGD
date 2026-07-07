@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\HttpException;
 use App\Repositories\AnexoRepository;
 use App\Repositories\CobradeRepository;
+use App\Repositories\CompdecRepository;
 use App\Repositories\DecretoRepository;
 use App\Repositories\DominioRepository;
 use Throwable;
@@ -17,19 +18,23 @@ class DecretoService
 {
     private DecretoRepository $decretos;
     private DominioRepository $dominios;
+    private CompdecRepository $compdecs;
     private CobradeRepository $cobrade;
     private AnexoRepository $anexos;
     private ProtocoloDgdService $protocolo;
     private AuditoriaService $auditoria;
+    private AnexoService $anexoService;
 
     public function __construct()
     {
         $this->decretos = new DecretoRepository();
         $this->dominios = new DominioRepository();
+        $this->compdecs = new CompdecRepository();
         $this->cobrade = new CobradeRepository();
         $this->anexos = new AnexoRepository();
         $this->protocolo = new ProtocoloDgdService();
         $this->auditoria = new AuditoriaService();
+        $this->anexoService = new AnexoService();
     }
 
     public function listar(array $filters): array
@@ -45,7 +50,6 @@ class DecretoService
     {
         return [
             'municipios' => $this->dominios->municipios(),
-            'ubms' => $this->dominios->ubms(),
             'tiposDecreto' => $this->dominios->tiposDecreto(),
             'statusHomologacao' => $this->dominios->statusHomologacao(),
             'statusReconhecimento' => $this->dominios->statusReconhecimento(),
@@ -54,6 +58,9 @@ class DecretoService
             'tiposAnexo' => $this->dominios->tiposAnexo(),
             'analistas' => $this->dominios->analistas(),
             'cobradeGrupos' => $this->cobrade->grupos(),
+            'cobradeSubgrupos' => $this->cobrade->subgrupos(null),
+            'cobradeTipos' => $this->cobrade->tipos(null),
+            'cobradeSubtipos' => $this->cobrade->subtiposComHierarquia(),
         ];
     }
 
@@ -81,7 +88,7 @@ class DecretoService
         return $registro;
     }
 
-    public function cadastrar(array $data): array
+    public function cadastrar(array $data, array $files = []): array
     {
         $errors = $this->validar($data);
 
@@ -111,7 +118,9 @@ class DecretoService
 
             Database::commit();
 
-            return ['success' => true, 'id' => $id];
+            $warnings = $this->salvarAnexosDoFormulario($id, $files, $data);
+
+            return ['success' => true, 'id' => $id, 'warnings' => $warnings];
         } catch (Throwable) {
             Database::rollBack();
 
@@ -119,7 +128,7 @@ class DecretoService
         }
     }
 
-    public function atualizar(int $id, array $data): array
+    public function atualizar(int $id, array $data, array $files = []): array
     {
         $registro = $this->buscarParaEdicao($id);
         $errors = $this->validar($data);
@@ -141,7 +150,9 @@ class DecretoService
                 'valor_novo' => $payload,
             ]);
 
-            return ['success' => true];
+            $warnings = $this->salvarAnexosDoFormulario($id, $files, $data);
+
+            return ['success' => true, 'warnings' => $warnings];
         } catch (Throwable) {
             return ['success' => false, 'errors' => ['geral' => ['Nao foi possivel atualizar o desastre.']]];
         }
@@ -184,6 +195,14 @@ class DecretoService
             $errors['data_desastre'][] = 'A data do desastre nao pode ser futura.';
         }
 
+        if (($data['municipio_id'] ?? '') !== '' && ($data['ubm_id'] ?? '') !== '') {
+            $ubm = $this->dominios->findUbmForMunicipio((int) $data['ubm_id'], (int) $data['municipio_id']);
+
+            if (!$ubm) {
+                $errors['ubm_id'][] = 'Selecione uma UBM vinculada ao municipio informado.';
+            }
+        }
+
         foreach (['numero_obitos', 'numero_feridos', 'numero_enfermos', 'numero_desabrigados', 'numero_desalojados', 'numero_outros_afetados'] as $field) {
             if ((int) ($data[$field] ?? 0) < 0) {
                 $errors[$field][] = 'Informe valor maior ou igual a zero.';
@@ -197,10 +216,23 @@ class DecretoService
     {
         $intOrNull = static fn (mixed $value): ?int => $value === '' || $value === null ? null : (int) $value;
         $strOrNull = static fn (mixed $value): ?string => trim((string) $value) === '' ? null : trim((string) $value);
+        $compdec = $this->compdecs->findByMunicipioId((int) $data['municipio_id']);
+        $ubmId = $intOrNull($data['ubm_id'] ?? null);
+        $compdecValue = static fn (mixed $value): string => trim((string) $value) === '' ? 'Nao foi registrado' : trim((string) $value);
+
+        if ($compdec) {
+            $ubmId ??= $this->compdecs->syncUbm($compdec);
+        }
 
         return [
             'municipio_id' => (int) $data['municipio_id'],
-            'ubm_id' => $intOrNull($data['ubm_id'] ?? null),
+            'ubm_id' => $ubmId,
+            'compdec_id' => $compdec ? (int) $compdec['id'] : null,
+            'compdec_regiao_integracao' => $compdec ? $compdecValue($compdec['regiao_integracao'] ?? null) : 'Nao foi registrado',
+            'compdec_prefeito' => $compdec ? $compdecValue($compdec['prefeito'] ?? null) : 'Nao foi registrado',
+            'compdec_coordenador' => $compdec ? $compdecValue($compdec['coordenador'] ?? null) : 'Nao foi registrado',
+            'compdec_telefone' => $compdec ? $compdecValue($compdec['telefone'] ?? null) : 'Nao foi registrado',
+            'compdec_email' => $compdec ? $compdecValue($compdec['email'] ?? null) : 'Nao foi registrado',
             'tipo_decreto_id' => (int) $data['tipo_decreto_id'],
             'cobrade_subtipo_id' => (int) $data['cobrade_subtipo_id'],
             'data_desastre' => (string) $data['data_desastre'],
@@ -225,5 +257,20 @@ class DecretoService
             'numero_outros_afetados' => max((int) ($data['numero_outros_afetados'] ?? 0), 0),
             'observacoes' => $strOrNull($data['observacoes'] ?? null),
         ];
+    }
+
+    private function salvarAnexosDoFormulario(int $desastreId, array $files, array $data): array
+    {
+        $result = $this->anexoService->salvarMultiplos(
+            $desastreId,
+            $files['anexos'] ?? [],
+            $data['anexo_descricao'] ?? []
+        );
+
+        if ($result['errors'] === []) {
+            return [];
+        }
+
+        return ['Alguns anexos nao foram enviados: ' . implode(' ', $result['errors'])];
     }
 }

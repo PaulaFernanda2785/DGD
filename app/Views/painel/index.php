@@ -24,7 +24,7 @@
             <thead>
                 <tr>
                     <th>Protocolo</th>
-                    <th>Municipio</th>
+                    <th>Município</th>
                     <th>Data</th>
                     <th>Homologacao</th>
                     <th>Reconhecimento</th>

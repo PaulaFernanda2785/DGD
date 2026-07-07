@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AnexoController;
 use App\Controllers\AuthController;
 use App\Controllers\CobradeController;
+use App\Controllers\CompdecController;
 use App\Controllers\DecretoController;
 use App\Controllers\PainelController;
 use App\Controllers\PasswordRecoveryController;
@@ -42,6 +43,12 @@ return [
     ['POST', '/decretos/{id}/excluir', [DecretoController::class, 'destroy'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.excluir'], CsrfMiddleware::class]],
     ['POST', '/decretos/{id}/status', [DecretoController::class, 'updateStatus'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar_status_listagem'], CsrfMiddleware::class]],
 
+    ['GET', '/compdecs', [CompdecController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'compdecs.visualizar']]],
+    ['GET', '/compdecs/municipio/{municipioId}', [CompdecController::class, 'municipio'], [AuthMiddleware::class]],
+    ['GET', '/compdecs/{id}', [CompdecController::class, 'show'], [AuthMiddleware::class, [PermissionMiddleware::class, 'compdecs.visualizar']]],
+    ['GET', '/compdecs/{id}/editar', [CompdecController::class, 'edit'], [AuthMiddleware::class, [PermissionMiddleware::class, 'compdecs.editar']]],
+    ['POST', '/compdecs/{id}/editar', [CompdecController::class, 'update'], [AuthMiddleware::class, [PermissionMiddleware::class, 'compdecs.editar'], CsrfMiddleware::class]],
+
     ['POST', '/decretos/{id}/anexos', [AnexoController::class, 'store'], [AuthMiddleware::class, [PermissionMiddleware::class, 'anexos.upload'], CsrfMiddleware::class]],
     ['GET', '/anexos/{id}/download', [AnexoController::class, 'download'], [AuthMiddleware::class]],
     ['POST', '/anexos/{id}/excluir', [AnexoController::class, 'destroy'], [AuthMiddleware::class, [PermissionMiddleware::class, 'anexos.excluir'], CsrfMiddleware::class]],
@@ -57,9 +64,9 @@ return [
     ['GET', '/alterar-senha', [SenhaController::class, 'edit'], [AuthMiddleware::class, [PermissionMiddleware::class, 'senha.alterar_propria']]],
     ['POST', '/alterar-senha', [SenhaController::class, 'update'], [AuthMiddleware::class, [PermissionMiddleware::class, 'senha.alterar_propria'], CsrfMiddleware::class]],
 
-    ['GET', '/cobrade/grupos', [CobradeController::class, 'grupos'], [AuthMiddleware::class]],
-    ['GET', '/cobrade/subgrupos', [CobradeController::class, 'subgrupos'], [AuthMiddleware::class]],
-    ['GET', '/cobrade/tipos', [CobradeController::class, 'tipos'], [AuthMiddleware::class]],
-    ['GET', '/cobrade/subtipos', [CobradeController::class, 'subtipos'], [AuthMiddleware::class]],
-    ['GET', '/cobrade/{id}/detalhe', [CobradeController::class, 'detalhe'], [AuthMiddleware::class]],
+    ['GET', '/cobrade/grupos', [CobradeController::class, 'grupos'], []],
+    ['GET', '/cobrade/subgrupos', [CobradeController::class, 'subgrupos'], []],
+    ['GET', '/cobrade/tipos', [CobradeController::class, 'tipos'], []],
+    ['GET', '/cobrade/subtipos', [CobradeController::class, 'subtipos'], []],
+    ['GET', '/cobrade/{id}/detalhe', [CobradeController::class, 'detalhe'], []],
 ];

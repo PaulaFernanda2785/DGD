@@ -27,7 +27,7 @@ O MVP possui:
 10. modulo Decretos/Desastres;
 11. protocolo DGD automatico;
 12. anexos protegidos;
-13. COBRADE em JSON;
+13. COBRADE relacional completo com quatro niveis e simbologia;
 14. auditoria basica;
 15. documentacao de instalacao e testes.
 
@@ -169,9 +169,8 @@ No Wampserver, mantenha `MAIL_VERIFY_PEER=true` e informe um `cacert.pem` valido
 
 ## 8. Pendencias para validacao humana
 
-1. Validar base completa COBRADE a partir da planilha oficial.
-2. Validar lista final de UBMs.
-3. Validar nomes, codigos IBGE e geolocalizacao dos municipios.
-4. Confirmar regra operacional final do prazo PGE.
-5. Definir politica institucional de senha.
-6. Revisar identidade visual final com a CEDEC-PA.
+1. Validar lista final de UBMs.
+2. Validar nomes, codigos IBGE e geolocalizacao dos municipios.
+3. Confirmar regra operacional final do prazo PGE.
+4. Definir politica institucional de senha.
+5. Revisar identidade visual final com a CEDEC-PA.

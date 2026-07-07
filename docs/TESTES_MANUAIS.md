@@ -55,6 +55,7 @@
 | Teste | Resultado esperado |
 |---|---|
 | Admin cadastra desastre | Gera protocolo DGD automatico. |
+| Abrir formulario de novo cadastro | Exibe cabecalho moderno, secoes numeradas, campos obrigatorios identificados, dados da COMPDEC, COBRADE e anexos na mesma tela. |
 | Gestor cadastra desastre | Permitido. |
 | Operador cadastra desastre | Permitido. |
 | Operador acessa edicao | Bloqueado. |
@@ -80,6 +81,10 @@
 
 | Teste | Resultado esperado |
 |---|---|
+| Selecionar anexos no formulario de novo cadastro | Arquivos aparecem na lista do tipo de anexo correspondente e sao salvos apos criar o desastre. |
+| Arrastar anexos para o formulario | Arquivos sao adicionados ao tipo de anexo escolhido antes do envio. |
+| Colar imagem/arquivo em um bloco de anexo focado | Arquivo colado aparece na lista e pode ser enviado. |
+| Remover arquivo antes de enviar | Arquivo sai da lista e nao e enviado. |
 | Upload PDF valido | Salva arquivo fora de `public` e metadados no banco. |
 | Upload PHP/JS/HTML | Bloqueado. |
 | Upload acima do limite | Bloqueado. |

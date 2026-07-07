@@ -3,16 +3,25 @@
 use App\Core\Auth;
 
 $usuario = Auth::user();
+$appJsVersion = is_file(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
+    ? (string) filemtime(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
+    : '1';
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+$runtimeBasePath = rtrim(str_replace('/index.php', '', $scriptName), '/');
+$runtimeBaseUrl = $scheme . '://' . $host . $runtimeBasePath;
+$assetBaseUrl = rtrim($runtimeBaseUrl, '/');
 ?>
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-app-base-url="<?= e(rtrim($runtimeBaseUrl, '/')); ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? 'DGD'); ?> - DGD</title>
-    <link rel="icon" href="<?= e(url('/assets/img/app-icon-192.png')); ?>">
-    <link rel="stylesheet" href="<?= e(url('/assets/css/app.css')); ?>">
-    <script src="<?= e(url('/assets/js/app.js')); ?>" defer></script>
+    <link rel="icon" href="<?= e($assetBaseUrl . '/assets/img/app-icon-192.png'); ?>">
+    <link rel="stylesheet" href="<?= e($assetBaseUrl . '/assets/css/app.css'); ?>">
+    <script src="<?= e($assetBaseUrl . '/assets/js/app.js?v=' . $appJsVersion); ?>" defer></script>
 </head>
 <body>
     <div class="app-shell">
@@ -32,6 +41,10 @@ $usuario = Auth::user();
 
                 <?php if (can('decretos.visualizar')): ?>
                     <a href="<?= e(url('/decretos')); ?>">Decretos</a>
+                <?php endif; ?>
+
+                <?php if (can('compdecs.visualizar')): ?>
+                    <a href="<?= e(url('/compdecs')); ?>">COMPDECs</a>
                 <?php endif; ?>
 
                 <?php if (can('usuarios.visualizar')): ?>
