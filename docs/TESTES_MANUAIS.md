@@ -56,6 +56,7 @@
 |---|---|
 | Admin cadastra desastre | Gera protocolo DGD automatico. |
 | Abrir formulario de novo cadastro | Exibe cabecalho moderno, secoes numeradas, campos obrigatorios identificados, dados da COMPDEC, COBRADE e anexos na mesma tela. |
+| Redimensionar formulario de novo cadastro | Layout se ajusta sem sobrepor textos ou campos em desktop, notebook, tablet e celular. |
 | Gestor cadastra desastre | Permitido. |
 | Operador cadastra desastre | Permitido. |
 | Operador acessa edicao | Bloqueado. |

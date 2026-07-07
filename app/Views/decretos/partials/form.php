@@ -3,10 +3,10 @@
 
     <div class="form-intro span-2">
         <div>
-            <span>Formulario operacional</span>
+            <span>Formulário operacional</span>
             <strong>Preencha os dados essenciais antes de salvar o registro.</strong>
         </div>
-        <p><span class="required-dot"></span> Campos marcados como obrigatorios precisam ser informados para gerar o protocolo DGD.</p>
+        <p><span class="required-dot"></span> Campos marcados como obrigatórios precisam ser informados para gerar o protocolo DGD.</p>
     </div>
 
     <?php if (!empty($registro['protocolo_dgd'])): ?>
@@ -17,17 +17,17 @@
     <?php endif; ?>
 
     <fieldset class="span-2 form-section">
-        <legend>Identificacao e localizacao</legend>
+        <legend>Identificação e localização</legend>
         <div class="form-section-heading">
             <div>
                 <span>01</span>
-                <h2>Municipio e dados da COMPDEC</h2>
+                <h2>Município e dados da COMPDEC</h2>
             </div>
-            <p>Ao selecionar o municipio, o sistema preenche automaticamente UBM atuante e dados da COMPDEC quando houver registro.</p>
+            <p>Ao selecionar o município, o sistema preenche automaticamente a UBM atuante e os dados da COMPDEC quando houver registro.</p>
         </div>
         <div class="form-grid inner">
             <div class="field">
-                <label for="municipio_id">Municipio <span class="required-label">Obrigatorio</span></label>
+                <label for="municipio_id">Município <span class="required-label">Obrigatório</span></label>
                 <select id="municipio_id" name="municipio_id" required data-ubm-municipio>
                     <option value="">Selecione</option>
                     <?php foreach ($dominios['municipios'] as $municipio): ?>
@@ -35,21 +35,21 @@
                         <option value="<?= e($municipio['id']); ?>" <?= $selected ? 'selected' : ''; ?>><?= e($municipio['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <small>Define o municipio do desastre e carrega automaticamente os dados da COMPDEC.</small>
+                <small>Define o município do desastre e carrega automaticamente os dados da COMPDEC.</small>
             </div>
 
             <div class="field">
                 <label for="ubm_atuante">UBM atuante</label>
-                <input id="ubm_atuante" value="<?= e(old('ubm_atuante', $registro['ubm_atuante'] ?? 'Nao foi registrado')); ?>" readonly data-compdec-field="ubm_nome">
+                <input id="ubm_atuante" value="<?= e(old('ubm_atuante', $registro['ubm_atuante'] ?? 'Não foi registrado')); ?>" readonly data-compdec-field="ubm_nome">
             </div>
 
             <div class="field">
-                <label for="compdec_situacao">Situacao da COMPDEC</label>
-                <input id="compdec_situacao" value="<?= e(old('compdec_situacao', isset($registro['compdec_id']) && $registro['compdec_id'] ? 'Possui COMPDEC' : 'Nao foi registrado')); ?>" readonly data-compdec-field="situacao_compdec">
+                <label for="compdec_situacao">Situação da COMPDEC</label>
+                <input id="compdec_situacao" value="<?= e(old('compdec_situacao', isset($registro['compdec_id']) && $registro['compdec_id'] ? 'Possui COMPDEC' : 'Não foi registrado')); ?>" readonly data-compdec-field="situacao_compdec">
             </div>
 
             <div class="field">
-                <label for="compdec_regiao_integracao">Regiao de integracao</label>
+                <label for="compdec_regiao_integracao">Região de integração</label>
                 <input id="compdec_regiao_integracao" name="compdec_regiao_integracao" value="<?= e(old('compdec_regiao_integracao', $registro['compdec_regiao_integracao'] ?? '')); ?>" readonly data-compdec-field="regiao_integracao">
             </div>
 
@@ -75,8 +75,8 @@
 
             <div class="field span-2 decree-type-field">
                 <div class="decree-type-heading">
-                    <span class="field-label">Tipo de decreto <span class="required-label">Obrigatorio</span></span>
-                    <small>Informe se o ato municipal e de emergencia ou calamidade.</small>
+                    <span class="field-label">Tipo de decreto <span class="required-label">Obrigatório</span></span>
+                    <small>Informe se o ato municipal é de emergência ou calamidade.</small>
                 </div>
                 <div class="segmented-options decree-type-options" role="radiogroup" aria-label="Tipo de decreto">
                     <?php foreach ($dominios['tiposDecreto'] as $index => $tipo): ?>
@@ -96,9 +96,9 @@
             </div>
 
             <div class="field">
-                <label for="data_desastre">Data do desastre <span class="required-label">Obrigatorio</span></label>
+                <label for="data_desastre">Data do desastre <span class="required-label">Obrigatório</span></label>
                 <input id="data_desastre" name="data_desastre" type="date" value="<?= e(old('data_desastre', $registro['data_desastre'] ?? '')); ?>" required>
-                <small>Nao pode ser uma data futura.</small>
+                <small>Não pode ser uma data futura.</small>
             </div>
         </div>
     </fieldset>
@@ -108,13 +108,13 @@
         <div class="form-section-heading">
             <div>
                 <span>02</span>
-                <h2>Classificacao oficial COBRADE</h2>
+                <h2>Classificação oficial COBRADE</h2>
             </div>
-            <p>Selecione a sequencia oficial do evento. Cada escolha libera o proximo nivel da classificacao.</p>
+            <p>Selecione a sequência oficial do evento. Cada escolha libera o próximo nível da classificação.</p>
         </div>
         <div class="cobrade-step-grid">
             <label class="modern-field" for="cobrade_grupo_id">
-                <span>Grupo COBRADE <strong>Obrigatorio</strong></span>
+                <span>Grupo COBRADE <strong>Obrigatório</strong></span>
                 <select id="cobrade_grupo_id" name="cobrade_grupo_id" data-cobrade="grupo" required>
                     <option value="">Selecione</option>
                     <?php foreach ($dominios['cobradeGrupos'] as $grupo): ?>
@@ -126,7 +126,7 @@
             </label>
 
             <label class="modern-field" for="cobrade_subgrupo_id">
-                <span>Subgrupo COBRADE <strong>Obrigatorio</strong></span>
+                <span>Subgrupo COBRADE <strong>Obrigatório</strong></span>
                 <select id="cobrade_subgrupo_id" name="cobrade_subgrupo_id" data-cobrade="subgrupo" data-current="<?= e(old('cobrade_subgrupo_id', $registro['cobrade_subgrupo_id'] ?? '')); ?>" required disabled>
                     <option value="">Selecione um grupo primeiro</option>
                     <?php foreach ($dominios['cobradeSubgrupos'] ?? [] as $subgrupo): ?>
@@ -140,7 +140,7 @@
             </label>
 
             <label class="modern-field" for="cobrade_tipo_id">
-                <span>Tipo COBRADE <strong>Obrigatorio</strong></span>
+                <span>Tipo COBRADE <strong>Obrigatório</strong></span>
                 <select id="cobrade_tipo_id" name="cobrade_tipo_id" data-cobrade="tipo" data-current="<?= e(old('cobrade_tipo_id', $registro['cobrade_tipo_id'] ?? '')); ?>" required disabled>
                     <option value="">Selecione um subgrupo primeiro</option>
                     <?php foreach ($dominios['cobradeTipos'] ?? [] as $tipo): ?>
@@ -150,11 +150,11 @@
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <small>Categoria especÃ­fica do evento.</small>
+                <small>Categoria específica do evento.</small>
             </label>
 
             <label class="modern-field" for="cobrade_subtipo_id">
-                <span>Subtipo COBRADE <strong>Obrigatorio</strong></span>
+                <span>Subtipo COBRADE <strong>Obrigatório</strong></span>
                 <select id="cobrade_subtipo_id" name="cobrade_subtipo_id" data-cobrade="subtipo" data-current="<?= e(old('cobrade_subtipo_id', $registro['cobrade_subtipo_id'] ?? '')); ?>" required disabled>
                     <option value="">Selecione um tipo primeiro</option>
                     <?php foreach ($dominios['cobradeSubtipos'] ?? [] as $subtipo): ?>
@@ -187,7 +187,7 @@
                 <span data-cobrade-preview-symbol>COBRADE</span>
             </div>
             <div>
-                <span>Classificacao selecionada</span>
+                <span>Classificação selecionada</span>
                 <strong data-cobrade-preview-title></strong>
                 <small data-cobrade-preview-meta></small>
                 <p id="cobrade-descricao" data-cobrade-preview-descricao></p>
@@ -196,22 +196,22 @@
     </fieldset>
 
     <fieldset class="span-2 form-section">
-        <legend>Decreto, homologacao, reconhecimento e PGE</legend>
+        <legend>Decreto, homologação, reconhecimento e PGE</legend>
         <div class="form-section-heading">
             <div>
                 <span>03</span>
                 <h2>Atos e acompanhamento institucional</h2>
             </div>
-            <p>Informe protocolos, datas e situacoes de homologacao, reconhecimento federal, envio PGE e analise tecnica.</p>
+            <p>Informe protocolos, datas e situações de homologação, reconhecimento federal, envio à PGE e análise técnica.</p>
         </div>
         <div class="form-grid inner">
             <div class="field"><label>Protocolo S2ID</label><input name="protocolo_s2id" value="<?= e(old('protocolo_s2id', $registro['protocolo_s2id'] ?? '')); ?>"></div>
-            <div class="field"><label>Numero decreto municipal</label><input name="numero_decreto_municipal" value="<?= e(old('numero_decreto_municipal', $registro['numero_decreto_municipal'] ?? '')); ?>"></div>
-            <div class="field"><label>Data decreto municipal</label><input name="data_decreto_municipal" type="date" value="<?= e(old('data_decreto_municipal', $registro['data_decreto_municipal'] ?? '')); ?>"></div>
-            <div class="field"><label>Numero decreto estadual</label><input name="numero_decreto_homologacao_estadual" value="<?= e(old('numero_decreto_homologacao_estadual', $registro['numero_decreto_homologacao_estadual'] ?? '')); ?>"></div>
-            <div class="field"><label>Data homologacao</label><input name="data_decreto_homologacao" type="date" value="<?= e(old('data_decreto_homologacao', $registro['data_decreto_homologacao'] ?? '')); ?>"></div>
+            <div class="field"><label>Número do decreto municipal</label><input name="numero_decreto_municipal" value="<?= e(old('numero_decreto_municipal', $registro['numero_decreto_municipal'] ?? '')); ?>"></div>
+            <div class="field"><label>Data do decreto municipal</label><input name="data_decreto_municipal" type="date" value="<?= e(old('data_decreto_municipal', $registro['data_decreto_municipal'] ?? '')); ?>"></div>
+            <div class="field"><label>Número do decreto estadual</label><input name="numero_decreto_homologacao_estadual" value="<?= e(old('numero_decreto_homologacao_estadual', $registro['numero_decreto_homologacao_estadual'] ?? '')); ?>"></div>
+            <div class="field"><label>Data de homologação</label><input name="data_decreto_homologacao" type="date" value="<?= e(old('data_decreto_homologacao', $registro['data_decreto_homologacao'] ?? '')); ?>"></div>
             <div class="field">
-                <label>Homologacao</label>
+                <label>Homologação</label>
                 <?php $name = 'homologacao_status_id'; $options = $dominios['statusHomologacao']; require view_path('decretos/partials/select'); ?>
             </div>
             <div class="field">
@@ -219,15 +219,15 @@
                 <?php $name = 'reconhecimento_status_id'; $options = $dominios['statusReconhecimento']; require view_path('decretos/partials/select'); ?>
             </div>
             <div class="field"><label>Protocolo PAE/PGE</label><input name="protocolo_pae_pge" value="<?= e(old('protocolo_pae_pge', $registro['protocolo_pae_pge'] ?? '')); ?>"></div>
-            <div class="field"><label>Data envio PGE</label><input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>"></div>
+            <div class="field"><label>Data de envio à PGE</label><input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>"></div>
             <div class="field">
-                <label>Status envio PGE</label>
+                <label>Status de envio à PGE</label>
                 <?php $name = 'status_envio_pge_id'; $options = $dominios['statusEnvioPge']; require view_path('decretos/partials/select'); ?>
             </div>
             <div class="field">
                 <label>Analista</label>
                 <select name="analista_id">
-                    <option value="">Nao informado</option>
+                    <option value="">Não informado</option>
                     <?php foreach ($dominios['analistas'] as $analista): ?>
                         <?php $selected = (string) old('analista_id', $registro['analista_id'] ?? '') === (string) $analista['id']; ?>
                         <option value="<?= e($analista['id']); ?>" <?= $selected ? 'selected' : ''; ?>><?= e($analista['nome']); ?></option>
@@ -244,18 +244,18 @@
                 <span>04</span>
                 <h2>Recursos e danos humanos</h2>
             </div>
-            <p>Atualize o status dos recursos e os quantitativos de pessoas afetadas. O total e calculado automaticamente.</p>
+            <p>Atualize o status dos recursos e os quantitativos de pessoas afetadas. O total é calculado automaticamente.</p>
         </div>
         <div class="form-grid inner">
             <div class="field">
-                <label>Recurso resposta</label>
+                <label>Recurso de resposta</label>
                 <?php $name = 'recurso_resposta_status_id'; $options = $dominios['statusRecurso']; require view_path('decretos/partials/select'); ?>
             </div>
             <div class="field">
-                <label>Recurso reconstrucao</label>
+                <label>Recurso de reconstrução</label>
                 <?php $name = 'recurso_reconstrucao_status_id'; $options = $dominios['statusRecurso']; require view_path('decretos/partials/select'); ?>
             </div>
-            <?php foreach (['numero_obitos' => 'Obitos', 'numero_feridos' => 'Feridos', 'numero_enfermos' => 'Enfermos', 'numero_desabrigados' => 'Desabrigados', 'numero_desalojados' => 'Desalojados', 'numero_outros_afetados' => 'Outros afetados'] as $field => $label): ?>
+            <?php foreach (['numero_obitos' => 'Óbitos', 'numero_feridos' => 'Feridos', 'numero_enfermos' => 'Enfermos', 'numero_desabrigados' => 'Desabrigados', 'numero_desalojados' => 'Desalojados', 'numero_outros_afetados' => 'Outros afetados'] as $field => $label): ?>
                 <div class="field">
                     <label><?= e($label); ?></label>
                     <input class="affected-input" name="<?= e($field); ?>" type="number" min="0" value="<?= e(old($field, $registro[$field] ?? '0')); ?>">
@@ -272,11 +272,11 @@
         <div class="form-section-heading">
             <div>
                 <span>05</span>
-                <h2>Observacoes complementares</h2>
+                <h2>Observações complementares</h2>
             </div>
-            <p>Registre informacoes relevantes que nao estejam cobertas pelos campos estruturados.</p>
+            <p>Registre informações relevantes que não estejam cobertas pelos campos estruturados.</p>
         </div>
-        <label>Observacoes</label>
+        <label>Observações</label>
         <textarea name="observacoes" rows="4"><?= e(old('observacoes', $registro['observacoes'] ?? '')); ?></textarea>
     </div>
 
@@ -285,9 +285,9 @@
         <div class="form-section-heading">
             <div>
                 <span>06</span>
-                <h2>Documentos e evidencias</h2>
+                <h2>Documentos e evidências</h2>
             </div>
-            <p>Anexe os documentos previstos por tipo. Voce pode selecionar, arrastar ou colar arquivos em cada bloco.</p>
+            <p>Anexe os documentos previstos por tipo. Você pode selecionar, arrastar ou colar arquivos em cada bloco.</p>
         </div>
         <div class="attachment-grid" data-attachment-area>
             <?php foreach ($dominios['tiposAnexo'] as $tipoAnexo): ?>
@@ -320,7 +320,7 @@
                     <input
                         id="<?= e($descricaoId); ?>"
                         name="anexo_descricao[<?= e($tipoAnexo['id']); ?>]"
-                        placeholder="Descricao opcional"
+                        placeholder="Descrição opcional"
                     >
 
                     <ul class="attachment-list" data-attachment-list>
