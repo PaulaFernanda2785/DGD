@@ -35,7 +35,7 @@
         <label for="tem_compdec">Possui COMPDEC</label>
         <select id="tem_compdec" name="tem_compdec">
             <option value="1" <?= (string) old('tem_compdec', $compdec['tem_compdec'] ?? '0') === '1' ? 'selected' : ''; ?>>Sim</option>
-            <option value="0" <?= (string) old('tem_compdec', $compdec['tem_compdec'] ?? '0') === '0' ? 'selected' : ''; ?>>Nao</option>
+            <option value="0" <?= (string) old('tem_compdec', $compdec['tem_compdec'] ?? '0') === '0' ? 'selected' : ''; ?>>Não</option>
         </select>
     </div>
 

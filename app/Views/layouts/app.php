@@ -98,6 +98,10 @@ $assetBaseUrl = rtrim($runtimeBaseUrl, '/');
         <div class="modal history-modal" role="dialog" aria-modal="true" aria-labelledby="history-title">
             <h2 id="history-title">Registrar histórico</h2>
             <div class="history-modal-summary" data-history-modal-summary></div>
+            <div class="field history-pge-date-field" data-history-pge-date-field hidden>
+                <label for="history-pge-date">Data de envio à PGE</label>
+                <input id="history-pge-date" type="date" data-history-pge-date>
+            </div>
             <label for="history-observation">Observação</label>
             <textarea id="history-observation" rows="4" data-history-textarea placeholder="Descreva o motivo ou contexto desta alteração."></textarea>
             <div class="modal-actions">

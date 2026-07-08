@@ -7,12 +7,15 @@
     <?= csrf_input(); ?>
     <input type="hidden" name="campo" value="<?= e($campo); ?>">
     <input type="hidden" name="historico_observacao" data-history-observation>
+    <?php if ($campo === 'status_envio_pge_id'): ?>
+        <input type="hidden" name="data_envio_pge" value="<?= e($registro['data_envio_pge'] ?? ''); ?>" data-pge-date-target>
+    <?php endif; ?>
     <select name="valor">
         <?php foreach ($opcoes as $opcao): ?>
-            <option value="<?= e($opcao['id']); ?>" <?= (string) $valorAtual === (string) $opcao['id'] ? 'selected' : ''; ?>>
+            <option value="<?= e($opcao['id']); ?>" data-codigo="<?= e($opcao['codigo'] ?? ''); ?>" <?= (string) $valorAtual === (string) $opcao['id'] ? 'selected' : ''; ?>>
                 <?= e($opcao['nome']); ?>
             </option>
         <?php endforeach; ?>
     </select>
-    <button type="submit">Salvar</button>
+    <button type="submit" aria-label="Salvar status">Salvar</button>
 </form>

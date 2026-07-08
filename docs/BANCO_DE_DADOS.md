@@ -19,6 +19,9 @@
 7. `database/seeds/002_seed_municipios_pa.sql` - carga de municipios do Para gerada do CSV local.
 8. `database/seeds/003_seed_compdecs.sql` - carga oficial de COMPDECs e sincronizacao das UBMs atuantes.
 9. `database/seeds/004_seed_cobrade_catalogo_completo.sql` - carga COBRADE completa com grupo, subgrupo, tipo, subtipo e simbologia.
+10. `database/migrations/2026_07_08_pge_status_date_rules.sql` - adiciona `data_conclusao_pge` e atualiza o calculo de prazo PGE.
+11. `database/migrations/2026_07_08_homologacao_pge_restore_rule.sql` - preserva e restaura o estado PGE quando a homologacao muda para ou deixa de ser homologada.
+12. `database/migrations/2026_07_08_add_cobrade_simbologia_to_decretos_view.sql` - inclui `cobrade_simbologia` na view de listagem para exibir a imagem simbolica do desastre.
 
 ---
 
@@ -94,7 +97,7 @@ O arquivo `database/install.sql` foi gerado como SQL concatenado, sem depender d
 7. Anexos sao metadados no banco, nao BLOB.
 8. Exclusao de usuarios, desastres e anexos e logica.
 9. Auditoria possui tabela propria.
-10. A view de listagem calcula duracao e status de prazo PGE.
+10. A view de listagem calcula duracao e status de prazo PGE a partir de `data_envio_pge`, encerrando em `data_conclusao_pge` quando o envio estiver concluido ou quando a homologacao estiver homologada.
 11. `recuperacoes_senha.token_hash` armazena apenas hash do token de recuperacao.
 12. `usuarios.two_factor_*` controla credenciamento e validacao TOTP.
 13. `compdecs` e a fonte oficial para regiao de integracao, prefeito, coordenador, telefone, e-mail e `ubm_nome`.

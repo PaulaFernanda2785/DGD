@@ -1,6 +1,25 @@
--- DGD - Views operacionais
+-- Regra: homologacao homologada conclui PGE e preserva o estado anterior
+-- para restauracao caso a homologacao deixe de ser homologada.
 
 SET NAMES utf8mb4;
+
+ALTER TABLE desastres
+    ADD COLUMN status_envio_pge_antes_homologacao_id TINYINT UNSIGNED NULL AFTER data_conclusao_pge,
+    ADD COLUMN data_conclusao_pge_antes_homologacao DATE NULL AFTER status_envio_pge_antes_homologacao_id,
+    ADD INDEX idx_desastres_status_pge_backup_homologacao (status_envio_pge_antes_homologacao_id),
+    ADD CONSTRAINT fk_desastres_status_pge_backup_homologacao
+        FOREIGN KEY (status_envio_pge_antes_homologacao_id) REFERENCES status_envio_pge(id)
+        ON UPDATE CASCADE ON DELETE SET NULL;
+
+UPDATE desastres d
+INNER JOIN status_homologacao sh ON sh.id = d.homologacao_status_id
+INNER JOIN status_envio_pge sep ON sep.id = d.status_envio_pge_id
+SET
+    d.status_envio_pge_antes_homologacao_id = COALESCE(d.status_envio_pge_antes_homologacao_id, d.status_envio_pge_id),
+    d.data_conclusao_pge_antes_homologacao = d.data_conclusao_pge,
+    d.status_envio_pge_id = (SELECT id FROM status_envio_pge WHERE codigo = 'CONCLUIDO' LIMIT 1),
+    d.data_conclusao_pge = COALESCE(d.data_conclusao_pge, CURRENT_DATE)
+WHERE sh.codigo = 'HOMOLOGADO';
 
 DROP VIEW IF EXISTS vw_painel_resumo;
 DROP VIEW IF EXISTS vw_decretos_listagem;

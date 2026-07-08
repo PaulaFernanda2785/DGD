@@ -20,7 +20,7 @@
     </select>
 
     <select name="ativo">
-        <option value="">Todas as situacoes</option>
+        <option value="">Todas as situações</option>
         <option value="1" <?= (string) ($filtros['ativo'] ?? '') === '1' ? 'selected' : ''; ?>>Ativo</option>
         <option value="0" <?= (string) ($filtros['ativo'] ?? '') === '0' ? 'selected' : ''; ?>>Inativo</option>
     </select>

@@ -24,6 +24,7 @@ SELECT
     td.nome AS tipo_decreto,
     cs.codigo AS cobrade_codigo,
     cs.nome AS cobrade_subtipo,
+    cs.simbologia AS cobrade_simbologia,
     ct.nome AS cobrade_tipo,
     csg.nome AS cobrade_subgrupo,
     cg.nome AS cobrade_grupo,

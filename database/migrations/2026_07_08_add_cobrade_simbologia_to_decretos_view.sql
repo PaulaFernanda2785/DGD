@@ -1,4 +1,4 @@
--- DGD - Views operacionais
+-- Inclui o caminho da simbologia COBRADE na view de listagem dos decretos.
 
 SET NAMES utf8mb4;
 

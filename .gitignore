@@ -33,3 +33,4 @@ Thumbs.db
 
 # Dependencias opcionais
 /vendor/
+/node_modules/

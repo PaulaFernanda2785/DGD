@@ -8,31 +8,35 @@ use DateTimeImmutable;
 
 class PgePrazoService
 {
-    public function duracao(?string $dataDecretoMunicipal, ?string $dataEnvioPge): ?int
+    public function duracao(?string $dataEnvioPge, ?string $dataConclusaoPge = null): ?int
     {
-        if (!$dataDecretoMunicipal) {
+        if (!$dataEnvioPge) {
             return null;
         }
 
-        $inicio = new DateTimeImmutable($dataDecretoMunicipal);
-        $fim = $dataEnvioPge ? new DateTimeImmutable($dataEnvioPge) : new DateTimeImmutable('today');
+        $inicio = new DateTimeImmutable($dataEnvioPge);
+        $fim = $dataConclusaoPge ? new DateTimeImmutable($dataConclusaoPge) : new DateTimeImmutable('today');
 
         return (int) $inicio->diff($fim)->format('%r%a');
     }
 
-    public function status(?string $homologacaoCodigo, ?string $dataDecretoMunicipal, ?string $dataEnvioPge): string
+    public function status(?string $homologacaoCodigo, ?string $statusEnvioPgeCodigo, ?string $dataEnvioPge, ?string $dataConclusaoPge = null): string
     {
-        if ($homologacaoCodigo === 'HOMOLOGADO') {
-            return 'APROVADO';
+        if ($statusEnvioPgeCodigo === 'CONCLUIDO') {
+            return 'CONCLUÍDO';
         }
 
-        $duracao = $this->duracao($dataDecretoMunicipal, $dataEnvioPge);
+        if ($homologacaoCodigo === 'HOMOLOGADO') {
+            return 'CONCLUÍDO';
+        }
+
+        $duracao = $this->duracao($dataEnvioPge, $dataConclusaoPge);
 
         if ($duracao === null) {
-            return 'SEM DATA';
+            return 'NAO INICIADO';
         }
 
-        if ($duracao >= 1 && $duracao <= 7) {
+        if ($duracao >= 0 && $duracao <= 7) {
             return 'NO PRAZO';
         }
 

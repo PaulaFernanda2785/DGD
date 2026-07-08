@@ -220,10 +220,11 @@
                 <?php $name = 'reconhecimento_status_id'; $options = $dominios['statusReconhecimento']; require view_path('decretos/partials/select'); ?>
             </div>
             <div class="field"><label>Protocolo PAE/PGE</label><input name="protocolo_pae_pge" value="<?= e(old('protocolo_pae_pge', $registro['protocolo_pae_pge'] ?? '')); ?>"></div>
-            <div class="field"><label>Data de envio à PGE</label><input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>"></div>
+            <div class="field"><label>Data de envio à PGE</label><input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>" data-pge-date-input></div>
             <div class="field">
                 <label>Status de envio à PGE</label>
                 <?php $name = 'status_envio_pge_id'; $options = $dominios['statusEnvioPge']; require view_path('decretos/partials/select'); ?>
+                <small>Ao informar a data, o status muda automaticamente para Enviado à PGE, salvo quando estiver Concluído.</small>
             </div>
             <div class="field">
                 <label>Analista</label>

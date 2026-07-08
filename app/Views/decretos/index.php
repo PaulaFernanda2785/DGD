@@ -1,7 +1,40 @@
-<div class="page-header">
+<?php
+    $totalRegistros = (int) ($paginacao['total'] ?? count($registros));
+    $totalAfetadosPagina = array_sum(array_map(static fn (array $registro): int => (int) ($registro['total_afetados'] ?? 0), $registros));
+    $pgePendentesPagina = count(array_filter($registros, static fn (array $registro): bool => (string) ($registro['status_prazo_pge_calculado'] ?? '') === 'PENDENTE'));
+    $homologadosPagina = count(array_filter($registros, static fn (array $registro): bool => (string) ($registro['homologacao_codigo'] ?? '') === 'HOMOLOGADO'));
+    $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
+    $dash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
+    $cobradeSymbolUrl = static function (mixed $path, mixed $codigo): ?string {
+        $path = trim(str_replace('\\', '/', (string) $path));
+
+        if ($path !== '') {
+            if (preg_match('#^https?://#i', $path) === 1) {
+                return $path;
+            }
+
+            $path = ltrim($path, '/');
+            $path = preg_replace('#^public/#', '', $path) ?? $path;
+            $path = preg_replace('#^cobrade_simbologia/#', 'assets/images/cobrade_simbologia/', $path) ?? $path;
+
+            return url('/' . $path);
+        }
+
+        $codigo = trim((string) $codigo);
+
+        if ($codigo === '') {
+            return null;
+        }
+
+        return url('/assets/images/cobrade_simbologia/simbologia_cobrade_' . str_replace('.', '_', $codigo) . '.png');
+    };
+?>
+
+<div class="page-header page-header-modern decrees-page-header">
     <div>
         <span class="breadcrumb">Decretos &gt; Listagem</span>
         <h1>Decretos</h1>
+        <p>Acompanhamento operacional dos decretos municipais, homologação, reconhecimento e PGE.</p>
     </div>
 
     <?php if (can('decretos.criar')): ?>
@@ -9,78 +42,122 @@
     <?php endif; ?>
 </div>
 
+<section class="decree-overview-grid" aria-label="Resumo da listagem">
+    <div>
+        <span>Registros filtrados</span>
+        <strong><?= e($totalRegistros); ?></strong>
+    </div>
+    <div>
+        <span>Afetados nesta página</span>
+        <strong><?= e(number_format($totalAfetadosPagina, 0, ',', '.')); ?></strong>
+    </div>
+    <div>
+        <span>PGE pendente</span>
+        <strong><?= e($pgePendentesPagina); ?></strong>
+    </div>
+    <div>
+        <span>Homologados</span>
+        <strong><?= e($homologadosPagina); ?></strong>
+    </div>
+</section>
+
 <?php require view_path('decretos/partials/filtros'); ?>
 
-<div class="table-wrap">
-    <table>
-        <thead>
-            <tr>
-                <th>Seq.</th>
-                <th>Protocolo</th>
-                <th>Município</th>
-                <th>Tipo de desastre</th>
-                <th>Data decreto</th>
-                <th>Dias decreto</th>
-                <th>Homologacao</th>
-                <th>Reconhecimento</th>
-                <th>Afetados</th>
-                <th>Dias PGE</th>
-                <th>Envio PGE</th>
-                <th>Prazo PGE</th>
-                <th>Analista</th>
-                <th>Acoes</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($registros as $registro): ?>
-                <tr>
-                    <td><?= e($registro['protocolo_ano'] . '/' . $registro['protocolo_sequencial']); ?></td>
-                    <td><?= e($registro['protocolo_dgd']); ?></td>
-                    <td><?= e($registro['municipio']); ?></td>
-                    <td><?= e($registro['cobrade_codigo'] . ' - ' . $registro['cobrade_subtipo']); ?></td>
-                    <td><?= e($registro['data_decreto_municipal'] ?? '-'); ?></td>
-                    <td><?= e($registro['total_dias_decreto'] ?? '-'); ?></td>
-                    <td>
+<section class="decree-list" aria-label="Lista de decretos">
+    <?php foreach ($registros as $registro): ?>
+        <?php $simbologiaCobradeUrl = $cobradeSymbolUrl($registro['cobrade_simbologia'] ?? null, $registro['cobrade_codigo'] ?? null); ?>
+        <article class="decree-card">
+            <header class="decree-card-header">
+                <div class="decree-card-title">
+                    <span><?= e($registro['protocolo_ano'] . '/' . $registro['protocolo_sequencial']); ?></span>
+                    <h2><?= e($registro['municipio']); ?></h2>
+                    <p><?= e($registro['protocolo_dgd']); ?></p>
+                </div>
+
+                <div class="decree-card-actions">
+                    <a class="button button-light" href="<?= e(url('/decretos/' . $registro['id'])); ?>">Ver</a>
+                    <?php if (can('decretos.editar')): ?>
+                        <a class="button button-secondary" href="<?= e(url('/decretos/' . $registro['id'] . '/editar')); ?>">Editar</a>
+                    <?php endif; ?>
+                </div>
+            </header>
+
+            <div class="decree-card-body">
+                <div class="decree-main-info">
+                    <div class="decree-disaster-info">
+                        <span>Tipo de desastre</span>
+                        <div class="decree-disaster-row">
+                            <div class="decree-disaster-symbol" aria-hidden="true">
+                                <?php if ($simbologiaCobradeUrl !== null): ?>
+                                    <img src="<?= e($simbologiaCobradeUrl); ?>" alt="" loading="lazy" decoding="async">
+                                <?php else: ?>
+                                    <span>COBRADE</span>
+                                <?php endif; ?>
+                            </div>
+                            <strong><?= e($registro['cobrade_codigo'] . ' - ' . $registro['cobrade_subtipo']); ?></strong>
+                        </div>
+                    </div>
+                    <div>
+                        <span>Decreto municipal</span>
+                        <strong><?= e($formatDate($registro['data_decreto_municipal'] ?? null)); ?></strong>
+                    </div>
+                    <div>
+                        <span>Dias do decreto</span>
+                        <strong><?= e($dash($registro['total_dias_decreto'] ?? null)); ?></strong>
+                    </div>
+                    <div>
+                        <span>Afetados</span>
+                        <strong><?= e(number_format((int) ($registro['total_afetados'] ?? 0), 0, ',', '.')); ?></strong>
+                    </div>
+                    <div>
+                        <span>Dias PGE</span>
+                        <strong><?= e($dash($registro['duracao_pge_dias'] ?? null)); ?></strong>
+                    </div>
+                    <div>
+                        <span>Prazo PGE</span>
+                        <?= status_badge($registro['status_prazo_pge_calculado'] ?? null); ?>
+                    </div>
+                    <div>
+                        <span>Analista</span>
+                        <strong><?= e($dash($registro['analista'] ?? null)); ?></strong>
+                    </div>
+                </div>
+
+                <div class="decree-status-grid">
+                    <div class="decree-status-block">
+                        <span>Homologação</span>
                         <?php if (can('decretos.editar_status_listagem')): ?>
                             <?php $campo = 'homologacao_status_id'; $valorAtual = $registro[$campo]; $opcoes = $dominios['statusHomologacao']; require view_path('decretos/partials/status_form'); ?>
                         <?php else: ?>
                             <?= status_badge($registro['homologacao']); ?>
                         <?php endif; ?>
-                    </td>
-                    <td>
+                    </div>
+
+                    <div class="decree-status-block">
+                        <span>Reconhecimento</span>
                         <?php if (can('decretos.editar_status_listagem')): ?>
                             <?php $campo = 'reconhecimento_status_id'; $valorAtual = $registro[$campo]; $opcoes = $dominios['statusReconhecimento']; require view_path('decretos/partials/status_form'); ?>
                         <?php else: ?>
                             <?= status_badge($registro['reconhecimento']); ?>
                         <?php endif; ?>
-                    </td>
-                    <td><?= e($registro['total_afetados']); ?></td>
-                    <td><?= e($registro['duracao_pge_dias'] ?? '-'); ?></td>
-                    <td>
+                    </div>
+
+                    <div class="decree-status-block">
+                        <span>Envio à PGE</span>
                         <?php if (can('decretos.editar_status_listagem')): ?>
                             <?php $campo = 'status_envio_pge_id'; $valorAtual = $registro[$campo]; $opcoes = $dominios['statusEnvioPge']; require view_path('decretos/partials/status_form'); ?>
                         <?php else: ?>
                             <?= status_badge($registro['status_envio_pge']); ?>
                         <?php endif; ?>
-                    </td>
-                    <td><?= status_badge($registro['status_prazo_pge_calculado']); ?></td>
-                    <td><?= e($registro['analista'] ?? '-'); ?></td>
-                    <td class="actions">
-                        <a href="<?= e(url('/decretos/' . $registro['id'])); ?>">Ver</a>
-                        <?php if (can('decretos.editar')): ?>
-                            <a href="<?= e(url('/decretos/' . $registro['id'] . '/editar')); ?>">Editar</a>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </article>
+    <?php endforeach; ?>
 
-            <?php if ($registros === []): ?>
-                <tr>
-                    <td colspan="14">Nenhum registro encontrado.</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</div>
+    <?php if ($registros === []): ?>
+        <div class="panel-empty decree-empty-state">Nenhum registro encontrado.</div>
+    <?php endif; ?>
+</section>
 
 <?php require view_path('decretos/partials/paginacao'); ?>

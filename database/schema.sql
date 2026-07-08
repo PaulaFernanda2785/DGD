@@ -390,6 +390,9 @@ CREATE TABLE desastres (
     protocolo_pae_pge VARCHAR(100) NULL,
     data_envio_pge DATE NULL,
     status_envio_pge_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    data_conclusao_pge DATE NULL,
+    status_envio_pge_antes_homologacao_id TINYINT UNSIGNED NULL,
+    data_conclusao_pge_antes_homologacao DATE NULL,
     analista_id BIGINT UNSIGNED NULL,
     recurso_resposta_status_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
     recurso_reconstrucao_status_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
@@ -426,6 +429,8 @@ CREATE TABLE desastres (
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_desastres_status_envio_pge FOREIGN KEY (status_envio_pge_id) REFERENCES status_envio_pge(id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_desastres_status_pge_backup_homologacao FOREIGN KEY (status_envio_pge_antes_homologacao_id) REFERENCES status_envio_pge(id)
+        ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT fk_desastres_analista FOREIGN KEY (analista_id) REFERENCES usuarios(id)
         ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT fk_desastres_recurso_resposta FOREIGN KEY (recurso_resposta_status_id) REFERENCES status_recurso(id)
@@ -445,6 +450,9 @@ CREATE TABLE desastres (
     INDEX idx_desastres_cobrade_subtipo (cobrade_subtipo_id),
     INDEX idx_desastres_data_desastre (data_desastre),
     INDEX idx_desastres_data_decreto_municipal (data_decreto_municipal),
+    INDEX idx_desastres_data_envio_pge (data_envio_pge),
+    INDEX idx_desastres_data_conclusao_pge (data_conclusao_pge),
+    INDEX idx_desastres_status_pge_backup_homologacao (status_envio_pge_antes_homologacao_id),
     INDEX idx_desastres_homologacao (homologacao_status_id),
     INDEX idx_desastres_reconhecimento (reconhecimento_status_id),
     INDEX idx_desastres_status_envio_pge (status_envio_pge_id),

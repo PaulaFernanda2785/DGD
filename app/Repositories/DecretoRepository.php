@@ -114,10 +114,42 @@ class DecretoRepository
             throw new \InvalidArgumentException('Campo de status invalido.');
         }
 
+        $this->updateStatusFields($id, [$field => $value], $userId);
+    }
+
+    public function updateStatusFields(int $id, array $data, int $userId): void
+    {
+        $allowed = [
+            'homologacao_status_id',
+            'reconhecimento_status_id',
+            'status_envio_pge_id',
+            'analista_id',
+            'data_envio_pge',
+            'data_conclusao_pge',
+            'status_envio_pge_antes_homologacao_id',
+            'data_conclusao_pge_antes_homologacao',
+        ];
+        $sets = [];
+
+        foreach (array_keys($data) as $field) {
+            if (!in_array($field, $allowed, true)) {
+                throw new \InvalidArgumentException('Campo de status invalido.');
+            }
+
+            $sets[] = "{$field} = :{$field}";
+        }
+
+        if ($sets === []) {
+            return;
+        }
+
+        $data['id'] = $id;
+        $data['user_id'] = $userId;
+
         $stmt = Database::connection()->prepare(
-            "UPDATE desastres SET {$field} = :value, atualizado_por = :user_id WHERE id = :id AND excluido_em IS NULL"
+            'UPDATE desastres SET ' . implode(', ', $sets) . ', atualizado_por = :user_id WHERE id = :id AND excluido_em IS NULL'
         );
-        $stmt->execute(['id' => $id, 'value' => $value, 'user_id' => $userId]);
+        $stmt->execute($data);
     }
 
     private function buildWhere(array $filters): array

@@ -1,6 +1,24 @@
--- DGD - Views operacionais
+-- Evolui a regra de envio à PGE.
+-- A contagem passa a iniciar em data_envio_pge e parar em data_conclusao_pge.
 
 SET NAMES utf8mb4;
+
+ALTER TABLE desastres
+    ADD COLUMN data_conclusao_pge DATE NULL AFTER status_envio_pge_id,
+    ADD INDEX idx_desastres_data_envio_pge (data_envio_pge),
+    ADD INDEX idx_desastres_data_conclusao_pge (data_conclusao_pge);
+
+UPDATE desastres
+SET status_envio_pge_id = (SELECT id FROM status_envio_pge WHERE codigo = 'ENVIADO_PGE' LIMIT 1)
+WHERE data_envio_pge IS NOT NULL
+  AND status_envio_pge_id IN (
+      SELECT id FROM status_envio_pge WHERE codigo IN ('NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO')
+  );
+
+UPDATE desastres
+SET data_conclusao_pge = COALESCE(data_conclusao_pge, CURRENT_DATE)
+WHERE status_envio_pge_id = (SELECT id FROM status_envio_pge WHERE codigo = 'CONCLUIDO' LIMIT 1)
+  AND data_conclusao_pge IS NULL;
 
 DROP VIEW IF EXISTS vw_painel_resumo;
 DROP VIEW IF EXISTS vw_decretos_listagem;
@@ -54,7 +72,7 @@ SELECT
     sep.nome AS status_envio_pge,
     CASE
         WHEN sep.codigo = 'CONCLUIDO' THEN 'CONCLUÍDO'
-        WHEN sh.codigo = 'HOMOLOGADO' THEN 'CONCLUÍDO'
+        WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'
         WHEN d.data_envio_pge IS NULL THEN 'NAO INICIADO'
         WHEN DATEDIFF(CURRENT_DATE, d.data_envio_pge) BETWEEN 0 AND 7 THEN 'NO PRAZO'
         WHEN DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7 THEN 'PENDENTE'

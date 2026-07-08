@@ -9,7 +9,7 @@
     <input name="busca" value="<?= e($filtros['busca'] ?? ''); ?>" placeholder="Buscar por municipio, prefeito, coordenador ou UBM">
 
     <select name="regiao_integracao">
-        <option value="">Todas as regioes</option>
+        <option value="">Todas as regiões</option>
         <?php foreach ($regioes as $regiao): ?>
             <option value="<?= e($regiao); ?>" <?= (string) ($filtros['regiao_integracao'] ?? '') === (string) $regiao ? 'selected' : ''; ?>>
                 <?= e($regiao); ?>

@@ -118,6 +118,8 @@ function openHistoryModal(form, submitter) {
     var textarea = document.querySelector('[data-history-textarea]');
     var confirmButton = document.querySelector('[data-history-confirm]');
     var cancelButton = document.querySelector('[data-history-cancel]');
+    var pgeDateField = document.querySelector('[data-history-pge-date-field]');
+    var pgeDateInput = document.querySelector('[data-history-pge-date]');
     var observationInput = form.querySelector('[data-history-observation]');
 
     if (!backdrop || !summaryBox || !textarea || !confirmButton || !cancelButton || !(observationInput instanceof HTMLInputElement)) {
@@ -138,8 +140,13 @@ function openHistoryModal(form, submitter) {
     });
 
     textarea.value = '';
+    configureHistoryPgeDate(form, pgeDateField, pgeDateInput);
     backdrop.hidden = false;
-    textarea.focus();
+    if (pgeDateInput instanceof HTMLInputElement && pgeDateField instanceof HTMLElement && !pgeDateField.hidden) {
+        pgeDateInput.focus();
+    } else {
+        textarea.focus();
+    }
 
     var close = function () {
         backdrop.hidden = true;
@@ -149,6 +156,22 @@ function openHistoryModal(form, submitter) {
     };
 
     var confirm = function () {
+        if (pgeDateInput instanceof HTMLInputElement && pgeDateField instanceof HTMLElement && !pgeDateField.hidden) {
+            if (!pgeDateInput.value) {
+                pgeDateInput.setCustomValidity('Informe a data de envio à PGE.');
+                pgeDateInput.reportValidity();
+                return;
+            }
+
+            pgeDateInput.setCustomValidity('');
+
+            var pgeTarget = form.querySelector('[data-pge-date-target]');
+
+            if (pgeTarget instanceof HTMLInputElement) {
+                pgeTarget.value = pgeDateInput.value;
+            }
+        }
+
         observationInput.value = textarea.value.trim();
         close();
         form.dataset.historyConfirmed = '1';
@@ -189,6 +212,18 @@ function buildHistorySummary(form) {
     if (campo instanceof HTMLInputElement && valor instanceof HTMLSelectElement) {
         var selectedOption = valor.options[valor.selectedIndex];
         lines.push('Novo valor: ' + (selectedOption ? selectedOption.textContent.trim() : valor.value));
+
+        if (campo.value === 'status_envio_pge_id' && selectedOptionCode(valor) === 'ENVIADO_PGE') {
+            lines.push('Informe a data de envio à PGE antes de confirmar.');
+        }
+
+        if (campo.value === 'homologacao_status_id' && selectedOptionCode(valor) === 'HOMOLOGADO') {
+            lines.push('O envio à PGE será marcado como Concluído e a contagem será encerrada.');
+        }
+
+        if (campo.value === 'homologacao_status_id' && selectedOptionCode(valor) !== 'HOMOLOGADO') {
+            lines.push('Se o decreto estava homologado, o estado anterior do envio à PGE será restaurado.');
+        }
     } else {
         changedFields = collectChangedFields(form);
 
@@ -212,6 +247,107 @@ function buildHistorySummary(form) {
     }
 
     return lines;
+}
+
+function configureHistoryPgeDate(form, field, input) {
+    if (!(field instanceof HTMLElement) || !(input instanceof HTMLInputElement)) {
+        return;
+    }
+
+    var statusField = form.querySelector('input[name="campo"]');
+    var valueSelect = form.querySelector('select[name="valor"]');
+    var target = form.querySelector('[data-pge-date-target]');
+    var shouldAskDate = false;
+
+    if (statusField instanceof HTMLInputElement && statusField.value === 'status_envio_pge_id' && valueSelect instanceof HTMLSelectElement) {
+        shouldAskDate = selectedOptionCode(valueSelect) === 'ENVIADO_PGE';
+    }
+
+    field.hidden = !shouldAskDate;
+    input.required = shouldAskDate;
+    input.value = shouldAskDate && target instanceof HTMLInputElement ? target.value : '';
+    input.setCustomValidity('');
+}
+
+function selectedOptionCode(select) {
+    if (!(select instanceof HTMLSelectElement)) {
+        return '';
+    }
+
+    var option = select.options[select.selectedIndex];
+
+    return option ? option.getAttribute('data-codigo') || '' : '';
+}
+
+function selectOptionByCode(select, code) {
+    if (!(select instanceof HTMLSelectElement)) {
+        return false;
+    }
+
+    var found = Array.prototype.find.call(select.options, function (option) {
+        return option.getAttribute('data-codigo') === code;
+    });
+
+    if (!found) {
+        return false;
+    }
+
+    select.value = found.value;
+    return true;
+}
+
+function initPgeStatusSync() {
+    var dateInput = document.querySelector('input[name="data_envio_pge"]');
+    var statusSelect = document.querySelector('select[name="status_envio_pge_id"]');
+    var homologacaoSelect = document.querySelector('select[name="homologacao_status_id"]');
+    var statusBeforeHomologacao = null;
+
+    if (!(dateInput instanceof HTMLInputElement) || !(statusSelect instanceof HTMLSelectElement)) {
+        return;
+    }
+
+    var isHomologado = function () {
+        return homologacaoSelect instanceof HTMLSelectElement && selectedOptionCode(homologacaoSelect) === 'HOMOLOGADO';
+    };
+
+    var syncStatusFromDate = function () {
+        if (!dateInput.value || isHomologado() || selectedOptionCode(statusSelect) === 'CONCLUIDO') {
+            return;
+        }
+
+        selectOptionByCode(statusSelect, 'ENVIADO_PGE');
+    };
+
+    var syncStatusFromHomologacao = function () {
+        if (!(homologacaoSelect instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        if (isHomologado()) {
+            if (selectedOptionCode(statusSelect) !== 'CONCLUIDO') {
+                statusBeforeHomologacao = statusSelect.value;
+            }
+
+            selectOptionByCode(statusSelect, 'CONCLUIDO');
+            return;
+        }
+
+        if (statusBeforeHomologacao !== null) {
+            statusSelect.value = statusBeforeHomologacao;
+            statusBeforeHomologacao = null;
+        }
+
+        syncStatusFromDate();
+    };
+
+    dateInput.addEventListener('change', syncStatusFromDate);
+    dateInput.addEventListener('input', syncStatusFromDate);
+    if (homologacaoSelect instanceof HTMLSelectElement) {
+        homologacaoSelect.addEventListener('change', syncStatusFromHomologacao);
+    }
+
+    syncStatusFromHomologacao();
+    syncStatusFromDate();
 }
 
 function collectChangedFields(form) {
@@ -491,6 +627,18 @@ function initCobradeCascade() {
     var selectedTipo = tipoSelect.dataset.current || '';
     var selectedSubtipo = subtipoSelect.dataset.current || '';
 
+    if (!grupoSelect.value && selectedSubtipo) {
+        var currentSubtipoOption = subtipoOptions.find(function (sourceOption) {
+            return sourceOption.value === selectedSubtipo;
+        });
+
+        if (currentSubtipoOption) {
+            grupoSelect.value = currentSubtipoOption.dataset.grupoId || '';
+            selectedSubgrupo = selectedSubgrupo || currentSubtipoOption.dataset.subgrupoId || '';
+            selectedTipo = selectedTipo || currentSubtipoOption.dataset.tipoId || '';
+        }
+    }
+
     function placeholder(text) {
         return option('', text);
     }
@@ -627,6 +775,7 @@ function initCobradeCascade() {
 }
 
 document.addEventListener('DOMContentLoaded', initCobradeCascade);
+document.addEventListener('DOMContentLoaded', initPgeStatusSync);
 
 function updateAffectedTotal() {
     var total = 0;

@@ -38,65 +38,65 @@ INSERT INTO perfil_permissoes (perfil_id, permissao_id) VALUES
 (3, 1), (3, 2), (3, 3), (3, 4), (3, 8), (3, 14);
 
 INSERT INTO tipos_decreto (id, codigo, nome, duracao_padrao_dias, ordem) VALUES
-(1, 'SITUACAO_EMERGENCIA', 'Situacao de Emergencia', 180, 1),
-(2, 'ESTADO_CALAMIDADE_PUBLICA', 'Estado de Calamidade Publica', 180, 2);
+(1, 'SITUACAO_EMERGENCIA', 'Situação de Emergência', 180, 1),
+(2, 'ESTADO_CALAMIDADE_PUBLICA', 'Estado de Calamidade Pública', 180, 2);
 
 INSERT INTO status_homologacao (id, codigo, nome, classe_css, ordem) VALUES
-(1, 'NAO_REGISTRADO', 'Nao registrado', 'status-neutro', 1),
-(2, 'NAO_SOLICITADO', 'Nao solicitado', 'status-neutro', 2),
+(1, 'NAO_REGISTRADO', 'Não registrado', 'status-neutro', 1),
+(2, 'NAO_SOLICITADO', 'Não solicitado', 'status-neutro', 2),
 (3, 'SOLICITADO', 'Solicitado', 'status-info', 3),
 (4, 'PENDENTE_DESPACHO', 'Pendente - despacho', 'status-alerta', 4),
 (5, 'PENDENTE_PARECER', 'Pendente - parecer', 'status-alerta', 5),
-(6, 'EM_ANALISE_DGD', 'Em analise DGD', 'status-info', 6),
-(7, 'ENVIADO_PGE', 'Enviado PGE', 'status-info', 7),
+(6, 'EM_ANALISE_DGD', 'Em análise DGD', 'status-info', 6),
+(7, 'ENVIADO_PGE', 'Enviado à PGE', 'status-info', 7),
 (8, 'HOMOLOGADO', 'Homologado', 'status-sucesso', 8),
-(9, 'NAO_HOMOLOGADO', 'Nao homologado', 'status-erro', 9);
+(9, 'NAO_HOMOLOGADO', 'Não homologado', 'status-erro', 9);
 
 INSERT INTO status_reconhecimento (id, codigo, nome, classe_css, ordem) VALUES
-(1, 'NAO_REGISTRADO', 'Nao registrado', 'status-neutro', 1),
+(1, 'NAO_REGISTRADO', 'Não registrado', 'status-neutro', 1),
 (2, 'SOLICITADO', 'Solicitado', 'status-info', 2),
-(3, 'AGUARDANDO_ANALISE', 'Aguardando analise', 'status-alerta', 3),
-(4, 'EM_ANALISE_SEDEC', 'Em analise SEDEC', 'status-info', 4),
+(3, 'AGUARDANDO_ANALISE', 'Aguardando análise', 'status-alerta', 3),
+(4, 'EM_ANALISE_SEDEC', 'Em análise SEDEC', 'status-info', 4),
 (5, 'ENVIADO_RECONHECIMENTO', 'Enviado para reconhecimento', 'status-info', 5),
-(6, 'AGUARDANDO_AJUSTE_MUNICIPIO', 'Aguardando ajuste municipio', 'status-alerta', 6),
+(6, 'AGUARDANDO_AJUSTE_MUNICIPIO', 'Aguardando ajuste município', 'status-alerta', 6),
 (7, 'REGISTRADO', 'Registrado', 'status-info', 7),
 (8, 'RECONHECIDO', 'Reconhecido', 'status-sucesso', 8),
-(9, 'NAO_RECONHECIDO', 'Nao reconhecido', 'status-erro', 9);
+(9, 'NAO_RECONHECIDO', 'Não reconhecido', 'status-erro', 9);
 
 INSERT INTO status_recurso (id, codigo, nome, classe_css, ordem) VALUES
-(1, 'NAO_REGISTRADO', 'Nao registrado', 'status-neutro', 1),
-(2, 'NAO_SOLICITADO', 'Nao solicitado', 'status-neutro', 2),
+(1, 'NAO_REGISTRADO', 'Não registrado', 'status-neutro', 1),
+(2, 'NAO_SOLICITADO', 'Não solicitado', 'status-neutro', 2),
 (3, 'SOLICITADO', 'Solicitado', 'status-info', 3),
 (4, 'AGUARDANDO_AJUSTES', 'Aguardando ajustes', 'status-alerta', 4),
-(5, 'EM_ANALISE_SEDEC', 'Em analise SEDEC', 'status-info', 5),
+(5, 'EM_ANALISE_SEDEC', 'Em análise SEDEC', 'status-info', 5),
 (6, 'PLANO_APROVADO', 'Plano aprovado', 'status-sucesso', 6),
 (7, 'RECURSO_DEFERIDO', 'Recurso deferido', 'status-sucesso', 7),
 (8, 'RECURSO_INDEFERIDO', 'Recurso indeferido', 'status-erro', 8),
-(9, 'REGISTRO_REVISAO', 'Registro de revisao', 'status-alerta', 9),
+(9, 'REGISTRO_REVISAO', 'Registro de revisão', 'status-alerta', 9),
 (10, 'EMPENHO', 'Empenho', 'status-info', 10);
 
 INSERT INTO status_envio_pge (id, codigo, nome, classe_css, ordem) VALUES
-(1, 'NAO_REGISTRADO', 'Nao registrado', 'status-neutro', 1),
-(2, 'NAO_ENVIADO', 'Nao enviado', 'status-neutro', 2),
-(3, 'EM_PREPARACAO', 'Em preparacao', 'status-alerta', 3),
-(4, 'ENVIADO_PGE', 'Enviado a PGE', 'status-info', 4),
+(1, 'NAO_REGISTRADO', 'Não registrado', 'status-neutro', 1),
+(2, 'NAO_ENVIADO', 'Não enviado', 'status-neutro', 2),
+(3, 'EM_PREPARACAO', 'Em preparação', 'status-alerta', 3),
+(4, 'ENVIADO_PGE', 'Enviado à PGE', 'status-info', 4),
 (5, 'RETORNADO_AJUSTE', 'Retornado para ajuste', 'status-alerta', 5),
-(6, 'CONCLUIDO', 'Concluido', 'status-sucesso', 6);
+(6, 'CONCLUIDO', 'Concluído', 'status-sucesso', 6);
 
 INSERT INTO tipos_anexo (id, codigo, nome, obrigatorio, ordem) VALUES
 (1, 'DECRETO_MUNICIPAL', 'Decreto municipal', 1, 1),
-(2, 'OFICIO_HOMOLOGACAO', 'Oficio de homologacao', 0, 2),
+(2, 'OFICIO_HOMOLOGACAO', 'Ofício de homologação', 0, 2),
 (3, 'PARECER_ESTADUAL', 'Parecer estadual', 0, 3),
 (4, 'PARECER_MUNICIPAL', 'Parecer municipal', 0, 4),
 (5, 'OUTROS_DOCUMENTOS', 'Outros documentos', 0, 5);
 
 INSERT INTO configuracoes_sistema (chave, valor, tipo_dado, descricao) VALUES
-('prazo_pge_dias', '7', 'integer', 'Prazo operacional em dias para calculo do status de prazo PGE.'),
-('paginacao_padrao', '20', 'integer', 'Quantidade padrao e maxima de registros por pagina na listagem.'),
-('upload_tamanho_maximo_mb', '20', 'integer', 'Tamanho maximo permitido por arquivo anexado.'),
+('prazo_pge_dias', '7', 'integer', 'Prazo operacional em dias para cálculo do status de prazo PGE.'),
+('paginacao_padrao', '20', 'integer', 'Quantidade padrão e máxima de registros por página na listagem.'),
+('upload_tamanho_maximo_mb', '20', 'integer', 'Tamanho máximo permitido por arquivo anexado.'),
 ('sistema_nome', 'DGD', 'string', 'Nome curto do sistema.'),
-('sistema_orgao', 'CEDEC-PA', 'string', 'Orgao gestor do sistema.'),
-('timezone', 'America/Belem', 'string', 'Fuso horario oficial da aplicacao.');
+('sistema_orgao', 'CEDEC-PA', 'string', 'Órgão gestor do sistema.'),
+('timezone', 'America/Belem', 'string', 'Fuso horário oficial da aplicação.');
 
 -- Seed COBRADE completo com quatro niveis e simbologia oficial.
 INSERT INTO cobrade_grupos (id, codigo, nome, descricao) VALUES

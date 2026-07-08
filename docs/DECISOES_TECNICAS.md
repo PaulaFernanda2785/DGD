@@ -256,3 +256,32 @@ A validacao real de login, cadastro e modulo Decretos depende de:
 2. criar o Admin inicial com hash;
 3. configurar `.env`;
 4. executar o checklist de `docs/TESTES_MANUAIS.md`.
+
+---
+
+## 2026-07-08 - Regra de envio à PGE
+
+Foi criada a coluna `desastres.data_conclusao_pge` para encerrar a contagem operacional da PGE sem depender de `atualizado_em`.
+
+Regras aplicadas:
+
+1. ao informar `data_envio_pge` no cadastro ou edição, o status muda automaticamente para `Enviado à PGE` quando ainda estiver em estado anterior ao envio;
+2. ao alterar o status para `Enviado à PGE` pela listagem, o modal de histórico exige a data de envio;
+3. ao alterar o status para `Concluído`, o sistema grava `data_conclusao_pge` quando ainda não houver;
+4. a view `vw_decretos_listagem` calcula `duracao_pge_dias` de `data_envio_pge` até `data_conclusao_pge` ou até a data atual;
+5. quando o status é `Concluído`, o prazo calculado passa a exibir `CONCLUÍDO` e a contagem fica congelada.
+
+Migration relacionada: `database/migrations/2026_07_08_pge_status_date_rules.sql`.
+
+### Complemento: homologação concluindo PGE
+
+Quando `homologacao_status_id` passa para `HOMOLOGADO`, o sistema:
+
+1. preserva o status e a data de conclusão PGE anteriores em campos técnicos;
+2. altera `status_envio_pge_id` para `Concluído`;
+3. grava `data_conclusao_pge` quando ainda não houver;
+4. faz `status_prazo_pge_calculado` exibir `CONCLUÍDO`.
+
+Quando a homologação deixa de ser `HOMOLOGADO`, o sistema restaura o status e a data de conclusão PGE preservados antes da homologação e limpa os campos técnicos de backup.
+
+Migration relacionada: `database/migrations/2026_07_08_homologacao_pge_restore_rule.sql`.

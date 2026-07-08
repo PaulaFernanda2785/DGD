@@ -103,8 +103,21 @@ class DecretoController extends Controller
         $field = (string) $this->request->post('campo', '');
         $value = (int) $this->request->post('valor', 0);
         $observacao = trim((string) $this->request->post('historico_observacao', '')) ?: null;
+        $dataEnvioPge = trim((string) $this->request->post('data_envio_pge', '')) ?: null;
 
-        $this->decretoService->atualizarStatus((int) $id, $field, $value, $observacao);
+        try {
+            $this->decretoService->atualizarStatus((int) $id, $field, $value, $observacao, $dataEnvioPge);
+        } catch (\InvalidArgumentException $exception) {
+            if (!$this->request->expectsJson()) {
+                Session::flash('error', $exception->getMessage());
+                $this->redirect('/decretos');
+            }
+
+            $this->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
 
         if (!$this->request->expectsJson()) {
             Session::flash('success', 'Status atualizado com sucesso.');
