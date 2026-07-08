@@ -273,6 +273,8 @@ Regras aplicadas:
 
 Migration relacionada: `database/migrations/2026_07_08_pge_status_date_rules.sql`.
 
+Alinhamento posterior: `status_prazo_pge_calculado` tambem passou a usar `data_conclusao_pge` como marco final quando existir, mantendo coerencia com `duracao_pge_dias`, listagem, edicao e detalhe. Migration relacionada: `database/migrations/2026_07_08_align_pge_status_view_rule.sql`.
+
 ### Complemento: homologação concluindo PGE
 
 Quando `homologacao_status_id` passa para `HOMOLOGADO`, o sistema:

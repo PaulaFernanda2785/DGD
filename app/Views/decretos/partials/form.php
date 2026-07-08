@@ -1,4 +1,8 @@
 <form method="post" action="<?= e($action); ?>" enctype="multipart/form-data" class="form-grid decree-form decree-form-modern" data-history-modal data-history-summary="<?= e(!empty($registro['id']) ? 'Edição do decreto ' . ($registro['protocolo_dgd'] ?? '') : 'Cadastro de novo decreto'); ?>">
+    <?php
+        $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
+        $dash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
+    ?>
     <?= csrf_input(); ?>
     <input type="hidden" name="historico_observacao" data-history-observation>
 
@@ -220,11 +224,37 @@
                 <?php $name = 'reconhecimento_status_id'; $options = $dominios['statusReconhecimento']; require view_path('decretos/partials/select'); ?>
             </div>
             <div class="field"><label>Protocolo PAE/PGE</label><input name="protocolo_pae_pge" value="<?= e(old('protocolo_pae_pge', $registro['protocolo_pae_pge'] ?? '')); ?>"></div>
-            <div class="field"><label>Data de envio à PGE</label><input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>" data-pge-date-input></div>
+            <div class="field pge-date-form-field" data-pge-date-form-field hidden>
+                <label>Data de envio à PGE</label>
+                <input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>" data-pge-date-input>
+                <small>Informe a data oficial do envio quando o status for Enviado à PGE.</small>
+            </div>
             <div class="field">
                 <label>Status de envio à PGE</label>
                 <?php $name = 'status_envio_pge_id'; $options = $dominios['statusEnvioPge']; require view_path('decretos/partials/select'); ?>
-                <small>Ao informar a data, o status muda automaticamente para Enviado à PGE, salvo quando estiver Concluído.</small>
+                <small>Ao selecionar Enviado à PGE, informe a data oficial de envio.</small>
+            </div>
+            <div class="pge-consistency-panel span-2" aria-label="Resumo operacional da PGE">
+                <div>
+                    <span>Status de envio</span>
+                    <?= status_badge($registro['status_envio_pge'] ?? 'Não registrado'); ?>
+                </div>
+                <div>
+                    <span>Data de envio</span>
+                    <strong><?= e($formatDate($registro['data_envio_pge'] ?? null)); ?></strong>
+                </div>
+                <div>
+                    <span>Data de conclusão</span>
+                    <strong><?= e($formatDate($registro['data_conclusao_pge'] ?? null)); ?></strong>
+                </div>
+                <div>
+                    <span>Dias PGE</span>
+                    <strong><?= e($dash($registro['duracao_pge_dias'] ?? null)); ?></strong>
+                </div>
+                <div>
+                    <span>Prazo PGE</span>
+                    <?= status_badge($registro['status_prazo_pge_calculado'] ?? 'Não iniciado'); ?>
+                </div>
             </div>
             <div class="field">
                 <label>Analista</label>

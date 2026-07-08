@@ -149,6 +149,10 @@
                         <?php else: ?>
                             <?= status_badge($registro['status_envio_pge']); ?>
                         <?php endif; ?>
+                        <small class="pge-status-meta">
+                            Envio: <?= e($formatDate($registro['data_envio_pge'] ?? null)); ?>
+                            <span>Conclusão: <?= e($formatDate($registro['data_conclusao_pge'] ?? null)); ?></span>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -156,7 +160,21 @@
     <?php endforeach; ?>
 
     <?php if ($registros === []): ?>
-        <div class="panel-empty decree-empty-state">Nenhum registro encontrado.</div>
+        <div class="decree-empty-state" role="status" aria-live="polite">
+            <div class="decree-empty-icon" aria-hidden="true">
+                <span></span>
+            </div>
+            <div class="decree-empty-copy">
+                <strong>Nenhum decreto encontrado</strong>
+                <p>Revise os filtros aplicados ou cadastre um novo decreto para iniciar o acompanhamento.</p>
+            </div>
+            <div class="decree-empty-actions">
+                <a class="button button-light" href="<?= e(url('/decretos')); ?>">Limpar filtros</a>
+                <?php if (can('decretos.criar')): ?>
+                    <a class="button button-primary" href="<?= e(url('/decretos/novo')); ?>">Novo cadastro</a>
+                <?php endif; ?>
+            </div>
+        </div>
     <?php endif; ?>
 </section>
 

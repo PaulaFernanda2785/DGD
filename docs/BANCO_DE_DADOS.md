@@ -22,6 +22,7 @@
 10. `database/migrations/2026_07_08_pge_status_date_rules.sql` - adiciona `data_conclusao_pge` e atualiza o calculo de prazo PGE.
 11. `database/migrations/2026_07_08_homologacao_pge_restore_rule.sql` - preserva e restaura o estado PGE quando a homologacao muda para ou deixa de ser homologada.
 12. `database/migrations/2026_07_08_add_cobrade_simbologia_to_decretos_view.sql` - inclui `cobrade_simbologia` na view de listagem para exibir a imagem simbolica do desastre.
+13. `database/migrations/2026_07_08_align_pge_status_view_rule.sql` - alinha `status_prazo_pge_calculado` ao mesmo marco final de `duracao_pge_dias`.
 
 ---
 

@@ -1,6 +1,14 @@
--- DGD - Views operacionais
+-- Alinha o status de prazo PGE com a mesma regra usada pela duracao_pge_dias.
+-- O marco final passa a ser data_conclusao_pge quando existir, ou a data atual.
 
 SET NAMES utf8mb4;
+
+UPDATE desastres d
+INNER JOIN status_envio_pge sep ON sep.id = d.status_envio_pge_id
+SET
+    d.data_envio_pge = NULL,
+    d.data_conclusao_pge = NULL
+WHERE sep.codigo IN ('NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO');
 
 DROP VIEW IF EXISTS vw_painel_resumo;
 DROP VIEW IF EXISTS vw_decretos_listagem;

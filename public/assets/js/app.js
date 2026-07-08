@@ -132,12 +132,7 @@ function openHistoryModal(form, submitter) {
         return;
     }
 
-    summaryBox.innerHTML = '';
-    buildHistorySummary(form).forEach(function (line) {
-        var item = document.createElement('p');
-        item.textContent = line;
-        summaryBox.appendChild(item);
-    });
+    renderHistorySummary(summaryBox, buildHistorySummary(form), form);
 
     textarea.value = '';
     configureHistoryPgeDate(form, pgeDateField, pgeDateInput);
@@ -165,7 +160,7 @@ function openHistoryModal(form, submitter) {
 
             pgeDateInput.setCustomValidity('');
 
-            var pgeTarget = form.querySelector('[data-pge-date-target]');
+            var pgeTarget = historyPgeDateTarget(form);
 
             if (pgeTarget instanceof HTMLInputElement) {
                 pgeTarget.value = pgeDateInput.value;
@@ -249,6 +244,152 @@ function buildHistorySummary(form) {
     return lines;
 }
 
+function renderHistorySummary(container, lines, form) {
+    var title = Array.isArray(lines) && lines.length > 0 ? lines[0] : 'Alteração no decreto';
+    var changes = historyChangesForForm(form);
+    var notes = Array.isArray(lines) ? lines.slice(1).filter(function (line) {
+        if (line.indexOf('Novo valor:') === 0 || line.indexOf('Anexo(s):') === 0) {
+            return false;
+        }
+
+        return !changes.some(function (change) {
+            return line === change.label + ': ' + change.after;
+        });
+    }) : [];
+    var files = historyFilesForForm(form);
+
+    container.innerHTML = '';
+
+    var header = document.createElement('div');
+    var eyebrow = document.createElement('span');
+    var heading = document.createElement('strong');
+
+    header.className = 'history-summary-head';
+    eyebrow.textContent = 'Registro de alteração';
+    heading.textContent = title;
+    header.appendChild(eyebrow);
+    header.appendChild(heading);
+    container.appendChild(header);
+
+    if (changes.length > 0) {
+        var list = document.createElement('div');
+        list.className = 'history-change-list';
+
+        changes.forEach(function (change) {
+            var item = document.createElement('div');
+            var field = document.createElement('div');
+            var fieldLabel = document.createElement('span');
+            var fieldName = document.createElement('strong');
+            var values = document.createElement('div');
+
+            item.className = 'history-change-item';
+            field.className = 'history-change-field';
+            fieldLabel.textContent = 'Campo editado';
+            fieldName.textContent = change.label || 'Campo não identificado';
+            field.appendChild(fieldLabel);
+            field.appendChild(fieldName);
+
+            values.className = 'history-change-values';
+            values.appendChild(historyValueBlock('Valor atual', change.before || 'Não informado'));
+            values.appendChild(historyValueBlock('Novo valor', change.after || 'Não informado', true));
+
+            item.appendChild(field);
+            item.appendChild(values);
+            list.appendChild(item);
+        });
+
+        container.appendChild(list);
+    } else if (files.length === 0) {
+        var empty = document.createElement('p');
+        empty.className = 'history-summary-note';
+        empty.textContent = 'Nenhum campo alterado foi identificado automaticamente.';
+        container.appendChild(empty);
+    }
+
+    if (files.length > 0) {
+        var fileBlock = document.createElement('div');
+        var fileLabel = document.createElement('span');
+        var fileText = document.createElement('strong');
+
+        fileBlock.className = 'history-file-list';
+        fileLabel.textContent = 'Anexo(s)';
+        fileText.textContent = files.join(', ');
+        fileBlock.appendChild(fileLabel);
+        fileBlock.appendChild(fileText);
+        container.appendChild(fileBlock);
+    }
+
+    notes.forEach(function (note) {
+        var item = document.createElement('p');
+        item.className = 'history-summary-note';
+        item.textContent = note;
+        container.appendChild(item);
+    });
+}
+
+function historyChangesForForm(form) {
+    var campo = form.querySelector('input[name="campo"]');
+    var valor = form.querySelector('select[name="valor"]');
+
+    if (campo instanceof HTMLInputElement && valor instanceof HTMLSelectElement) {
+        var selectedOption = valor.options[valor.selectedIndex];
+        var currentOption = Array.prototype.find.call(valor.options, function (optionItem) {
+            return optionItem.defaultSelected;
+        });
+
+        return [{
+            label: historyFieldLabel(campo.value),
+            before: currentOption ? currentOption.textContent.trim() : 'Não informado',
+            after: selectedOption ? selectedOption.textContent.trim() : valor.value || 'Não informado'
+        }];
+    }
+
+    return collectHistoryChangedFields(form).slice(0, 8).map(function (item) {
+        return {
+            label: item.label,
+            before: item.before || 'Não informado',
+            after: item.value || 'Não informado'
+        };
+    });
+}
+
+function historyFilesForForm(form) {
+    var files = [];
+
+    form.querySelectorAll('input[type="file"]').forEach(function (input) {
+        Array.prototype.forEach.call(input.files || [], function (file) {
+            files.push(file.name);
+        });
+    });
+
+    return files;
+}
+
+function historyValueBlock(label, value, isNew) {
+    var block = document.createElement('div');
+    var caption = document.createElement('span');
+    var text = document.createElement('strong');
+
+    block.className = 'history-change-value' + (isNew ? ' is-new' : '');
+    caption.textContent = label;
+    text.textContent = value;
+    block.appendChild(caption);
+    block.appendChild(text);
+
+    return block;
+}
+
+function historyFieldLabel(field) {
+    var labels = {
+        homologacao_status_id: 'Homologação',
+        reconhecimento_status_id: 'Reconhecimento',
+        status_envio_pge_id: 'Envio à PGE',
+        analista_id: 'Analista'
+    };
+
+    return labels[field] || String(field || 'Campo').replace(/_/g, ' ');
+}
+
 function configureHistoryPgeDate(form, field, input) {
     if (!(field instanceof HTMLElement) || !(input instanceof HTMLInputElement)) {
         return;
@@ -256,17 +397,34 @@ function configureHistoryPgeDate(form, field, input) {
 
     var statusField = form.querySelector('input[name="campo"]');
     var valueSelect = form.querySelector('select[name="valor"]');
-    var target = form.querySelector('[data-pge-date-target]');
-    var shouldAskDate = false;
-
-    if (statusField instanceof HTMLInputElement && statusField.value === 'status_envio_pge_id' && valueSelect instanceof HTMLSelectElement) {
-        shouldAskDate = selectedOptionCode(valueSelect) === 'ENVIADO_PGE';
-    }
+    var target = historyPgeDateTarget(form);
+    var shouldAskDate = statusField instanceof HTMLInputElement
+        && statusField.value === 'status_envio_pge_id'
+        && valueSelect instanceof HTMLSelectElement
+        && selectedOptionCode(valueSelect) === 'ENVIADO_PGE';
 
     field.hidden = !shouldAskDate;
     input.required = shouldAskDate;
     input.value = shouldAskDate && target instanceof HTMLInputElement ? target.value : '';
     input.setCustomValidity('');
+}
+
+function historyPgeDateTarget(form) {
+    var target = form.querySelector('[data-pge-date-target]');
+
+    if (target instanceof HTMLInputElement) {
+        return target;
+    }
+
+    target = form.querySelector('[data-pge-date-input]');
+
+    if (target instanceof HTMLInputElement) {
+        return target;
+    }
+
+    target = form.querySelector('input[name="data_envio_pge"]');
+
+    return target instanceof HTMLInputElement ? target : null;
 }
 
 function selectedOptionCode(select) {
@@ -297,25 +455,46 @@ function selectOptionByCode(select, code) {
 }
 
 function initPgeStatusSync() {
-    var dateInput = document.querySelector('input[name="data_envio_pge"]');
-    var statusSelect = document.querySelector('select[name="status_envio_pge_id"]');
-    var homologacaoSelect = document.querySelector('select[name="homologacao_status_id"]');
+    var form = document.querySelector('.decree-form');
+
+    if (!(form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    var dateInput = form.querySelector('[data-pge-date-input]');
+    var statusSelect = form.querySelector('select[name="status_envio_pge_id"]');
+    var homologacaoSelect = form.querySelector('select[name="homologacao_status_id"]');
     var statusBeforeHomologacao = null;
 
     if (!(dateInput instanceof HTMLInputElement) || !(statusSelect instanceof HTMLSelectElement)) {
         return;
     }
 
+    var dateField = dateInput.closest('[data-pge-date-form-field]') || dateInput.closest('.field');
+
     var isHomologado = function () {
         return homologacaoSelect instanceof HTMLSelectElement && selectedOptionCode(homologacaoSelect) === 'HOMOLOGADO';
     };
 
-    var syncStatusFromDate = function () {
-        if (!dateInput.value || isHomologado() || selectedOptionCode(statusSelect) === 'CONCLUIDO') {
-            return;
+    statusSelect.addEventListener('change', function () {
+        statusSelect.dataset.historyPgeUserChanged = '1';
+        syncPgeDateFieldVisibility();
+    });
+
+    var syncPgeDateFieldVisibility = function () {
+        var statusCode = selectedOptionCode(statusSelect);
+        var shouldShowDate = statusCode === 'ENVIADO_PGE' && !isHomologado();
+        var shouldClearDate = ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO'].indexOf(statusCode) >= 0;
+
+        if (dateField instanceof HTMLElement) {
+            dateField.hidden = !shouldShowDate;
         }
 
-        selectOptionByCode(statusSelect, 'ENVIADO_PGE');
+        dateInput.required = shouldShowDate;
+
+        if (shouldClearDate) {
+            dateInput.value = '';
+        }
     };
 
     var syncStatusFromHomologacao = function () {
@@ -329,6 +508,7 @@ function initPgeStatusSync() {
             }
 
             selectOptionByCode(statusSelect, 'CONCLUIDO');
+            syncPgeDateFieldVisibility();
             return;
         }
 
@@ -337,17 +517,97 @@ function initPgeStatusSync() {
             statusBeforeHomologacao = null;
         }
 
-        syncStatusFromDate();
+        syncPgeDateFieldVisibility();
     };
 
-    dateInput.addEventListener('change', syncStatusFromDate);
-    dateInput.addEventListener('input', syncStatusFromDate);
+    var syncStatusFromDate = function () {
+        if (!dateInput.value || isHomologado() || selectedOptionCode(statusSelect) === 'CONCLUIDO') {
+            return;
+        }
+
+        selectOptionByCode(statusSelect, 'ENVIADO_PGE');
+        syncPgeDateFieldVisibility();
+    };
+
     if (homologacaoSelect instanceof HTMLSelectElement) {
         homologacaoSelect.addEventListener('change', syncStatusFromHomologacao);
     }
 
+    dateInput.addEventListener('change', syncStatusFromDate);
+    dateInput.addEventListener('input', syncStatusFromDate);
+
     syncStatusFromHomologacao();
     syncStatusFromDate();
+    syncPgeDateFieldVisibility();
+}
+
+function collectHistoryChangedFields(form) {
+    var fields = [];
+    var radioNames = {};
+
+    form.querySelectorAll('input, select, textarea').forEach(function (control) {
+        if (!(control instanceof HTMLInputElement) && !(control instanceof HTMLSelectElement) && !(control instanceof HTMLTextAreaElement)) {
+            return;
+        }
+
+        if (!control.name || control.type === 'hidden' || control.type === 'file' || control.name === '_csrf' || control.name === 'historico_observacao') {
+            return;
+        }
+
+        if (control instanceof HTMLInputElement && control.type === 'radio') {
+            if (radioNames[control.name]) {
+                return;
+            }
+
+            radioNames[control.name] = true;
+
+            var checked = form.querySelector('input[name="' + cssEscape(control.name) + '"]:checked');
+            var defaultChecked = Array.prototype.find.call(form.querySelectorAll('input[name="' + cssEscape(control.name) + '"]'), function (radio) {
+                return radio.defaultChecked;
+            });
+
+            if ((checked ? checked.value : '') === (defaultChecked ? defaultChecked.value : '')) {
+                return;
+            }
+
+            fields.push({
+                label: fieldLabel(control),
+                before: defaultChecked ? radioText(defaultChecked) : 'Não informado',
+                value: checked ? radioText(checked) : 'Não informado'
+            });
+            return;
+        }
+
+        if (control instanceof HTMLSelectElement) {
+            var defaultOption = Array.prototype.find.call(control.options, function (optionItem) {
+                return optionItem.defaultSelected;
+            });
+            var currentOption = control.options[control.selectedIndex] || null;
+
+            if (control.value === (defaultOption ? defaultOption.value : '')) {
+                return;
+            }
+
+            fields.push({
+                label: fieldLabel(control),
+                before: defaultOption ? defaultOption.textContent.trim() : 'Não informado',
+                value: currentOption ? currentOption.textContent.trim() : control.value || 'Não informado'
+            });
+            return;
+        }
+
+        if (control.value === control.defaultValue) {
+            return;
+        }
+
+        fields.push({
+            label: fieldLabel(control),
+            before: control.defaultValue || 'Não informado',
+            value: control.value || 'Não informado'
+        });
+    });
+
+    return fields;
 }
 
 function collectChangedFields(form) {
@@ -381,6 +641,7 @@ function collectChangedFields(form) {
 
             fields.push({
                 label: fieldLabel(control),
+                before: defaultChecked ? radioText(defaultChecked) : 'Não informado',
                 value: checked ? radioText(checked) : 'Não informado'
             });
             return;
@@ -589,7 +850,7 @@ function appBaseUrl() {
 }
 
 function cobradeLoadError(select, message) {
-    fillSelect(select, [], message || 'Nao foi possivel carregar');
+    fillSelect(select, [], message || 'Não foi possível carregar');
 }
 
 function payloadItems(payload) {
@@ -1022,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', function () {
             target.classList.add('is-ready');
             return true;
         } catch (error) {
-            target.textContent = 'Nao foi possivel gerar o QR Code.';
+            target.textContent = 'Não foi possível gerar o QR Code.';
             return false;
         }
     }
@@ -1040,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            target.textContent = 'Nao foi possivel carregar o QR Code. Use a chave manual.';
+            target.textContent = 'Não foi possível carregar o QR Code. Use a chave manual.';
             return;
         }
 

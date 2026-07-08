@@ -141,6 +141,12 @@ function old(string $key, mixed $default = ''): mixed
 function status_badge(?string $text): string
 {
     $text = trim((string) $text);
+    $displayText = match ($text) {
+        'NAO INICIADO' => 'Não iniciado',
+        'NO PRAZO' => 'No prazo',
+        'PENDENTE' => 'Pendente',
+        default => $text,
+    };
     $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
     $normalized = strtolower((string) $normalized);
 
@@ -162,7 +168,7 @@ function status_badge(?string $text): string
         $class = 'badge-info';
     }
 
-    return '<span class="status-badge ' . e($class) . '">' . e($text ?: '-') . '</span>';
+    return '<span class="status-badge ' . e($class) . '">' . e($displayText ?: '-') . '</span>';
 }
 
 function compdec_photo_url(?string $path): ?string

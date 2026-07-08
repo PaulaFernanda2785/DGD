@@ -71,7 +71,7 @@ class DecretoService
         $registro = $this->decretos->detalhe($id);
 
         if (!$registro) {
-            throw new HttpException(404, 'Registro de desastre nao encontrado.');
+            throw new HttpException(404, 'Registro de desastre não encontrado.');
         }
 
         $protocoloCorrigido = $this->protocolo->corrigirMunicipioEmProtocolo(
@@ -95,10 +95,12 @@ class DecretoService
         $registro = $this->decretos->findById($id);
 
         if (!$registro) {
-            throw new HttpException(404, 'Registro de desastre nao encontrado.');
+            throw new HttpException(404, 'Registro de desastre não encontrado.');
         }
 
-        return $this->preencherHierarquiaCobrade($registro);
+        $calculados = $this->decretos->detalhe($id) ?? [];
+
+        return $this->preencherHierarquiaCobrade($registro + $calculados);
     }
 
     public function cadastrar(array $data, array $files = []): array
@@ -140,7 +142,7 @@ class DecretoService
         } catch (Throwable) {
             Database::rollBack();
 
-            return ['success' => false, 'errors' => ['geral' => ['Nao foi possivel cadastrar o desastre.']]];
+            return ['success' => false, 'errors' => ['geral' => ['Não foi possível cadastrar o desastre.']]];
         }
     }
 
@@ -173,7 +175,7 @@ class DecretoService
 
             return ['success' => true, 'warnings' => $warnings];
         } catch (Throwable) {
-            return ['success' => false, 'errors' => ['geral' => ['Nao foi possivel atualizar o desastre.']]];
+            return ['success' => false, 'errors' => ['geral' => ['Não foi possível atualizar o desastre.']]];
         }
     }
 
@@ -219,6 +221,11 @@ class DecretoService
             if ($codigo !== 'CONCLUIDO') {
                 $payload['data_conclusao_pge'] = null;
             }
+
+            if (in_array($codigo, ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO'], true)) {
+                $payload['data_envio_pge'] = null;
+                $payload['data_conclusao_pge'] = null;
+            }
         }
 
         $payload = $this->aplicarRegraHomologacaoPge($payload, $registro);
@@ -256,19 +263,19 @@ class DecretoService
 
         foreach (['municipio_id', 'tipo_decreto_id', 'cobrade_subtipo_id', 'data_desastre'] as $field) {
             if (($data[$field] ?? '') === '') {
-                $errors[$field][] = 'Campo obrigatorio.';
+                $errors[$field][] = 'Campo obrigatório.';
             }
         }
 
         if (!empty($data['data_desastre']) && strtotime((string) $data['data_desastre']) > strtotime('today')) {
-            $errors['data_desastre'][] = 'A data do desastre nao pode ser futura.';
+            $errors['data_desastre'][] = 'A data do desastre não pode ser futura.';
         }
 
         if (($data['municipio_id'] ?? '') !== '' && ($data['ubm_id'] ?? '') !== '') {
             $ubm = $this->dominios->findUbmForMunicipio((int) $data['ubm_id'], (int) $data['municipio_id']);
 
             if (!$ubm) {
-                $errors['ubm_id'][] = 'Selecione uma UBM vinculada ao municipio informado.';
+                $errors['ubm_id'][] = 'Selecione uma UBM vinculada ao município informado.';
             }
         }
 
@@ -304,14 +311,13 @@ class DecretoService
         $strOrNull = static fn (mixed $value): ?string => trim((string) $value) === '' ? null : trim((string) $value);
         $compdec = $this->compdecs->findByMunicipioId((int) $data['municipio_id']);
         $ubmId = $intOrNull($data['ubm_id'] ?? null);
-        $compdecValue = static fn (mixed $value): string => trim((string) $value) === '' ? 'Nao foi registrado' : trim((string) $value);
+        $compdecValue = static fn (mixed $value): string => trim((string) $value) === '' ? 'Não foi registrado' : trim((string) $value);
         $dataEnvioPge = $strOrNull($data['data_envio_pge'] ?? null);
         $statusEnvioPgeId = (int) ($data['status_envio_pge_id'] ?? 1);
         $statusEnvioPgeCodigo = $this->statusEnvioPgeCodigoPorId($statusEnvioPgeId);
 
         if ($dataEnvioPge !== null && in_array($statusEnvioPgeCodigo, ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO', null], true)) {
-            $statusEnvioPgeId = $this->statusEnvioPgeIdPorCodigo('ENVIADO_PGE') ?? $statusEnvioPgeId;
-            $statusEnvioPgeCodigo = 'ENVIADO_PGE';
+            $dataEnvioPge = null;
         }
 
         $dataConclusaoPge = null;
@@ -328,11 +334,11 @@ class DecretoService
             'municipio_id' => (int) $data['municipio_id'],
             'ubm_id' => $ubmId,
             'compdec_id' => $compdec ? (int) $compdec['id'] : null,
-            'compdec_regiao_integracao' => $compdec ? $compdecValue($compdec['regiao_integracao'] ?? null) : 'Nao foi registrado',
-            'compdec_prefeito' => $compdec ? $compdecValue($compdec['prefeito'] ?? null) : 'Nao foi registrado',
-            'compdec_coordenador' => $compdec ? $compdecValue($compdec['coordenador'] ?? null) : 'Nao foi registrado',
-            'compdec_telefone' => $compdec ? $compdecValue($compdec['telefone'] ?? null) : 'Nao foi registrado',
-            'compdec_email' => $compdec ? $compdecValue($compdec['email'] ?? null) : 'Nao foi registrado',
+            'compdec_regiao_integracao' => $compdec ? $compdecValue($compdec['regiao_integracao'] ?? null) : 'Não foi registrado',
+            'compdec_prefeito' => $compdec ? $compdecValue($compdec['prefeito'] ?? null) : 'Não foi registrado',
+            'compdec_coordenador' => $compdec ? $compdecValue($compdec['coordenador'] ?? null) : 'Não foi registrado',
+            'compdec_telefone' => $compdec ? $compdecValue($compdec['telefone'] ?? null) : 'Não foi registrado',
+            'compdec_email' => $compdec ? $compdecValue($compdec['email'] ?? null) : 'Não foi registrado',
             'tipo_decreto_id' => (int) $data['tipo_decreto_id'],
             'cobrade_subtipo_id' => (int) $data['cobrade_subtipo_id'],
             'data_desastre' => (string) $data['data_desastre'],
@@ -375,7 +381,7 @@ class DecretoService
             return [];
         }
 
-        return ['Alguns anexos nao foram enviados: ' . implode(' ', $result['errors'])];
+        return ['Alguns anexos não foram enviados: ' . implode(' ', $result['errors'])];
     }
 
     private function registrarAlteracoes(int $desastreId, array $registro, array $payload, ?string $observacao): void

@@ -1195,7 +1195,7 @@ SELECT
     d.data_envio_pge,
     d.data_conclusao_pge,
     CASE
-        WHEN d.data_envio_pge IS NULL THEN NULL
+        WHEN d.data_envio_pge IS NULL OR sep.codigo IN ('NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO') THEN NULL
         ELSE DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge)
     END AS duracao_pge_dias,
     d.status_envio_pge_id,
@@ -1204,9 +1204,10 @@ SELECT
     CASE
         WHEN sep.codigo = 'CONCLUIDO' THEN 'CONCLUÍDO'
         WHEN sh.codigo = 'HOMOLOGADO' THEN 'CONCLUÍDO'
+        WHEN sep.codigo IN ('NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO') THEN 'NAO INICIADO'
         WHEN d.data_envio_pge IS NULL THEN 'NAO INICIADO'
-        WHEN DATEDIFF(CURRENT_DATE, d.data_envio_pge) BETWEEN 0 AND 7 THEN 'NO PRAZO'
-        WHEN DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7 THEN 'PENDENTE'
+        WHEN DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge) BETWEEN 0 AND 7 THEN 'NO PRAZO'
+        WHEN DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge) > 7 THEN 'PENDENTE'
         ELSE 'NAO INICIADO'
     END AS status_prazo_pge_calculado,
     d.analista_id,

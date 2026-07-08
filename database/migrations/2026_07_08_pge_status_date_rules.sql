@@ -74,8 +74,8 @@ SELECT
         WHEN sep.codigo = 'CONCLUIDO' THEN 'CONCLUÍDO'
         WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'
         WHEN d.data_envio_pge IS NULL THEN 'NAO INICIADO'
-        WHEN DATEDIFF(CURRENT_DATE, d.data_envio_pge) BETWEEN 0 AND 7 THEN 'NO PRAZO'
-        WHEN DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7 THEN 'PENDENTE'
+        WHEN DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge) BETWEEN 0 AND 7 THEN 'NO PRAZO'
+        WHEN DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge) > 7 THEN 'PENDENTE'
         ELSE 'NAO INICIADO'
     END AS status_prazo_pge_calculado,
     d.analista_id,

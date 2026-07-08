@@ -75,7 +75,12 @@
         <div><strong>Data do decreto municipal</strong><span><?= e($formatDate($registro['data_decreto_municipal'] ?? null)); ?></span></div>
         <div><strong>Homologação</strong><span><?= status_badge($registro['homologacao']); ?></span></div>
         <div><strong>Reconhecimento</strong><span><?= status_badge($registro['reconhecimento']); ?></span></div>
+        <div><strong>Protocolo PAE/PGE</strong><span><?= e($valueOrDash($registro['protocolo_pae_pge'] ?? null)); ?></span></div>
         <div><strong>Envio à PGE</strong><span><?= status_badge($registro['status_envio_pge']); ?></span></div>
+        <div><strong>Data de envio à PGE</strong><span><?= e($formatDate($registro['data_envio_pge'] ?? null)); ?></span></div>
+        <div><strong>Data de conclusão PGE</strong><span><?= e($formatDate($registro['data_conclusao_pge'] ?? null)); ?></span></div>
+        <div><strong>Dias PGE</strong><span><?= e($valueOrDash($registro['duracao_pge_dias'] ?? null)); ?></span></div>
+        <div><strong>Prazo PGE</strong><span><?= status_badge($registro['status_prazo_pge_calculado'] ?? null); ?></span></div>
         <div><strong>Analista</strong><span><?= e($valueOrDash($registro['analista'] ?? null)); ?></span></div>
     </div>
 </section>

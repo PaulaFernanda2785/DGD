@@ -30,6 +30,10 @@ class PgePrazoService
             return 'CONCLUÍDO';
         }
 
+        if (in_array($statusEnvioPgeCodigo, ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO'], true)) {
+            return 'NAO INICIADO';
+        }
+
         $duracao = $this->duracao($dataEnvioPge, $dataConclusaoPge);
 
         if ($duracao === null) {

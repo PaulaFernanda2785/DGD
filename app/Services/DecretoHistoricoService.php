@@ -30,7 +30,19 @@ class DecretoHistoricoService
 
     public function listar(int $desastreId): array
     {
-        return $this->historico->byDesastre($desastreId);
+        $registros = $this->historico->byDesastre($desastreId);
+
+        usort($registros, static function (array $a, array $b): int {
+            $dataComparacao = strtotime((string) ($b['criado_em'] ?? '')) <=> strtotime((string) ($a['criado_em'] ?? ''));
+
+            if ($dataComparacao !== 0) {
+                return $dataComparacao;
+            }
+
+            return (int) ($b['id'] ?? 0) <=> (int) ($a['id'] ?? 0);
+        });
+
+        return $registros;
     }
 
     private function formatarValor(mixed $value): ?string
