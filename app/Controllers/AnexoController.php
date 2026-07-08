@@ -37,6 +37,12 @@ class AnexoController extends Controller
         $this->response->download($anexo['caminho_armazenado'], $anexo['nome_original'], $anexo['mime_type']);
     }
 
+    public function showFile(string $id): void
+    {
+        $anexo = $this->anexoService->buscarParaDownload((int) $id);
+        $this->response->inlineFile($anexo['caminho_armazenado'], $anexo['nome_original'], $anexo['mime_type']);
+    }
+
     public function destroy(string $id): void
     {
         $desastreId = $this->anexoService->excluir((int) $id);

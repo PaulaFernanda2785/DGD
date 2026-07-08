@@ -22,6 +22,15 @@ class ProtocoloDgdService
         ];
     }
 
+    public function corrigirMunicipioEmProtocolo(string $protocolo, string $municipioNome): string
+    {
+        if (!preg_match('/^(DGD-\d{4}-\d{6}-\d{8})-.+$/', $protocolo, $matches)) {
+            return $protocolo;
+        }
+
+        return $matches[1] . '-' . $this->normalizarMunicipio($municipioNome);
+    }
+
     private function proximoSequencial(int $ano): int
     {
         $pdo = Database::connection();
@@ -44,11 +53,32 @@ class ProtocoloDgdService
 
     private function normalizarMunicipio(string $municipio): string
     {
-        $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $municipio);
+        $normalized = $this->corrigirEncoding($municipio);
+        $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
         $normalized = strtoupper((string) $normalized);
+        $normalized = preg_replace('/[\'`^~"]+/', '', $normalized);
         $normalized = preg_replace('/[^A-Z0-9]+/', '_', $normalized);
         $normalized = trim((string) $normalized, '_');
 
         return $normalized !== '' ? $normalized : 'MUNICIPIO';
+    }
+
+    private function corrigirEncoding(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (str_contains($value, "\xC3\x83") || str_contains($value, "\xC3\x82")) {
+            $repaired = mb_convert_encoding($value, 'ISO-8859-1', 'UTF-8');
+
+            if (mb_check_encoding($repaired, 'UTF-8')) {
+                return $repaired;
+            }
+        }
+
+        return mb_check_encoding($value, 'UTF-8') ? $value : mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1');
     }
 }

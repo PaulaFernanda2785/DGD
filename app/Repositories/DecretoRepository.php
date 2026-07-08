@@ -85,6 +85,17 @@ class DecretoRepository
         $stmt->execute($data);
     }
 
+    public function updateProtocolo(int $id, string $protocolo): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE desastres
+             SET protocolo_dgd = :protocolo
+             WHERE id = :id
+               AND excluido_em IS NULL'
+        );
+        $stmt->execute(['id' => $id, 'protocolo' => $protocolo]);
+    }
+
     public function softDelete(int $id, int $userId): void
     {
         $stmt = Database::connection()->prepare(

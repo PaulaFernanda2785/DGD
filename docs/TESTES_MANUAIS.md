@@ -61,9 +61,14 @@
 | Operador cadastra desastre | Permitido. |
 | Operador acessa edicao | Bloqueado. |
 | Listagem | Maximo de 20 registros por pagina. |
+| Abrir detalhe de decreto | Exibe layout em secoes modernas, cards de resumo, danos humanos e anexos sem sobreposicao. |
+| Protocolo de municipio com acento | Municipio como Belem/Sao Felix do Xingu gera protocolo com BELEM/SAO_FELIX_DO_XINGU, sem underscore indevido no acento. |
 | Filtros | Aplicados no backend. |
 | Excluir desastre | Exclusao logica e auditoria. |
 | Editar status na listagem | Permitido para Admin/Gestor. |
+| Editar decreto | Antes de salvar, abre modal de historico com resumo dos campos alterados e campo de observacao. |
+| Salvar status na listagem | Antes de salvar, abre modal de historico com o novo status selecionado. |
+| Abrir detalhe apos edicao | Historico exibe campo alterado, valor anterior, valor novo, usuario, data/hora e observacao. |
 
 ---
 
@@ -83,6 +88,11 @@
 | Teste | Resultado esperado |
 |---|---|
 | Selecionar anexos no formulario de novo cadastro | Arquivos aparecem na lista do tipo de anexo correspondente e sao salvos apos criar o desastre. |
+| Selecionar anexo no detalhe do decreto | Arquivo aparece no bloco de upload antes do envio. |
+| Arrastar ou colar anexo no detalhe do decreto | Arquivo aparece no bloco de upload e pode ser enviado. |
+| Enviar anexo pelo detalhe | Antes de enviar, abre modal de historico exibindo o nome do arquivo e campo de observacao. |
+| Anexo enviado | Historico do detalhe registra anexo incluido, usuario, data/hora e observacao. |
+| Ver anexo no detalhe | Abre o arquivo em nova aba quando o navegador suportar visualizacao inline. |
 | Arrastar anexos para o formulario | Arquivos sao adicionados ao tipo de anexo escolhido antes do envio. |
 | Colar imagem/arquivo em um bloco de anexo focado | Arquivo colado aparece na lista e pode ser enviado. |
 | Remover arquivo antes de enviar | Arquivo sai da lista e nao e enviado. |

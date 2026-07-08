@@ -102,8 +102,9 @@ class DecretoController extends Controller
     {
         $field = (string) $this->request->post('campo', '');
         $value = (int) $this->request->post('valor', 0);
+        $observacao = trim((string) $this->request->post('historico_observacao', '')) ?: null;
 
-        $this->decretoService->atualizarStatus((int) $id, $field, $value);
+        $this->decretoService->atualizarStatus((int) $id, $field, $value, $observacao);
 
         if (!$this->request->expectsJson()) {
             Session::flash('success', 'Status atualizado com sucesso.');

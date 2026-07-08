@@ -50,6 +50,7 @@ return [
     ['POST', '/compdecs/{id}/editar', [CompdecController::class, 'update'], [AuthMiddleware::class, [PermissionMiddleware::class, 'compdecs.editar'], CsrfMiddleware::class]],
 
     ['POST', '/decretos/{id}/anexos', [AnexoController::class, 'store'], [AuthMiddleware::class, [PermissionMiddleware::class, 'anexos.upload'], CsrfMiddleware::class]],
+    ['GET', '/anexos/{id}/ver', [AnexoController::class, 'showFile'], [AuthMiddleware::class]],
     ['GET', '/anexos/{id}/download', [AnexoController::class, 'download'], [AuthMiddleware::class]],
     ['POST', '/anexos/{id}/excluir', [AnexoController::class, 'destroy'], [AuthMiddleware::class, [PermissionMiddleware::class, 'anexos.excluir'], CsrfMiddleware::class]],
 

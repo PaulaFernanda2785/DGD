@@ -1,4 +1,5 @@
 var pendingSubmitter = null;
+var pendingHistorySubmitter = null;
 
 document.addEventListener('click', function (event) {
     var target = event.target;
@@ -61,6 +62,16 @@ document.addEventListener('submit', function (event) {
         return;
     }
 
+    if (form.hasAttribute('data-history-modal') && form.dataset.historyConfirmed !== '1') {
+        event.preventDefault();
+        openHistoryModal(form, submitter instanceof HTMLElement ? submitter : null);
+        return;
+    }
+
+    if (form.dataset.historyConfirmed === '1') {
+        delete form.dataset.historyConfirmed;
+    }
+
     var buttons = form.querySelectorAll('button[type="submit"]');
 
     buttons.forEach(function (button) {
@@ -99,6 +110,194 @@ function openConfirm(message, onConfirm) {
 
     okButton.addEventListener('click', confirm);
     cancelButton.addEventListener('click', close);
+}
+
+function openHistoryModal(form, submitter) {
+    var backdrop = document.querySelector('[data-history-backdrop]');
+    var summaryBox = document.querySelector('[data-history-modal-summary]');
+    var textarea = document.querySelector('[data-history-textarea]');
+    var confirmButton = document.querySelector('[data-history-confirm]');
+    var cancelButton = document.querySelector('[data-history-cancel]');
+    var observationInput = form.querySelector('[data-history-observation]');
+
+    if (!backdrop || !summaryBox || !textarea || !confirmButton || !cancelButton || !(observationInput instanceof HTMLInputElement)) {
+        form.dataset.historyConfirmed = '1';
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit(submitter instanceof HTMLElement ? submitter : undefined);
+            return;
+        }
+        form.submit();
+        return;
+    }
+
+    summaryBox.innerHTML = '';
+    buildHistorySummary(form).forEach(function (line) {
+        var item = document.createElement('p');
+        item.textContent = line;
+        summaryBox.appendChild(item);
+    });
+
+    textarea.value = '';
+    backdrop.hidden = false;
+    textarea.focus();
+
+    var close = function () {
+        backdrop.hidden = true;
+        confirmButton.removeEventListener('click', confirm);
+        cancelButton.removeEventListener('click', close);
+        document.removeEventListener('keydown', onKeydown);
+    };
+
+    var confirm = function () {
+        observationInput.value = textarea.value.trim();
+        close();
+        form.dataset.historyConfirmed = '1';
+        pendingHistorySubmitter = submitter;
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit(submitter instanceof HTMLElement ? submitter : undefined);
+        } else if (submitter instanceof HTMLElement) {
+            submitter.click();
+        } else {
+            form.submit();
+        }
+
+        pendingHistorySubmitter = null;
+    };
+
+    var onKeydown = function (event) {
+        if (event.key === 'Escape') {
+            close();
+        }
+    };
+
+    confirmButton.addEventListener('click', confirm);
+    cancelButton.addEventListener('click', close);
+    document.addEventListener('keydown', onKeydown);
+}
+
+function buildHistorySummary(form) {
+    var lines = [];
+    var baseSummary = form.getAttribute('data-history-summary') || 'Alteração no decreto';
+    var campo = form.querySelector('input[name="campo"]');
+    var valor = form.querySelector('select[name="valor"]');
+    var files = [];
+    var changedFields = [];
+
+    lines.push(baseSummary);
+
+    if (campo instanceof HTMLInputElement && valor instanceof HTMLSelectElement) {
+        var selectedOption = valor.options[valor.selectedIndex];
+        lines.push('Novo valor: ' + (selectedOption ? selectedOption.textContent.trim() : valor.value));
+    } else {
+        changedFields = collectChangedFields(form);
+
+        changedFields.slice(0, 8).forEach(function (item) {
+            lines.push(item.label + ': ' + item.value);
+        });
+
+        if (changedFields.length > 8) {
+            lines.push('Outros campos alterados: ' + (changedFields.length - 8));
+        }
+    }
+
+    form.querySelectorAll('input[type="file"]').forEach(function (input) {
+        Array.prototype.forEach.call(input.files || [], function (file) {
+            files.push(file.name);
+        });
+    });
+
+    if (files.length > 0) {
+        lines.push('Anexo(s): ' + files.join(', '));
+    }
+
+    return lines;
+}
+
+function collectChangedFields(form) {
+    var fields = [];
+    var radioNames = {};
+
+    form.querySelectorAll('input, select, textarea').forEach(function (control) {
+        if (!(control instanceof HTMLInputElement) && !(control instanceof HTMLSelectElement) && !(control instanceof HTMLTextAreaElement)) {
+            return;
+        }
+
+        if (!control.name || control.type === 'hidden' || control.type === 'file' || control.name === '_csrf' || control.name === 'historico_observacao') {
+            return;
+        }
+
+        if (control instanceof HTMLInputElement && control.type === 'radio') {
+            if (radioNames[control.name]) {
+                return;
+            }
+
+            radioNames[control.name] = true;
+
+            var checked = form.querySelector('input[name="' + cssEscape(control.name) + '"]:checked');
+            var defaultChecked = Array.prototype.find.call(form.querySelectorAll('input[name="' + cssEscape(control.name) + '"]'), function (radio) {
+                return radio.defaultChecked;
+            });
+
+            if ((checked ? checked.value : '') === (defaultChecked ? defaultChecked.value : '')) {
+                return;
+            }
+
+            fields.push({
+                label: fieldLabel(control),
+                value: checked ? radioText(checked) : 'Não informado'
+            });
+            return;
+        }
+
+        if (control instanceof HTMLSelectElement) {
+            var defaultValue = Array.prototype.find.call(control.options, function (option) {
+                return option.defaultSelected;
+            });
+            var currentText = control.options[control.selectedIndex] ? control.options[control.selectedIndex].textContent.trim() : control.value;
+
+            if (control.value === (defaultValue ? defaultValue.value : '')) {
+                return;
+            }
+
+            fields.push({ label: fieldLabel(control), value: currentText || 'Não informado' });
+            return;
+        }
+
+        if (control.value === control.defaultValue) {
+            return;
+        }
+
+        fields.push({ label: fieldLabel(control), value: control.value || 'Não informado' });
+    });
+
+    return fields;
+}
+
+function fieldLabel(control) {
+    var field = control.closest('.field');
+    var label = field ? field.querySelector('label, .field-label') : null;
+
+    if (label) {
+        return label.textContent.replace(/\s+/g, ' ').trim();
+    }
+
+    return control.name.replace(/_/g, ' ');
+}
+
+function radioText(radio) {
+    var label = radio.closest('label');
+    var text = label ? label.textContent.replace(/\s+/g, ' ').trim() : radio.value;
+
+    return text || radio.value;
+}
+
+function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+        return window.CSS.escape(value);
+    }
+
+    return String(value).replace(/"/g, '\\"');
 }
 
 function option(value, label) {
@@ -544,7 +743,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function addFiles(input, files) {
-        setFiles(input, currentFiles(input).concat(validFiles(files)));
+        var selectedFiles = validFiles(files);
+
+        if (!input.multiple) {
+            setFiles(input, selectedFiles.slice(-1));
+            return;
+        }
+
+        setFiles(input, currentFiles(input).concat(selectedFiles));
     }
 
     function formatSize(size) {

@@ -27,12 +27,22 @@ class Response
 
     public function download(string $path, string $downloadName, string $mimeType = 'application/octet-stream'): void
     {
+        $this->file($path, $downloadName, $mimeType, 'attachment');
+    }
+
+    public function inlineFile(string $path, string $downloadName, string $mimeType = 'application/octet-stream'): void
+    {
+        $this->file($path, $downloadName, $mimeType, 'inline');
+    }
+
+    private function file(string $path, string $downloadName, string $mimeType, string $disposition): void
+    {
         if (!is_file($path)) {
             throw new HttpException(404, 'Arquivo nao encontrado.');
         }
 
         header('Content-Type: ' . $mimeType);
-        header('Content-Disposition: attachment; filename="' . basename($downloadName) . '"');
+        header('Content-Disposition: ' . $disposition . '; filename="' . basename($downloadName) . '"');
         header('Content-Length: ' . filesize($path));
         readfile($path);
         exit;

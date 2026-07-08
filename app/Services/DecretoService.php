@@ -23,6 +23,7 @@ class DecretoService
     private AnexoRepository $anexos;
     private ProtocoloDgdService $protocolo;
     private AuditoriaService $auditoria;
+    private DecretoHistoricoService $historico;
     private AnexoService $anexoService;
 
     public function __construct()
@@ -34,6 +35,7 @@ class DecretoService
         $this->anexos = new AnexoRepository();
         $this->protocolo = new ProtocoloDgdService();
         $this->auditoria = new AuditoriaService();
+        $this->historico = new DecretoHistoricoService();
         $this->anexoService = new AnexoService();
     }
 
@@ -72,8 +74,19 @@ class DecretoService
             throw new HttpException(404, 'Registro de desastre nao encontrado.');
         }
 
+        $protocoloCorrigido = $this->protocolo->corrigirMunicipioEmProtocolo(
+            (string) $registro['protocolo_dgd'],
+            (string) $registro['municipio']
+        );
+
+        if ($protocoloCorrigido !== $registro['protocolo_dgd']) {
+            $this->decretos->updateProtocolo($id, $protocoloCorrigido);
+            $registro['protocolo_dgd'] = $protocoloCorrigido;
+        }
+
         return $registro + [
             'anexos' => $this->anexos->byDesastre($id),
+            'historico' => $this->historico->listar($id),
         ];
     }
 
@@ -90,6 +103,7 @@ class DecretoService
 
     public function cadastrar(array $data, array $files = []): array
     {
+        $observacaoHistorico = $this->observacaoHistorico($data);
         $errors = $this->validar($data);
 
         if ($errors !== []) {
@@ -114,11 +128,13 @@ class DecretoService
                 'entidade' => 'desastres',
                 'entidade_id' => $id,
                 'valor_novo' => ['protocolo_dgd' => $payload['protocolo_dgd']],
+                'justificativa' => $observacaoHistorico,
             ]);
+            $this->historico->registrar($id, 'Cadastro do decreto', null, $payload['protocolo_dgd'], $observacaoHistorico);
 
             Database::commit();
 
-            $warnings = $this->salvarAnexosDoFormulario($id, $files, $data);
+            $warnings = $this->salvarAnexosDoFormulario($id, $files, $data, $observacaoHistorico);
 
             return ['success' => true, 'id' => $id, 'warnings' => $warnings];
         } catch (Throwable) {
@@ -131,6 +147,7 @@ class DecretoService
     public function atualizar(int $id, array $data, array $files = []): array
     {
         $registro = $this->buscarParaEdicao($id);
+        $observacaoHistorico = $this->observacaoHistorico($data);
         $errors = $this->validar($data);
 
         if ($errors !== []) {
@@ -148,9 +165,11 @@ class DecretoService
                 'entidade_id' => $id,
                 'valor_anterior' => $registro,
                 'valor_novo' => $payload,
+                'justificativa' => $observacaoHistorico,
             ]);
+            $this->registrarAlteracoes($id, $registro, $payload, $observacaoHistorico);
 
-            $warnings = $this->salvarAnexosDoFormulario($id, $files, $data);
+            $warnings = $this->salvarAnexosDoFormulario($id, $files, $data, $observacaoHistorico);
 
             return ['success' => true, 'warnings' => $warnings];
         } catch (Throwable) {
@@ -169,7 +188,7 @@ class DecretoService
         ]);
     }
 
-    public function atualizarStatus(int $id, string $field, int $value): void
+    public function atualizarStatus(int $id, string $field, int $value, ?string $observacao = null): void
     {
         $registro = $this->buscarParaEdicao($id);
         $this->decretos->updateStatus($id, $field, $value, Auth::id() ?? 0);
@@ -178,7 +197,18 @@ class DecretoService
             'entidade_id' => $id,
             'valor_anterior' => [$field => $registro[$field] ?? null],
             'valor_novo' => [$field => $value],
+            'justificativa' => $observacao,
         ]);
+
+        if ((string) ($registro[$field] ?? '') !== (string) $value) {
+            $this->historico->registrar(
+                $id,
+                $this->campoHistoricoLabel($field),
+                $this->valorHistorico($field, $registro[$field] ?? null),
+                $this->valorHistorico($field, $value),
+                $observacao
+            );
+        }
     }
 
     private function validar(array $data): array
@@ -259,12 +289,13 @@ class DecretoService
         ];
     }
 
-    private function salvarAnexosDoFormulario(int $desastreId, array $files, array $data): array
+    private function salvarAnexosDoFormulario(int $desastreId, array $files, array $data, ?string $observacao = null): array
     {
         $result = $this->anexoService->salvarMultiplos(
             $desastreId,
             $files['anexos'] ?? [],
-            $data['anexo_descricao'] ?? []
+            $data['anexo_descricao'] ?? [],
+            $observacao
         );
 
         if ($result['errors'] === []) {
@@ -272,5 +303,122 @@ class DecretoService
         }
 
         return ['Alguns anexos nao foram enviados: ' . implode(' ', $result['errors'])];
+    }
+
+    private function registrarAlteracoes(int $desastreId, array $registro, array $payload, ?string $observacao): void
+    {
+        foreach ($payload as $field => $newValue) {
+            if (in_array($field, ['atualizado_por'], true)) {
+                continue;
+            }
+
+            $oldValue = $registro[$field] ?? null;
+
+            if ($this->valoresIguais($oldValue, $newValue)) {
+                continue;
+            }
+
+            $this->historico->registrar(
+                $desastreId,
+                $this->campoHistoricoLabel($field),
+                $this->valorHistorico($field, $oldValue),
+                $this->valorHistorico($field, $newValue),
+                $observacao
+            );
+        }
+    }
+
+    private function valoresIguais(mixed $oldValue, mixed $newValue): bool
+    {
+        $oldValue = $oldValue === null ? '' : trim((string) $oldValue);
+        $newValue = $newValue === null ? '' : trim((string) $newValue);
+
+        return $oldValue === $newValue;
+    }
+
+    private function observacaoHistorico(array $data): ?string
+    {
+        $observacao = trim((string) ($data['historico_observacao'] ?? ''));
+
+        return $observacao === '' ? null : $observacao;
+    }
+
+    private function campoHistoricoLabel(string $field): string
+    {
+        return [
+            'municipio_id' => 'Município',
+            'ubm_id' => 'UBM atuante',
+            'compdec_id' => 'COMPDEC',
+            'compdec_regiao_integracao' => 'Região de integração',
+            'compdec_prefeito' => 'Prefeito',
+            'compdec_coordenador' => 'Coordenador COMPDEC',
+            'compdec_telefone' => 'Telefone COMPDEC',
+            'compdec_email' => 'E-mail COMPDEC',
+            'tipo_decreto_id' => 'Tipo de decreto',
+            'cobrade_subtipo_id' => 'Subtipo COBRADE',
+            'data_desastre' => 'Data do desastre',
+            'protocolo_s2id' => 'Protocolo S2ID',
+            'numero_decreto_municipal' => 'Número do decreto municipal',
+            'data_decreto_municipal' => 'Data do decreto municipal',
+            'numero_decreto_homologacao_estadual' => 'Número do decreto estadual',
+            'data_decreto_homologacao' => 'Data de homologação',
+            'homologacao_status_id' => 'Homologação',
+            'reconhecimento_status_id' => 'Reconhecimento',
+            'protocolo_pae_pge' => 'Protocolo PAE/PGE',
+            'data_envio_pge' => 'Data de envio à PGE',
+            'status_envio_pge_id' => 'Status de envio à PGE',
+            'analista_id' => 'Analista',
+            'recurso_resposta_status_id' => 'Recurso de resposta',
+            'recurso_reconstrucao_status_id' => 'Recurso de reconstrução',
+            'numero_obitos' => 'Óbitos',
+            'numero_feridos' => 'Feridos',
+            'numero_enfermos' => 'Enfermos',
+            'numero_desabrigados' => 'Desabrigados',
+            'numero_desalojados' => 'Desalojados',
+            'numero_outros_afetados' => 'Outros afetados',
+            'observacoes' => 'Observações',
+        ][$field] ?? $field;
+    }
+
+    private function valorHistorico(string $field, mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($field) {
+            'municipio_id' => $this->nomePorId($this->dominios->municipios(), (int) $value),
+            'ubm_id' => $this->nomePorId($this->dominios->ubms(), (int) $value),
+            'tipo_decreto_id' => $this->nomePorId($this->dominios->tiposDecreto(), (int) $value),
+            'homologacao_status_id' => $this->nomePorId($this->dominios->statusHomologacao(), (int) $value),
+            'reconhecimento_status_id' => $this->nomePorId($this->dominios->statusReconhecimento(), (int) $value),
+            'status_envio_pge_id' => $this->nomePorId($this->dominios->statusEnvioPge(), (int) $value),
+            'recurso_resposta_status_id', 'recurso_reconstrucao_status_id' => $this->nomePorId($this->dominios->statusRecurso(), (int) $value),
+            'analista_id' => $this->nomePorId($this->dominios->analistas(), (int) $value),
+            'cobrade_subtipo_id' => $this->cobradeSubtipoHistorico((int) $value),
+            default => (string) $value,
+        };
+    }
+
+    private function nomePorId(array $items, int $id): ?string
+    {
+        foreach ($items as $item) {
+            if ((int) ($item['id'] ?? 0) === $id) {
+                return (string) ($item['nome'] ?? $id);
+            }
+        }
+
+        return (string) $id;
+    }
+
+    private function cobradeSubtipoHistorico(int $id): ?string
+    {
+        foreach ($this->cobrade->subtiposComHierarquia() as $subtipo) {
+            if ((int) ($subtipo['id'] ?? 0) === $id) {
+                return trim((string) (($subtipo['codigo'] ? $subtipo['codigo'] . ' - ' : '') . $subtipo['nome']));
+            }
+        }
+
+        return (string) $id;
     }
 }

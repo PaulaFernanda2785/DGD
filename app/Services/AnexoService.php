@@ -14,12 +14,14 @@ class AnexoService
     private AnexoRepository $anexos;
     private DecretoRepository $decretos;
     private AuditoriaService $auditoria;
+    private DecretoHistoricoService $historico;
 
     public function __construct()
     {
         $this->anexos = new AnexoRepository();
         $this->decretos = new DecretoRepository();
         $this->auditoria = new AuditoriaService();
+        $this->historico = new DecretoHistoricoService();
     }
 
     public function salvar(int $desastreId, array $file, array $data): array
@@ -67,12 +69,20 @@ class AnexoService
             'entidade' => 'desastre_anexos',
             'entidade_id' => $id,
             'valor_novo' => ['desastre_id' => $desastreId, 'nome_original' => $file['name']],
+            'justificativa' => $this->observacaoHistorico($data),
         ]);
+        $this->historico->registrar(
+            $desastreId,
+            'Anexo incluído',
+            null,
+            (string) $file['name'],
+            $this->observacaoHistorico($data)
+        );
 
         return ['success' => true, 'id' => $id];
     }
 
-    public function salvarMultiplos(int $desastreId, array $files, array $descriptions = []): array
+    public function salvarMultiplos(int $desastreId, array $files, array $descriptions = [], ?string $observacao = null): array
     {
         $saved = [];
         $errors = [];
@@ -86,6 +96,7 @@ class AnexoService
                 $result = $this->salvar($desastreId, $file, [
                     'tipo_anexo_id' => $tipoAnexoId,
                     'descricao' => $descriptions[$tipoAnexoId] ?? '',
+                    'historico_observacao' => $observacao,
                 ]);
 
                 if ($result['success']) {
@@ -178,5 +189,12 @@ class AnexoService
         }
 
         return $normalizados;
+    }
+
+    private function observacaoHistorico(array $data): ?string
+    {
+        $observacao = trim((string) ($data['historico_observacao'] ?? ''));
+
+        return $observacao === '' ? null : $observacao;
     }
 }

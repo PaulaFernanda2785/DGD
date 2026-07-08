@@ -1,5 +1,6 @@
-<form method="post" action="<?= e($action); ?>" enctype="multipart/form-data" class="form-grid decree-form decree-form-modern">
+<form method="post" action="<?= e($action); ?>" enctype="multipart/form-data" class="form-grid decree-form decree-form-modern" data-history-modal data-history-summary="<?= e(!empty($registro['id']) ? 'Edição do decreto ' . ($registro['protocolo_dgd'] ?? '') : 'Cadastro de novo decreto'); ?>">
     <?= csrf_input(); ?>
+    <input type="hidden" name="historico_observacao" data-history-observation>
 
     <div class="form-intro span-2">
         <div>

@@ -93,5 +93,18 @@ $assetBaseUrl = rtrim($runtimeBaseUrl, '/');
             </div>
         </div>
     </div>
+
+    <div class="modal-backdrop history-modal-backdrop" data-history-backdrop hidden>
+        <div class="modal history-modal" role="dialog" aria-modal="true" aria-labelledby="history-title">
+            <h2 id="history-title">Registrar histórico</h2>
+            <div class="history-modal-summary" data-history-modal-summary></div>
+            <label for="history-observation">Observação</label>
+            <textarea id="history-observation" rows="4" data-history-textarea placeholder="Descreva o motivo ou contexto desta alteração."></textarea>
+            <div class="modal-actions">
+                <button type="button" class="button button-light" data-history-cancel>Cancelar</button>
+                <button type="button" class="button button-primary" data-history-confirm>Confirmar e salvar</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
