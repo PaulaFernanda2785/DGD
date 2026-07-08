@@ -58,6 +58,40 @@ class CompdecRepository
         return array_column($stmt->fetchAll(), 'regiao_integracao');
     }
 
+    public function resumo(array $filters): array
+    {
+        [$where, $params] = $this->buildWhere($filters);
+        $stmt = Database::connection()->prepare(
+            'SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN c.tem_compdec = 1 THEN 1 ELSE 0 END) AS com_compdec,
+                SUM(CASE WHEN c.tem_compdec = 0 THEN 1 ELSE 0 END) AS sem_compdec
+             FROM compdecs c' . $where
+        );
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+
+        return [
+            'total' => (int) ($row['total'] ?? 0),
+            'com_compdec' => (int) ($row['com_compdec'] ?? 0),
+            'sem_compdec' => (int) ($row['sem_compdec'] ?? 0),
+        ];
+    }
+
+    public function ubms(): array
+    {
+        $stmt = Database::connection()->query(
+            'SELECT DISTINCT ubm_nome
+             FROM compdecs
+             WHERE ubm_nome IS NOT NULL
+               AND ubm_nome <> \'\'
+               AND ubm_nome NOT IN (\'Nao foi registrado\', \'Não foi registrado\')
+             ORDER BY ubm_nome ASC'
+        );
+
+        return array_column($stmt->fetchAll(), 'ubm_nome');
+    }
+
     public function findById(int $id): ?array
     {
         $stmt = Database::connection()->prepare(
@@ -158,12 +192,14 @@ class CompdecRepository
         $params = [];
 
         if (trim((string) ($filters['busca'] ?? '')) !== '') {
-            $where .= ' WHERE (c.municipio LIKE :busca_municipio OR c.prefeito LIKE :busca_prefeito OR c.coordenador LIKE :busca_coordenador OR c.ubm_nome LIKE :busca_ubm)';
+            $where .= ' WHERE (c.municipio LIKE :busca_municipio OR c.prefeito LIKE :busca_prefeito OR c.coordenador LIKE :busca_coordenador OR c.ubm_nome LIKE :busca_ubm OR c.email LIKE :busca_email OR c.telefone LIKE :busca_telefone)';
             $busca = '%' . trim((string) $filters['busca']) . '%';
             $params['busca_municipio'] = $busca;
             $params['busca_prefeito'] = $busca;
             $params['busca_coordenador'] = $busca;
             $params['busca_ubm'] = $busca;
+            $params['busca_email'] = $busca;
+            $params['busca_telefone'] = $busca;
         }
 
         if (($filters['tem_compdec'] ?? '') !== '') {
@@ -176,6 +212,12 @@ class CompdecRepository
             $where .= $where === '' ? ' WHERE ' : ' AND ';
             $where .= 'c.regiao_integracao = :regiao_integracao';
             $params['regiao_integracao'] = trim((string) $filters['regiao_integracao']);
+        }
+
+        if (trim((string) ($filters['ubm'] ?? '')) !== '') {
+            $where .= $where === '' ? ' WHERE ' : ' AND ';
+            $where .= 'c.ubm_nome = :ubm';
+            $params['ubm'] = trim((string) $filters['ubm']);
         }
 
         return [$where, $params];

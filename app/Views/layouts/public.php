@@ -13,5 +13,9 @@
     <main class="public-shell">
         <?= $content; ?>
     </main>
+
+    <button type="button" class="back-to-top" data-back-to-top aria-label="Voltar para o topo" hidden>
+        <img src="<?= e(url('/assets/icons/icon-arrow-up.svg')); ?>" alt="">
+    </button>
 </body>
 </html>

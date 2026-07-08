@@ -200,7 +200,16 @@ Foi criado modal de confirmacao reutilizavel para acoes destrutivas, substituind
 
 ### 4. Responsividade
 
-O menu lateral passou a ter comportamento recolhivel em telas menores, com botao acessivel no topo.
+O layout autenticado passou a usar menu lateral moderno com dois comportamentos:
+
+1. em desktop, o menu pode ser recolhido e expandido, preservando a preferência no navegador;
+2. em telas menores, o menu abre como painel lateral com backdrop, tecla `Esc` e estados `aria`.
+
+As páginas de decretos, novo cadastro, edição e detalhe receberam travas de largura, `min-width: 0`, quebra de texto e ajustes de grid para evitar rolagem horizontal nos principais breakpoints.
+
+Foi adicionado botão global "Voltar para o topo" com ícone de seta, exibido apenas após rolagem da página, para melhorar a navegação em telas longas.
+
+A página de gestão das COMPDECs passou a usar listagem em cards responsivos, indicadores de resumo e filtros por busca ampla, região, situação da COMPDEC e UBM atuante em seletor alimentado pelo banco. A tabela foi substituída para reduzir risco de rolagem horizontal e melhorar a leitura em tablet e celular.
 
 ### 5. Acessibilidade basica
 

@@ -17,7 +17,7 @@
     </div>
 
     <div class="field">
-        <label>Municipio</label>
+        <label>Município</label>
         <input value="<?= e($compdec['municipio']); ?>" disabled>
     </div>
 
@@ -27,7 +27,7 @@
     </div>
 
     <div class="field">
-        <label for="regiao_integracao">Regiao de integracao</label>
+        <label for="regiao_integracao">Região de integração</label>
         <input id="regiao_integracao" name="regiao_integracao" value="<?= e(old('regiao_integracao', $compdec['regiao_integracao'] ?? '')); ?>">
     </div>
 
@@ -65,12 +65,12 @@
     </div>
 
     <div class="field">
-        <label for="data_atualizacao">Data de atualizacao</label>
+        <label for="data_atualizacao">Data de atualização</label>
         <input id="data_atualizacao" name="data_atualizacao" value="<?= e(old('data_atualizacao', $compdec['data_atualizacao'] ?? '')); ?>">
     </div>
 
     <div class="field span-2">
-        <label for="endereco">Endereco</label>
+        <label for="endereco">Endereço</label>
         <input id="endereco" name="endereco" value="<?= e(old('endereco', $compdec['endereco'] ?? '')); ?>">
     </div>
 
