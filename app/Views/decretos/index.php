@@ -65,7 +65,18 @@
 
 <section class="decree-list" aria-label="Lista de decretos">
     <?php foreach ($registros as $registro): ?>
-        <?php $simbologiaCobradeUrl = $cobradeSymbolUrl($registro['cobrade_simbologia'] ?? null, $registro['cobrade_codigo'] ?? null); ?>
+        <?php
+            $simbologiaCobradeUrl = $cobradeSymbolUrl($registro['cobrade_simbologia'] ?? null, $registro['cobrade_codigo'] ?? null);
+            $pgeResultadoCodigo = (string) ($registro['status_envio_pge_codigo'] ?? '');
+            $pgeResultadoLabel = match ($pgeResultadoCodigo) {
+                'APROVADO' => 'Aprovado',
+                'REPROVADO' => 'Reprovado',
+                default => 'Conclusão',
+            };
+            $pgeResultadoData = in_array($pgeResultadoCodigo, ['APROVADO', 'REPROVADO'], true)
+                ? ($registro['data_decreto_homologacao'] ?? $registro['data_conclusao_pge'] ?? null)
+                : ($registro['data_conclusao_pge'] ?? null);
+        ?>
         <article class="decree-card">
             <header class="decree-card-header">
                 <div class="decree-card-title">
@@ -114,7 +125,7 @@
                         <strong><?= e($dash($registro['duracao_pge_dias'] ?? null)); ?></strong>
                     </div>
                     <div>
-                        <span>Prazo PGE</span>
+                        <span>Status PGE</span>
                         <?= status_badge($registro['status_prazo_pge_calculado'] ?? null); ?>
                     </div>
                     <div>
@@ -144,14 +155,10 @@
 
                     <div class="decree-status-block">
                         <span>Envio à PGE</span>
-                        <?php if (can('decretos.editar_status_listagem')): ?>
-                            <?php $campo = 'status_envio_pge_id'; $valorAtual = $registro[$campo]; $opcoes = $dominios['statusEnvioPge']; require view_path('decretos/partials/status_form'); ?>
-                        <?php else: ?>
-                            <?= status_badge($registro['status_envio_pge']); ?>
-                        <?php endif; ?>
+                        <?= status_badge($registro['status_envio_pge']); ?>
                         <small class="pge-status-meta">
                             Envio: <?= e($formatDate($registro['data_envio_pge'] ?? null)); ?>
-                            <span>Conclusão: <?= e($formatDate($registro['data_conclusao_pge'] ?? null)); ?></span>
+                            <span><?= e($pgeResultadoLabel); ?>: <?= e($formatDate($pgeResultadoData)); ?></span>
                         </small>
                     </div>
                 </div>

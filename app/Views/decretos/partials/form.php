@@ -2,6 +2,29 @@
     <?php
         $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
         $dash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
+        $homologacaoAtualId = (string) old('homologacao_status_id', $registro['homologacao_status_id'] ?? '1');
+        $homologacaoCodigoAtual = '';
+        foreach ($dominios['statusHomologacao'] as $statusHomologacao) {
+            if ((string) ($statusHomologacao['id'] ?? '') === $homologacaoAtualId) {
+                $homologacaoCodigoAtual = (string) ($statusHomologacao['codigo'] ?? '');
+                break;
+            }
+        }
+        $mostrarDataEnvioPge = $homologacaoCodigoAtual === 'ENVIADO_PGE';
+        $mostrarDataHomologacao = in_array($homologacaoCodigoAtual, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true);
+        $homologacaoDataLabel = $homologacaoCodigoAtual === 'NAO_HOMOLOGADO' ? 'Data da não homologação' : 'Data de homologação';
+        $homologacaoDataHelp = $homologacaoCodigoAtual === 'NAO_HOMOLOGADO'
+            ? 'Informe a data oficial da não homologação.'
+            : 'Informe a data oficial da homologação.';
+        $pgeResultadoCodigo = (string) ($registro['status_envio_pge_codigo'] ?? '');
+        $pgeResultadoLabel = match ($pgeResultadoCodigo) {
+            'APROVADO' => 'Aprovado',
+            'REPROVADO' => 'Reprovado',
+            default => 'Data de conclusão',
+        };
+        $pgeResultadoData = in_array($pgeResultadoCodigo, ['APROVADO', 'REPROVADO'], true)
+            ? ($registro['data_decreto_homologacao'] ?? $registro['data_conclusao_pge'] ?? null)
+            : ($registro['data_conclusao_pge'] ?? null);
     ?>
     <?= csrf_input(); ?>
     <input type="hidden" name="historico_observacao" data-history-observation>
@@ -21,7 +44,7 @@
         </div>
     <?php endif; ?>
 
-    <fieldset class="span-2 form-section">
+    <fieldset class="span-2 form-section location-section">
         <legend>Identificação e localização</legend>
         <div class="form-section-heading">
             <div>
@@ -30,8 +53,8 @@
             </div>
             <p>Ao selecionar o município, o sistema preenche automaticamente a UBM atuante e os dados da COMPDEC quando houver registro.</p>
         </div>
-        <div class="form-grid inner">
-            <div class="field">
+        <div class="form-grid inner location-grid">
+            <div class="field location-primary-field">
                 <label for="municipio_id">Município <span class="required-label">Obrigatório</span></label>
                 <select id="municipio_id" name="municipio_id" required data-ubm-municipio>
                     <option value="">Selecione</option>
@@ -108,7 +131,7 @@
         </div>
     </fieldset>
 
-    <fieldset class="span-2 form-section">
+    <fieldset class="span-2 form-section cobrade-section">
         <legend>COBRADE</legend>
         <div class="form-section-heading">
             <div>
@@ -200,7 +223,7 @@
         </div>
     </fieldset>
 
-    <fieldset class="span-2 form-section">
+    <fieldset class="span-2 form-section institutional-section">
         <legend>Decreto, homologação, reconhecimento e PGE</legend>
         <div class="form-section-heading">
             <div>
@@ -209,31 +232,87 @@
             </div>
             <p>Informe protocolos, datas e situações de homologação, reconhecimento federal, envio à PGE e análise técnica.</p>
         </div>
-        <div class="form-grid inner">
-            <div class="field"><label>Protocolo S2ID</label><input name="protocolo_s2id" value="<?= e(old('protocolo_s2id', $registro['protocolo_s2id'] ?? '')); ?>"></div>
-            <div class="field"><label>Número do decreto municipal</label><input name="numero_decreto_municipal" value="<?= e(old('numero_decreto_municipal', $registro['numero_decreto_municipal'] ?? '')); ?>"></div>
-            <div class="field"><label>Data do decreto municipal</label><input name="data_decreto_municipal" type="date" value="<?= e(old('data_decreto_municipal', $registro['data_decreto_municipal'] ?? '')); ?>"></div>
-            <div class="field"><label>Número do decreto estadual</label><input name="numero_decreto_homologacao_estadual" value="<?= e(old('numero_decreto_homologacao_estadual', $registro['numero_decreto_homologacao_estadual'] ?? '')); ?>"></div>
-            <div class="field"><label>Data de homologação</label><input name="data_decreto_homologacao" type="date" value="<?= e(old('data_decreto_homologacao', $registro['data_decreto_homologacao'] ?? '')); ?>"></div>
-            <div class="field">
-                <label>Homologação</label>
-                <?php $name = 'homologacao_status_id'; $options = $dominios['statusHomologacao']; require view_path('decretos/partials/select'); ?>
+        <div class="institutional-flow">
+            <div class="institutional-card span-2">
+                <div class="institutional-card-head">
+                    <span>Decreto municipal</span>
+                    <small>Identificação do processo e do ato municipal.</small>
+                </div>
+                <div class="institutional-grid three-cols">
+                    <div class="field"><label>Protocolo S2ID</label><input name="protocolo_s2id" value="<?= e(old('protocolo_s2id', $registro['protocolo_s2id'] ?? '')); ?>"></div>
+                    <div class="field"><label>Número do decreto municipal</label><input name="numero_decreto_municipal" value="<?= e(old('numero_decreto_municipal', $registro['numero_decreto_municipal'] ?? '')); ?>"></div>
+                    <div class="field"><label>Data do decreto municipal</label><input name="data_decreto_municipal" type="date" value="<?= e(old('data_decreto_municipal', $registro['data_decreto_municipal'] ?? '')); ?>"></div>
+                </div>
             </div>
-            <div class="field">
-                <label>Reconhecimento</label>
-                <?php $name = 'reconhecimento_status_id'; $options = $dominios['statusReconhecimento']; require view_path('decretos/partials/select'); ?>
+
+            <div class="institutional-card">
+                <div class="institutional-card-head">
+                    <span>Homologação estadual</span>
+                    <small>Escolha o status; a data aparece somente quando necessária.</small>
+                </div>
+                <div class="institutional-grid">
+                    <div class="field">
+                        <label>Homologação</label>
+                        <?php $name = 'homologacao_status_id'; $options = $dominios['statusHomologacao']; require view_path('decretos/partials/select'); ?>
+                    </div>
+                    <div class="field homologacao-date-form-field" data-homologacao-date-form-field <?= $mostrarDataHomologacao ? '' : 'hidden'; ?>>
+                        <label data-homologacao-date-label><?= e($homologacaoDataLabel); ?></label>
+                        <input name="data_decreto_homologacao" type="date" value="<?= e(old('data_decreto_homologacao', $registro['data_decreto_homologacao'] ?? '')); ?>" data-homologacao-date-input <?= $mostrarDataHomologacao ? 'required' : ''; ?>>
+                        <small data-homologacao-date-help><?= e($homologacaoDataHelp); ?></small>
+                    </div>
+                    <div class="field"><label>Número do decreto estadual</label><input name="numero_decreto_homologacao_estadual" value="<?= e(old('numero_decreto_homologacao_estadual', $registro['numero_decreto_homologacao_estadual'] ?? '')); ?>"></div>
+                </div>
             </div>
-            <div class="field"><label>Protocolo PAE/PGE</label><input name="protocolo_pae_pge" value="<?= e(old('protocolo_pae_pge', $registro['protocolo_pae_pge'] ?? '')); ?>"></div>
-            <div class="field pge-date-form-field" data-pge-date-form-field hidden>
-                <label>Data de envio à PGE</label>
-                <input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>" data-pge-date-input>
-                <small>Informe a data oficial do envio quando o status for Enviado à PGE.</small>
+
+            <div class="institutional-card">
+                <div class="institutional-card-head">
+                    <span>PGE</span>
+                    <small>Status calculado automaticamente pela homologação.</small>
+                </div>
+                <div class="institutional-grid">
+                    <div class="field pge-protocol-form-field" data-pge-protocol-form-field <?= $mostrarDataEnvioPge ? '' : 'hidden'; ?>>
+                        <label>Protocolo PAE/PGE</label>
+                        <input name="protocolo_pae_pge" value="<?= e(old('protocolo_pae_pge', $registro['protocolo_pae_pge'] ?? '')); ?>" data-pge-protocol-input>
+                        <small>Informe o protocolo quando o processo for enviado à PGE.</small>
+                    </div>
+                    <div class="field pge-date-form-field" data-pge-date-form-field <?= $mostrarDataEnvioPge ? '' : 'hidden'; ?>>
+                        <label>Data de envio à PGE</label>
+                        <input name="data_envio_pge" type="date" value="<?= e(old('data_envio_pge', $registro['data_envio_pge'] ?? '')); ?>" data-pge-date-input <?= $mostrarDataEnvioPge ? 'required' : ''; ?>>
+                        <small>Informe a data oficial quando a homologação estiver como Enviado à PGE.</small>
+                    </div>
+                    <div class="field readonly-status-field">
+                        <label>Status de envio à PGE</label>
+                        <div class="readonly-status-value" data-pge-status-preview>
+                            <?= status_badge($registro['status_envio_pge'] ?? 'Não registrado'); ?>
+                        </div>
+                        <small>Atualizado automaticamente.</small>
+                    </div>
+                </div>
             </div>
-            <div class="field">
-                <label>Status de envio à PGE</label>
-                <?php $name = 'status_envio_pge_id'; $options = $dominios['statusEnvioPge']; require view_path('decretos/partials/select'); ?>
-                <small>Ao selecionar Enviado à PGE, informe a data oficial de envio.</small>
+
+            <div class="institutional-card">
+                <div class="institutional-card-head">
+                    <span>Acompanhamento</span>
+                    <small>Reconhecimento federal e responsável técnico.</small>
+                </div>
+                <div class="institutional-grid">
+                    <div class="field">
+                        <label>Reconhecimento</label>
+                        <?php $name = 'reconhecimento_status_id'; $options = $dominios['statusReconhecimento']; require view_path('decretos/partials/select'); ?>
+                    </div>
+                    <div class="field">
+                        <label>Analista</label>
+                        <select name="analista_id">
+                            <option value="">Não informado</option>
+                            <?php foreach ($dominios['analistas'] as $analista): ?>
+                                <?php $selected = (string) old('analista_id', $registro['analista_id'] ?? '') === (string) $analista['id']; ?>
+                                <option value="<?= e($analista['id']); ?>" <?= $selected ? 'selected' : ''; ?>><?= e($analista['nome']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
             </div>
+
             <div class="pge-consistency-panel span-2" aria-label="Resumo operacional da PGE">
                 <div>
                     <span>Status de envio</span>
@@ -244,32 +323,22 @@
                     <strong><?= e($formatDate($registro['data_envio_pge'] ?? null)); ?></strong>
                 </div>
                 <div>
-                    <span>Data de conclusão</span>
-                    <strong><?= e($formatDate($registro['data_conclusao_pge'] ?? null)); ?></strong>
+                    <span><?= e($pgeResultadoLabel); ?></span>
+                    <strong><?= e($formatDate($pgeResultadoData)); ?></strong>
                 </div>
                 <div>
                     <span>Dias PGE</span>
                     <strong><?= e($dash($registro['duracao_pge_dias'] ?? null)); ?></strong>
                 </div>
                 <div>
-                    <span>Prazo PGE</span>
-                    <?= status_badge($registro['status_prazo_pge_calculado'] ?? 'Não iniciado'); ?>
+                    <span>Status PGE</span>
+                    <?= status_badge($registro['status_prazo_pge_calculado'] ?? 'Não registrado'); ?>
                 </div>
-            </div>
-            <div class="field">
-                <label>Analista</label>
-                <select name="analista_id">
-                    <option value="">Não informado</option>
-                    <?php foreach ($dominios['analistas'] as $analista): ?>
-                        <?php $selected = (string) old('analista_id', $registro['analista_id'] ?? '') === (string) $analista['id']; ?>
-                        <option value="<?= e($analista['id']); ?>" <?= $selected ? 'selected' : ''; ?>><?= e($analista['nome']); ?></option>
-                    <?php endforeach; ?>
-                </select>
             </div>
         </div>
     </fieldset>
 
-    <fieldset class="span-2 form-section">
+    <fieldset class="span-2 form-section damage-section">
         <legend>Recursos e danos humanos</legend>
         <div class="form-section-heading">
             <div>
@@ -278,29 +347,29 @@
             </div>
             <p>Atualize o status dos recursos e os quantitativos de pessoas afetadas. O total é calculado automaticamente.</p>
         </div>
-        <div class="form-grid inner">
-            <div class="field">
+        <div class="form-grid inner damage-grid">
+            <div class="field damage-resource-field">
                 <label>Recurso de resposta</label>
                 <?php $name = 'recurso_resposta_status_id'; $options = $dominios['statusRecurso']; require view_path('decretos/partials/select'); ?>
             </div>
-            <div class="field">
+            <div class="field damage-resource-field">
                 <label>Recurso de reconstrução</label>
                 <?php $name = 'recurso_reconstrucao_status_id'; $options = $dominios['statusRecurso']; require view_path('decretos/partials/select'); ?>
             </div>
             <?php foreach (['numero_obitos' => 'Óbitos', 'numero_feridos' => 'Feridos', 'numero_enfermos' => 'Enfermos', 'numero_desabrigados' => 'Desabrigados', 'numero_desalojados' => 'Desalojados', 'numero_outros_afetados' => 'Outros afetados'] as $field => $label): ?>
-                <div class="field">
+                <div class="field damage-number-field">
                     <label><?= e($label); ?></label>
                     <input class="affected-input" name="<?= e($field); ?>" type="number" min="0" value="<?= e(old($field, $registro[$field] ?? '0')); ?>">
                 </div>
             <?php endforeach; ?>
-            <div class="field">
+            <div class="field damage-total-field">
                 <label>Total de afetados</label>
                 <input id="total-afetados-preview" value="0" disabled>
             </div>
         </div>
     </fieldset>
 
-    <div class="field span-2 form-section standalone-field">
+    <div class="field span-2 form-section standalone-field observation-section">
         <div class="form-section-heading">
             <div>
                 <span>05</span>
@@ -312,7 +381,7 @@
         <textarea name="observacoes" rows="4"><?= e(old('observacoes', $registro['observacoes'] ?? '')); ?></textarea>
     </div>
 
-    <fieldset class="span-2 form-section">
+    <fieldset class="span-2 form-section evidence-section">
         <legend>Anexos previstos</legend>
         <div class="form-section-heading">
             <div>

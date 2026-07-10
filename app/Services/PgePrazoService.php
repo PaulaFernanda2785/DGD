@@ -8,6 +8,8 @@ use DateTimeImmutable;
 
 class PgePrazoService
 {
+    private const PRAZO_DIAS = 7;
+
     public function duracao(?string $dataEnvioPge, ?string $dataConclusaoPge = null): ?int
     {
         if (!$dataEnvioPge) {
@@ -20,34 +22,45 @@ class PgePrazoService
         return (int) $inicio->diff($fim)->format('%r%a');
     }
 
-    public function status(?string $homologacaoCodigo, ?string $statusEnvioPgeCodigo, ?string $dataEnvioPge, ?string $dataConclusaoPge = null): string
+    public function statusCodigo(?string $homologacaoCodigo, ?string $dataEnvioPge, ?string $dataConclusaoPge = null): string
     {
-        if ($statusEnvioPgeCodigo === 'CONCLUIDO') {
-            return 'CONCLUÍDO';
-        }
-
         if ($homologacaoCodigo === 'HOMOLOGADO') {
-            return 'CONCLUÍDO';
+            return 'APROVADO';
         }
 
-        if (in_array($statusEnvioPgeCodigo, ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO'], true)) {
-            return 'NAO INICIADO';
+        if ($homologacaoCodigo === 'NAO_HOMOLOGADO') {
+            return 'REPROVADO';
+        }
+
+        if ($homologacaoCodigo !== 'ENVIADO_PGE') {
+            return 'NAO_REGISTRADO';
         }
 
         $duracao = $this->duracao($dataEnvioPge, $dataConclusaoPge);
 
         if ($duracao === null) {
-            return 'NAO INICIADO';
+            return 'NAO_REGISTRADO';
         }
 
-        if ($duracao >= 0 && $duracao <= 7) {
-            return 'NO PRAZO';
+        if ($duracao >= 0 && $duracao <= self::PRAZO_DIAS) {
+            return 'NO_PRAZO';
         }
 
-        if ($duracao > 7) {
+        if ($duracao > self::PRAZO_DIAS) {
             return 'PENDENTE';
         }
 
-        return 'NAO INICIADO';
+        return 'NAO_REGISTRADO';
+    }
+
+    public function status(?string $homologacaoCodigo, ?string $statusEnvioPgeCodigo, ?string $dataEnvioPge, ?string $dataConclusaoPge = null): string
+    {
+        return match ($this->statusCodigo($homologacaoCodigo, $dataEnvioPge, $dataConclusaoPge)) {
+            'APROVADO' => 'Aprovado',
+            'REPROVADO' => 'Reprovado',
+            'NO_PRAZO' => 'No prazo',
+            'PENDENTE' => 'Pendente',
+            default => 'Não registrado',
+        };
     }
 }

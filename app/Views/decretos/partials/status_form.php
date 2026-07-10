@@ -7,8 +7,9 @@
     <?= csrf_input(); ?>
     <input type="hidden" name="campo" value="<?= e($campo); ?>">
     <input type="hidden" name="historico_observacao" data-history-observation>
-    <?php if ($campo === 'status_envio_pge_id'): ?>
+    <?php if ($campo === 'homologacao_status_id'): ?>
         <input type="hidden" name="data_envio_pge" value="<?= e($registro['data_envio_pge'] ?? ''); ?>" data-pge-date-target>
+        <input type="hidden" name="data_decreto_homologacao" value="<?= e($registro['data_decreto_homologacao'] ?? ''); ?>" data-homologacao-date-target>
     <?php endif; ?>
     <select name="valor">
         <?php foreach ($opcoes as $opcao): ?>

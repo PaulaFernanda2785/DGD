@@ -25,6 +25,7 @@ class DecretoService
     private AuditoriaService $auditoria;
     private DecretoHistoricoService $historico;
     private AnexoService $anexoService;
+    private PgePrazoService $pgePrazo;
 
     public function __construct()
     {
@@ -37,6 +38,7 @@ class DecretoService
         $this->auditoria = new AuditoriaService();
         $this->historico = new DecretoHistoricoService();
         $this->anexoService = new AnexoService();
+        $this->pgePrazo = new PgePrazoService();
     }
 
     public function listar(array $filters): array
@@ -190,14 +192,19 @@ class DecretoService
         ]);
     }
 
-    public function atualizarStatus(int $id, string $field, int $value, ?string $observacao = null, ?string $dataEnvioPge = null): void
+    public function atualizarStatus(int $id, string $field, int $value, ?string $observacao = null, ?string $dataEnvioPge = null, ?string $dataHomologacao = null): void
     {
         $registro = $this->buscarParaEdicao($id);
         $payload = [$field => $value];
 
         if ($field === 'status_envio_pge_id') {
-            $codigo = $this->statusEnvioPgeCodigoPorId($value);
+            throw new \InvalidArgumentException('O status de envio à PGE é automático e não pode ser editado diretamente.');
+        }
+
+        if ($field === 'homologacao_status_id') {
+            $codigo = $this->statusHomologacaoCodigoPorId($value);
             $dataEnvioPge = trim((string) $dataEnvioPge);
+            $dataHomologacao = trim((string) $dataHomologacao);
 
             if ($codigo === 'ENVIADO_PGE') {
                 if ($dataEnvioPge === '') {
@@ -209,26 +216,24 @@ class DecretoService
                 $payload['data_conclusao_pge'] = null;
             }
 
-            if ($codigo === 'CONCLUIDO') {
-                if ($dataEnvioPge !== '') {
-                    $this->validarDataEnvioPgeOuFalhar($dataEnvioPge);
-                    $payload['data_envio_pge'] = $dataEnvioPge;
+            if ($codigo !== 'ENVIADO_PGE' && $dataEnvioPge !== '') {
+                $this->validarDataEnvioPgeOuFalhar($dataEnvioPge);
+                $payload['data_envio_pge'] = $dataEnvioPge;
+            }
+
+            if (in_array($codigo, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true)) {
+                if ($dataHomologacao === '') {
+                    throw new \InvalidArgumentException($codigo === 'HOMOLOGADO' ? 'Informe a data de homologação.' : 'Informe a data da não homologação.');
                 }
 
-                $payload['data_conclusao_pge'] = $registro['data_conclusao_pge'] ?? date('Y-m-d');
-            }
-
-            if ($codigo !== 'CONCLUIDO') {
-                $payload['data_conclusao_pge'] = null;
-            }
-
-            if (in_array($codigo, ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO'], true)) {
-                $payload['data_envio_pge'] = null;
-                $payload['data_conclusao_pge'] = null;
+                $this->validarDataHomologacaoOuFalhar($dataHomologacao);
+                $payload['data_decreto_homologacao'] = $dataHomologacao;
+            } elseif ($codigo !== 'ENVIADO_PGE') {
+                $payload['data_decreto_homologacao'] = null;
             }
         }
 
-        $payload = $this->aplicarRegraHomologacaoPge($payload, $registro);
+        $payload = $this->aplicarRegraAutomaticaPge($payload, $registro);
         $this->decretos->updateStatusFields($id, $payload, Auth::id() ?? 0);
         $this->auditoria->registrar('decretos', 'editar_status_listagem', [
             'entidade' => 'desastres',
@@ -289,11 +294,26 @@ class DecretoService
             $errors['data_envio_pge'][] = 'A data de envio à PGE não pode ser futura.';
         }
 
-        $statusEnvioPgeCodigo = $this->statusEnvioPgeCodigoPorId((int) ($data['status_envio_pge_id'] ?? 0));
+        $dataHomologacao = trim((string) ($data['data_decreto_homologacao'] ?? ''));
+
+        if ($dataHomologacao !== '' && strtotime($dataHomologacao) === false) {
+            $errors['data_decreto_homologacao'][] = 'Informe uma data de homologação válida.';
+        }
+
+        if ($dataHomologacao !== '' && strtotime($dataHomologacao) > strtotime('today')) {
+            $errors['data_decreto_homologacao'][] = 'A data de homologação não pode ser futura.';
+        }
+
         $statusHomologacaoCodigo = $this->statusHomologacaoCodigoPorId((int) ($data['homologacao_status_id'] ?? 0));
 
-        if ($statusHomologacaoCodigo !== 'HOMOLOGADO' && in_array($statusEnvioPgeCodigo, ['ENVIADO_PGE', 'CONCLUIDO'], true) && $dataEnvioPge === '') {
-            $errors['data_envio_pge'][] = 'Informe a data de envio à PGE para este status.';
+        if ($statusHomologacaoCodigo === 'ENVIADO_PGE' && $dataEnvioPge === '') {
+            $errors['data_envio_pge'][] = 'Informe a data de envio à PGE quando a homologação estiver como Enviado à PGE.';
+        }
+
+        if (in_array($statusHomologacaoCodigo, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true) && $dataHomologacao === '') {
+            $errors['data_decreto_homologacao'][] = $statusHomologacaoCodigo === 'HOMOLOGADO'
+                ? 'Informe a data de homologação.'
+                : 'Informe a data da não homologação.';
         }
 
         foreach (['numero_obitos', 'numero_feridos', 'numero_enfermos', 'numero_desabrigados', 'numero_desalojados', 'numero_outros_afetados'] as $field) {
@@ -313,18 +333,8 @@ class DecretoService
         $ubmId = $intOrNull($data['ubm_id'] ?? null);
         $compdecValue = static fn (mixed $value): string => trim((string) $value) === '' ? 'Não foi registrado' : trim((string) $value);
         $dataEnvioPge = $strOrNull($data['data_envio_pge'] ?? null);
-        $statusEnvioPgeId = (int) ($data['status_envio_pge_id'] ?? 1);
-        $statusEnvioPgeCodigo = $this->statusEnvioPgeCodigoPorId($statusEnvioPgeId);
-
-        if ($dataEnvioPge !== null && in_array($statusEnvioPgeCodigo, ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO', null], true)) {
-            $dataEnvioPge = null;
-        }
-
-        $dataConclusaoPge = null;
-
-        if ($statusEnvioPgeCodigo === 'CONCLUIDO') {
-            $dataConclusaoPge = $registroAtual['data_conclusao_pge'] ?? date('Y-m-d');
-        }
+        $statusEnvioPgeId = (int) ($registroAtual['status_envio_pge_id'] ?? $this->statusEnvioPgeIdPorCodigo('NAO_REGISTRADO') ?? 1);
+        $dataConclusaoPge = $registroAtual['data_conclusao_pge'] ?? null;
 
         if ($compdec) {
             $ubmId ??= $this->compdecs->syncUbm($compdec);
@@ -365,7 +375,7 @@ class DecretoService
             'observacoes' => $strOrNull($data['observacoes'] ?? null),
         ];
 
-        return $this->aplicarRegraHomologacaoPge($payload, $registroAtual);
+        return $this->aplicarRegraAutomaticaPge($payload, $registroAtual);
     }
 
     private function salvarAnexosDoFormulario(int $desastreId, array $files, array $data, ?string $observacao = null): array
@@ -547,53 +557,34 @@ class DecretoService
         return null;
     }
 
-    private function aplicarRegraHomologacaoPge(array $payload, ?array $registroAtual): array
+    private function aplicarRegraAutomaticaPge(array $payload, ?array $registroAtual): array
     {
         $homologacaoId = (int) ($payload['homologacao_status_id'] ?? $registroAtual['homologacao_status_id'] ?? 0);
         $homologacaoCodigo = $this->statusHomologacaoCodigoPorId($homologacaoId);
-        $homologacaoAnteriorCodigo = $registroAtual ? $this->statusHomologacaoCodigoPorId((int) ($registroAtual['homologacao_status_id'] ?? 0)) : null;
-        $statusConcluidoId = $this->statusEnvioPgeIdPorCodigo('CONCLUIDO');
+        $dataEnvioPge = $payload['data_envio_pge'] ?? $registroAtual['data_envio_pge'] ?? null;
+        $dataConclusaoPge = $payload['data_conclusao_pge'] ?? $registroAtual['data_conclusao_pge'] ?? null;
+        $dataHomologacao = $payload['data_decreto_homologacao'] ?? $registroAtual['data_decreto_homologacao'] ?? null;
 
-        if (!$statusConcluidoId) {
-            return $payload;
+        if ($homologacaoCodigo !== 'ENVIADO_PGE' && !in_array($homologacaoCodigo, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true)) {
+            $dataEnvioPge = null;
         }
 
-        if ($homologacaoCodigo === 'HOMOLOGADO') {
-            $statusAtualPgeId = (int) ($payload['status_envio_pge_id'] ?? $registroAtual['status_envio_pge_id'] ?? 0);
-            $dataConclusaoAtual = $payload['data_conclusao_pge'] ?? $registroAtual['data_conclusao_pge'] ?? null;
-            $backupStatus = $registroAtual['status_envio_pge_antes_homologacao_id'] ?? null;
-
-            if (!$backupStatus && $homologacaoAnteriorCodigo !== 'HOMOLOGADO') {
-                $statusBackup = (int) ($registroAtual['status_envio_pge_id'] ?? $statusAtualPgeId);
-                $dataBackup = $registroAtual['data_conclusao_pge'] ?? $dataConclusaoAtual;
-
-                if ($statusBackup > 0) {
-                    $payload['status_envio_pge_antes_homologacao_id'] = $statusBackup;
-                    $payload['data_conclusao_pge_antes_homologacao'] = $dataBackup;
-                }
-            }
-
-            $payload['status_envio_pge_id'] = $statusConcluidoId;
-            $payload['data_conclusao_pge'] = $dataConclusaoAtual ?: date('Y-m-d');
-
-            return $payload;
+        if ($homologacaoCodigo === 'ENVIADO_PGE') {
+            $dataConclusaoPge = null;
+            $payload['data_decreto_homologacao'] = null;
+        } elseif (in_array($homologacaoCodigo, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true)) {
+            $dataConclusaoPge = $dataHomologacao ?: $dataConclusaoPge ?: date('Y-m-d');
+        } else {
+            $dataConclusaoPge = null;
+            $payload['data_decreto_homologacao'] = null;
         }
 
-        if ($homologacaoAnteriorCodigo === 'HOMOLOGADO') {
-            $backupStatus = $registroAtual['status_envio_pge_antes_homologacao_id'] ?? null;
-            $backupDataConclusao = $registroAtual['data_conclusao_pge_antes_homologacao'] ?? null;
-
-            if ($backupStatus) {
-                $payload['status_envio_pge_id'] = (int) $backupStatus;
-                $payload['data_conclusao_pge'] = $backupDataConclusao ?: null;
-            } else {
-                $payload['status_envio_pge_id'] = $registroAtual['data_envio_pge'] ? ($this->statusEnvioPgeIdPorCodigo('ENVIADO_PGE') ?? 1) : ($this->statusEnvioPgeIdPorCodigo('NAO_REGISTRADO') ?? 1);
-                $payload['data_conclusao_pge'] = null;
-            }
-
-            $payload['status_envio_pge_antes_homologacao_id'] = null;
-            $payload['data_conclusao_pge_antes_homologacao'] = null;
-        }
+        $statusCodigo = $this->pgePrazo->statusCodigo($homologacaoCodigo, $dataEnvioPge, $dataConclusaoPge);
+        $payload['data_envio_pge'] = $dataEnvioPge ?: null;
+        $payload['data_conclusao_pge'] = $dataConclusaoPge ?: null;
+        $payload['status_envio_pge_id'] = $this->statusEnvioPgeIdPorCodigo($statusCodigo) ?? $this->statusEnvioPgeIdPorCodigo('NAO_REGISTRADO') ?? 1;
+        $payload['status_envio_pge_antes_homologacao_id'] = null;
+        $payload['data_conclusao_pge_antes_homologacao'] = null;
 
         return $payload;
     }
@@ -614,6 +605,17 @@ class DecretoService
 
         if (strtotime($dataEnvioPge) > strtotime('today')) {
             throw new \InvalidArgumentException('A data de envio à PGE não pode ser futura.');
+        }
+    }
+
+    private function validarDataHomologacaoOuFalhar(string $dataHomologacao): void
+    {
+        if (strtotime($dataHomologacao) === false) {
+            throw new \InvalidArgumentException('Informe uma data de homologação válida.');
+        }
+
+        if (strtotime($dataHomologacao) > strtotime('today')) {
+            throw new \InvalidArgumentException('A data de homologação não pode ser futura.');
         }
     }
 

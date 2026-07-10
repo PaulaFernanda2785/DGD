@@ -143,11 +143,14 @@ function status_badge(?string $text): string
     $text = trim((string) $text);
     $displayText = match ($text) {
         'NAO INICIADO' => 'Não iniciado',
-        'NO PRAZO' => 'No prazo',
+        'NAO REGISTRADO', 'NAO_REGISTRADO' => 'Não registrado',
+        'NO PRAZO', 'NO_PRAZO' => 'No prazo',
         'PENDENTE' => 'Pendente',
+        'APROVADO' => 'Aprovado',
+        'REPROVADO' => 'Reprovado',
         default => $text,
     };
-    $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+    $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $displayText);
     $normalized = strtolower((string) $normalized);
 
     $class = 'badge-muted';
@@ -160,7 +163,7 @@ function status_badge(?string $text): string
         $class = 'badge-warning';
     }
 
-    if (str_contains($normalized, 'nao homologado') || str_contains($normalized, 'nao reconhecido') || str_contains($normalized, 'indeferido')) {
+    if (str_contains($normalized, 'nao homologado') || str_contains($normalized, 'nao reconhecido') || str_contains($normalized, 'indeferido') || str_contains($normalized, 'reprovado')) {
         $class = 'badge-danger';
     }
 

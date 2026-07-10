@@ -77,11 +77,21 @@ INSERT INTO status_recurso (id, codigo, nome, classe_css, ordem) VALUES
 
 INSERT INTO status_envio_pge (id, codigo, nome, classe_css, ordem) VALUES
 (1, 'NAO_REGISTRADO', 'Não registrado', 'status-neutro', 1),
-(2, 'NAO_ENVIADO', 'Não enviado', 'status-neutro', 2),
-(3, 'EM_PREPARACAO', 'Em preparação', 'status-alerta', 3),
-(4, 'ENVIADO_PGE', 'Enviado à PGE', 'status-info', 4),
-(5, 'RETORNADO_AJUSTE', 'Retornado para ajuste', 'status-alerta', 5),
-(6, 'CONCLUIDO', 'Concluído', 'status-sucesso', 6);
+(2, 'NAO_ENVIADO', 'Não enviado', 'status-neutro', 20),
+(3, 'EM_PREPARACAO', 'Em preparação', 'status-alerta', 21),
+(4, 'ENVIADO_PGE', 'Enviado à PGE', 'status-info', 22),
+(5, 'RETORNADO_AJUSTE', 'Retornado para ajuste', 'status-alerta', 23),
+(6, 'CONCLUIDO', 'Concluído', 'status-sucesso', 24),
+(7, 'NO_PRAZO', 'No prazo', 'status-info', 2),
+(8, 'PENDENTE', 'Pendente', 'status-alerta', 3),
+(9, 'APROVADO', 'Aprovado', 'status-sucesso', 4),
+(10, 'REPROVADO', 'Reprovado', 'status-erro', 5);
+
+UPDATE status_envio_pge
+SET ativo = CASE
+    WHEN codigo IN ('NAO_REGISTRADO', 'NO_PRAZO', 'PENDENTE', 'APROVADO', 'REPROVADO') THEN 1
+    ELSE 0
+END;
 
 INSERT INTO tipos_anexo (id, codigo, nome, obrigatorio, ordem) VALUES
 (1, 'DECRETO_MUNICIPAL', 'Decreto municipal', 1, 1),

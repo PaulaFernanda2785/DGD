@@ -1,6 +1,63 @@
--- DGD - Views operacionais
+-- Refatora a regra de envio à PGE.
+-- O status da PGE passa a ser automático, comandado pela homologação e pela data de envio.
 
 SET NAMES utf8mb4;
+
+INSERT INTO status_envio_pge (codigo, nome, classe_css, ordem, ativo)
+SELECT 'NO_PRAZO', 'No prazo', 'status-info', 4, 1
+WHERE NOT EXISTS (SELECT 1 FROM status_envio_pge WHERE codigo = 'NO_PRAZO');
+
+INSERT INTO status_envio_pge (codigo, nome, classe_css, ordem, ativo)
+SELECT 'PENDENTE', 'Pendente', 'status-alerta', 5, 1
+WHERE NOT EXISTS (SELECT 1 FROM status_envio_pge WHERE codigo = 'PENDENTE');
+
+INSERT INTO status_envio_pge (codigo, nome, classe_css, ordem, ativo)
+SELECT 'APROVADO', 'Aprovado', 'status-sucesso', 6, 1
+WHERE NOT EXISTS (SELECT 1 FROM status_envio_pge WHERE codigo = 'APROVADO');
+
+INSERT INTO status_envio_pge (codigo, nome, classe_css, ordem, ativo)
+SELECT 'REPROVADO', 'Reprovado', 'status-erro', 7, 1
+WHERE NOT EXISTS (SELECT 1 FROM status_envio_pge WHERE codigo = 'REPROVADO');
+
+UPDATE status_envio_pge
+SET ativo = CASE
+        WHEN codigo IN ('NAO_REGISTRADO', 'NO_PRAZO', 'PENDENTE', 'APROVADO', 'REPROVADO') THEN 1
+        ELSE 0
+    END,
+    ordem = CASE codigo
+        WHEN 'NAO_REGISTRADO' THEN 1
+        WHEN 'NO_PRAZO' THEN 2
+        WHEN 'PENDENTE' THEN 3
+        WHEN 'APROVADO' THEN 4
+        WHEN 'REPROVADO' THEN 5
+        ELSE ordem
+    END;
+
+UPDATE desastres d
+INNER JOIN status_homologacao sh ON sh.id = d.homologacao_status_id
+SET
+    d.data_envio_pge = CASE
+        WHEN sh.codigo IN ('ENVIADO_PGE', 'HOMOLOGADO', 'NAO_HOMOLOGADO') THEN d.data_envio_pge
+        ELSE NULL
+    END,
+    d.data_conclusao_pge = CASE
+        WHEN sh.codigo IN ('HOMOLOGADO', 'NAO_HOMOLOGADO') THEN COALESCE(d.data_conclusao_pge, CURRENT_DATE)
+        ELSE NULL
+    END,
+    d.status_envio_pge_id = CASE
+        WHEN sh.codigo = 'HOMOLOGADO' THEN (SELECT id FROM status_envio_pge WHERE codigo = 'APROVADO' LIMIT 1)
+        WHEN sh.codigo = 'NAO_HOMOLOGADO' THEN (SELECT id FROM status_envio_pge WHERE codigo = 'REPROVADO' LIMIT 1)
+        WHEN sh.codigo = 'ENVIADO_PGE'
+             AND d.data_envio_pge IS NOT NULL
+             AND DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7
+            THEN (SELECT id FROM status_envio_pge WHERE codigo = 'PENDENTE' LIMIT 1)
+        WHEN sh.codigo = 'ENVIADO_PGE'
+             AND d.data_envio_pge IS NOT NULL
+            THEN (SELECT id FROM status_envio_pge WHERE codigo = 'NO_PRAZO' LIMIT 1)
+        ELSE (SELECT id FROM status_envio_pge WHERE codigo = 'NAO_REGISTRADO' LIMIT 1)
+    END,
+    d.status_envio_pge_antes_homologacao_id = NULL,
+    d.data_conclusao_pge_antes_homologacao = NULL;
 
 DROP VIEW IF EXISTS vw_painel_resumo;
 DROP VIEW IF EXISTS vw_decretos_listagem;
@@ -32,8 +89,6 @@ SELECT
     d.protocolo_s2id,
     d.numero_decreto_municipal,
     d.data_decreto_municipal,
-    d.numero_decreto_homologacao_estadual,
-    d.data_decreto_homologacao,
     CASE
         WHEN d.data_decreto_municipal IS NULL THEN NULL
         ELSE DATEDIFF(CURRENT_DATE, d.data_decreto_municipal)
@@ -49,39 +104,12 @@ SELECT
     d.data_conclusao_pge,
     CASE
         WHEN d.data_envio_pge IS NULL THEN NULL
-        ELSE DATEDIFF(COALESCE(d.data_conclusao_pge, d.data_decreto_homologacao, CURRENT_DATE), d.data_envio_pge)
+        ELSE DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge)
     END AS duracao_pge_dias,
-    (SELECT id FROM status_envio_pge WHERE codigo = (CASE
-        WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'
-        WHEN sh.codigo = 'NAO_HOMOLOGADO' THEN 'REPROVADO'
-        WHEN sh.codigo = 'ENVIADO_PGE'
-             AND d.data_envio_pge IS NOT NULL
-             AND DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7 THEN 'PENDENTE'
-        WHEN sh.codigo = 'ENVIADO_PGE'
-             AND d.data_envio_pge IS NOT NULL THEN 'NO_PRAZO'
-        ELSE 'NAO_REGISTRADO'
-    END) COLLATE utf8mb4_unicode_ci LIMIT 1) AS status_envio_pge_id,
-    (CASE
-        WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'
-        WHEN sh.codigo = 'NAO_HOMOLOGADO' THEN 'REPROVADO'
-        WHEN sh.codigo = 'ENVIADO_PGE'
-             AND d.data_envio_pge IS NOT NULL
-             AND DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7 THEN 'PENDENTE'
-        WHEN sh.codigo = 'ENVIADO_PGE'
-             AND d.data_envio_pge IS NOT NULL THEN 'NO_PRAZO'
-        ELSE 'NAO_REGISTRADO'
-    END) COLLATE utf8mb4_unicode_ci AS status_envio_pge_codigo,
-    (CASE
-        WHEN sh.codigo = 'HOMOLOGADO' THEN 'Aprovado'
-        WHEN sh.codigo = 'NAO_HOMOLOGADO' THEN 'Reprovado'
-        WHEN sh.codigo = 'ENVIADO_PGE'
-             AND d.data_envio_pge IS NOT NULL
-             AND DATEDIFF(CURRENT_DATE, d.data_envio_pge) > 7 THEN 'Pendente'
-        WHEN sh.codigo = 'ENVIADO_PGE'
-             AND d.data_envio_pge IS NOT NULL THEN 'No prazo'
-        ELSE 'Não registrado'
-    END) COLLATE utf8mb4_unicode_ci AS status_envio_pge,
-    (CASE
+    d.status_envio_pge_id,
+    sep.codigo AS status_envio_pge_codigo,
+    sep.nome AS status_envio_pge,
+    CASE
         WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'
         WHEN sh.codigo = 'NAO_HOMOLOGADO' THEN 'REPROVADO'
         WHEN sh.codigo = 'ENVIADO_PGE'
@@ -90,7 +118,7 @@ SELECT
         WHEN sh.codigo = 'ENVIADO_PGE'
              AND d.data_envio_pge IS NOT NULL THEN 'NO PRAZO'
         ELSE 'NAO REGISTRADO'
-    END) COLLATE utf8mb4_unicode_ci AS status_prazo_pge_calculado,
+    END AS status_prazo_pge_calculado,
     d.analista_id,
     analista.nome AS analista,
     rr.nome AS recurso_resposta,

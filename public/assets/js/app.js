@@ -282,14 +282,15 @@ function openHistoryModal(form, submitter) {
     var confirm = function () {
         if (pgeDateInput instanceof HTMLInputElement && pgeDateField instanceof HTMLElement && !pgeDateField.hidden) {
             if (!pgeDateInput.value) {
-                pgeDateInput.setCustomValidity('Informe a data de envio à PGE.');
+                pgeDateInput.setCustomValidity(pgeDateInput.dataset.validationMessage || 'Informe a data obrigatória.');
                 pgeDateInput.reportValidity();
                 return;
             }
 
             pgeDateInput.setCustomValidity('');
 
-            var pgeTarget = historyPgeDateTarget(form);
+            var dateConfig = historyStatusDateConfig(form);
+            var pgeTarget = dateConfig ? dateConfig.target : null;
 
             if (pgeTarget instanceof HTMLInputElement) {
                 pgeTarget.value = pgeDateInput.value;
@@ -337,16 +338,18 @@ function buildHistorySummary(form) {
         var selectedOption = valor.options[valor.selectedIndex];
         lines.push('Novo valor: ' + (selectedOption ? selectedOption.textContent.trim() : valor.value));
 
-        if (campo.value === 'status_envio_pge_id' && selectedOptionCode(valor) === 'ENVIADO_PGE') {
+        if (campo.value === 'homologacao_status_id' && selectedOptionCode(valor) === 'ENVIADO_PGE') {
             lines.push('Informe a data de envio à PGE antes de confirmar.');
         }
 
         if (campo.value === 'homologacao_status_id' && selectedOptionCode(valor) === 'HOMOLOGADO') {
-            lines.push('O envio à PGE será marcado como Concluído e a contagem será encerrada.');
+            lines.push('Informe a data de homologação antes de confirmar.');
+            lines.push('O status da PGE será marcado como Aprovado e a contagem será encerrada.');
         }
 
-        if (campo.value === 'homologacao_status_id' && selectedOptionCode(valor) !== 'HOMOLOGADO') {
-            lines.push('Se o decreto estava homologado, o estado anterior do envio à PGE será restaurado.');
+        if (campo.value === 'homologacao_status_id' && selectedOptionCode(valor) === 'NAO_HOMOLOGADO') {
+            lines.push('Informe a data da não homologação antes de confirmar.');
+            lines.push('O status da PGE será marcado como Reprovado.');
         }
     } else {
         changedFields = collectChangedFields(form);
@@ -524,18 +527,54 @@ function configureHistoryPgeDate(form, field, input) {
         return;
     }
 
+    var config = historyStatusDateConfig(form);
+    var label = field.querySelector('label');
+
+    field.hidden = !config;
+    input.required = !!config;
+    input.value = config && config.target instanceof HTMLInputElement ? config.target.value : '';
+    input.dataset.validationMessage = config ? config.message : '';
+    if (label instanceof HTMLLabelElement && config) {
+        label.textContent = config.label;
+    }
+    input.setCustomValidity('');
+}
+
+function historyStatusDateConfig(form) {
     var statusField = form.querySelector('input[name="campo"]');
     var valueSelect = form.querySelector('select[name="valor"]');
-    var target = historyPgeDateTarget(form);
-    var shouldAskDate = statusField instanceof HTMLInputElement
-        && statusField.value === 'status_envio_pge_id'
-        && valueSelect instanceof HTMLSelectElement
-        && selectedOptionCode(valueSelect) === 'ENVIADO_PGE';
 
-    field.hidden = !shouldAskDate;
-    input.required = shouldAskDate;
-    input.value = shouldAskDate && target instanceof HTMLInputElement ? target.value : '';
-    input.setCustomValidity('');
+    if (!(statusField instanceof HTMLInputElement) || statusField.value !== 'homologacao_status_id' || !(valueSelect instanceof HTMLSelectElement)) {
+        return null;
+    }
+
+    var code = selectedOptionCode(valueSelect);
+
+    if (code === 'ENVIADO_PGE') {
+        return {
+            label: 'Data de envio à PGE',
+            message: 'Informe a data de envio à PGE.',
+            target: historyPgeDateTarget(form)
+        };
+    }
+
+    if (code === 'HOMOLOGADO') {
+        return {
+            label: 'Data de homologação',
+            message: 'Informe a data de homologação.',
+            target: historyHomologacaoDateTarget(form)
+        };
+    }
+
+    if (code === 'NAO_HOMOLOGADO') {
+        return {
+            label: 'Data da não homologação',
+            message: 'Informe a data da não homologação.',
+            target: historyHomologacaoDateTarget(form)
+        };
+    }
+
+    return null;
 }
 
 function historyPgeDateTarget(form) {
@@ -552,6 +591,24 @@ function historyPgeDateTarget(form) {
     }
 
     target = form.querySelector('input[name="data_envio_pge"]');
+
+    return target instanceof HTMLInputElement ? target : null;
+}
+
+function historyHomologacaoDateTarget(form) {
+    var target = form.querySelector('[data-homologacao-date-target]');
+
+    if (target instanceof HTMLInputElement) {
+        return target;
+    }
+
+    target = form.querySelector('[data-homologacao-date-input]');
+
+    if (target instanceof HTMLInputElement) {
+        return target;
+    }
+
+    target = form.querySelector('input[name="data_decreto_homologacao"]');
 
     return target instanceof HTMLInputElement ? target : null;
 }
@@ -584,90 +641,127 @@ function selectOptionByCode(select, code) {
 }
 
 function initPgeStatusSync() {
-    var form = document.querySelector('.decree-form');
+    document.querySelectorAll('.decree-form').forEach(function (form) {
+        initHomologacaoDateSync(form);
+    });
+}
 
+function initHomologacaoDateSync(form) {
     if (!(form instanceof HTMLFormElement)) {
         return;
     }
 
     var dateInput = form.querySelector('[data-pge-date-input]');
-    var statusSelect = form.querySelector('select[name="status_envio_pge_id"]');
+    var pgeProtocolInput = form.querySelector('[data-pge-protocol-input]');
+    var homologacaoDateInput = form.querySelector('[data-homologacao-date-input]');
     var homologacaoSelect = form.querySelector('select[name="homologacao_status_id"]');
-    var statusBeforeHomologacao = null;
 
-    if (!(dateInput instanceof HTMLInputElement) || !(statusSelect instanceof HTMLSelectElement)) {
+    if (!(homologacaoSelect instanceof HTMLSelectElement)) {
         return;
     }
 
-    var dateField = dateInput.closest('[data-pge-date-form-field]') || dateInput.closest('.field');
+    var dateField = dateInput instanceof HTMLInputElement ? dateInput.closest('[data-pge-date-form-field]') || dateInput.closest('.field') : null;
+    var pgeProtocolField = pgeProtocolInput instanceof HTMLInputElement ? pgeProtocolInput.closest('[data-pge-protocol-form-field]') || pgeProtocolInput.closest('.field') : null;
+    var homologacaoDateField = homologacaoDateInput instanceof HTMLInputElement ? homologacaoDateInput.closest('[data-homologacao-date-form-field]') || homologacaoDateInput.closest('.field') : null;
+    var homologacaoDateLabel = form.querySelector('[data-homologacao-date-label]');
+    var homologacaoDateHelp = form.querySelector('[data-homologacao-date-help]');
+    var pgeStatusPreview = form.querySelector('[data-pge-status-preview]');
 
-    var isHomologado = function () {
-        return homologacaoSelect instanceof HTMLSelectElement && selectedOptionCode(homologacaoSelect) === 'HOMOLOGADO';
-    };
-
-    statusSelect.addEventListener('change', function () {
-        statusSelect.dataset.historyPgeUserChanged = '1';
-        syncPgeDateFieldVisibility();
-    });
-
-    var syncPgeDateFieldVisibility = function () {
-        var statusCode = selectedOptionCode(statusSelect);
-        var shouldShowDate = statusCode === 'ENVIADO_PGE' && !isHomologado();
-        var shouldClearDate = ['NAO_REGISTRADO', 'NAO_ENVIADO', 'EM_PREPARACAO'].indexOf(statusCode) >= 0;
+    var syncHomologacaoDateFields = function () {
+        var homologacaoCode = selectedOptionCode(homologacaoSelect);
+        var shouldShowPgeDate = homologacaoCode === 'ENVIADO_PGE';
+        var shouldShowHomologacaoDate = ['HOMOLOGADO', 'NAO_HOMOLOGADO'].indexOf(homologacaoCode) >= 0;
 
         if (dateField instanceof HTMLElement) {
-            dateField.hidden = !shouldShowDate;
+            dateField.hidden = !shouldShowPgeDate;
         }
 
-        dateInput.required = shouldShowDate;
+        if (pgeProtocolField instanceof HTMLElement) {
+            pgeProtocolField.hidden = !shouldShowPgeDate;
+        }
 
-        if (shouldClearDate) {
+        if (homologacaoDateField instanceof HTMLElement) {
+            homologacaoDateField.hidden = !shouldShowHomologacaoDate;
+        }
+
+        if (dateInput instanceof HTMLInputElement) {
+            dateInput.required = shouldShowPgeDate;
+        }
+
+        if (homologacaoDateInput instanceof HTMLInputElement) {
+            homologacaoDateInput.required = shouldShowHomologacaoDate;
+        }
+
+        if (homologacaoDateLabel instanceof HTMLElement) {
+            homologacaoDateLabel.textContent = homologacaoCode === 'NAO_HOMOLOGADO' ? 'Data da n\u00e3o homologa\u00e7\u00e3o' : 'Data de homologa\u00e7\u00e3o';
+        }
+
+        if (homologacaoDateHelp instanceof HTMLElement) {
+            homologacaoDateHelp.textContent = homologacaoCode === 'NAO_HOMOLOGADO'
+                ? 'Informe a data oficial da n\u00e3o homologa\u00e7\u00e3o.'
+                : 'Informe a data oficial da homologa\u00e7\u00e3o.';
+        }
+
+        if (!shouldShowPgeDate && dateInput instanceof HTMLInputElement) {
             dateInput.value = '';
         }
+
+        if (!shouldShowPgeDate && pgeProtocolInput instanceof HTMLInputElement) {
+            pgeProtocolInput.value = '';
+        }
+
+        if (!shouldShowHomologacaoDate && homologacaoDateInput instanceof HTMLInputElement) {
+            homologacaoDateInput.value = '';
+        }
+
+        updatePgeStatusPreview(pgeStatusPreview, homologacaoCode, dateInput instanceof HTMLInputElement ? dateInput.value : '');
     };
 
-    var syncStatusFromHomologacao = function () {
-        if (!(homologacaoSelect instanceof HTMLSelectElement)) {
-            return;
-        }
+    homologacaoSelect.addEventListener('change', syncHomologacaoDateFields);
+    if (dateInput instanceof HTMLInputElement) {
+        dateInput.addEventListener('input', syncHomologacaoDateFields);
+        dateInput.addEventListener('change', syncHomologacaoDateFields);
+    }
+    syncHomologacaoDateFields();
+}
 
-        if (isHomologado()) {
-            if (selectedOptionCode(statusSelect) !== 'CONCLUIDO') {
-                statusBeforeHomologacao = statusSelect.value;
-            }
-
-            selectOptionByCode(statusSelect, 'CONCLUIDO');
-            syncPgeDateFieldVisibility();
-            return;
-        }
-
-        if (statusBeforeHomologacao !== null) {
-            statusSelect.value = statusBeforeHomologacao;
-            statusBeforeHomologacao = null;
-        }
-
-        syncPgeDateFieldVisibility();
-    };
-
-    var syncStatusFromDate = function () {
-        if (!dateInput.value || isHomologado() || selectedOptionCode(statusSelect) === 'CONCLUIDO') {
-            return;
-        }
-
-        selectOptionByCode(statusSelect, 'ENVIADO_PGE');
-        syncPgeDateFieldVisibility();
-    };
-
-    if (homologacaoSelect instanceof HTMLSelectElement) {
-        homologacaoSelect.addEventListener('change', syncStatusFromHomologacao);
+function updatePgeStatusPreview(container, homologacaoCode, dataEnvioPge) {
+    if (!(container instanceof HTMLElement)) {
+        return;
     }
 
-    dateInput.addEventListener('change', syncStatusFromDate);
-    dateInput.addEventListener('input', syncStatusFromDate);
+    var status = previewPgeStatus(homologacaoCode, dataEnvioPge);
+    var badge = document.createElement('span');
 
-    syncStatusFromHomologacao();
-    syncStatusFromDate();
-    syncPgeDateFieldVisibility();
+    badge.className = 'status-badge ' + status.className;
+    badge.textContent = status.label;
+
+    container.replaceChildren(badge);
+}
+
+function previewPgeStatus(homologacaoCode, dataEnvioPge) {
+    if (homologacaoCode === 'HOMOLOGADO') {
+        return { label: 'Aprovado', className: 'badge-success' };
+    }
+
+    if (homologacaoCode === 'NAO_HOMOLOGADO') {
+        return { label: 'Reprovado', className: 'badge-danger' };
+    }
+
+    if (homologacaoCode === 'ENVIADO_PGE' && dataEnvioPge) {
+        var sentDate = new Date(dataEnvioPge + 'T00:00:00');
+        var today = new Date();
+        var todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        var diffDays = Math.floor((todayDate.getTime() - sentDate.getTime()) / 86400000);
+
+        if (!Number.isNaN(diffDays) && diffDays > 7) {
+            return { label: 'Pendente', className: 'badge-warning' };
+        }
+
+        return { label: 'No prazo', className: 'badge-warning' };
+    }
+
+    return { label: 'Não registrado', className: 'badge-muted' };
 }
 
 function collectHistoryChangedFields(form) {

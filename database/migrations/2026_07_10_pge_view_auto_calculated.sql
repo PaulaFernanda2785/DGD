@@ -1,5 +1,4 @@
--- DGD - Views operacionais
-
+-- Recalcula o status de envio à PGE em tempo real na view operacional.
 SET NAMES utf8mb4;
 
 DROP VIEW IF EXISTS vw_painel_resumo;
@@ -32,8 +31,6 @@ SELECT
     d.protocolo_s2id,
     d.numero_decreto_municipal,
     d.data_decreto_municipal,
-    d.numero_decreto_homologacao_estadual,
-    d.data_decreto_homologacao,
     CASE
         WHEN d.data_decreto_municipal IS NULL THEN NULL
         ELSE DATEDIFF(CURRENT_DATE, d.data_decreto_municipal)
@@ -49,7 +46,7 @@ SELECT
     d.data_conclusao_pge,
     CASE
         WHEN d.data_envio_pge IS NULL THEN NULL
-        ELSE DATEDIFF(COALESCE(d.data_conclusao_pge, d.data_decreto_homologacao, CURRENT_DATE), d.data_envio_pge)
+        ELSE DATEDIFF(COALESCE(d.data_conclusao_pge, CURRENT_DATE), d.data_envio_pge)
     END AS duracao_pge_dias,
     (SELECT id FROM status_envio_pge WHERE codigo = (CASE
         WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'

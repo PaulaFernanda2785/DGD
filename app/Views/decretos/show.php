@@ -1,6 +1,18 @@
 <?php
     $valueOrDash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
     $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
+    $pgeResultadoCodigo = (string) ($registro['status_envio_pge_codigo'] ?? '');
+    $pgeResultadoLabel = match ($pgeResultadoCodigo) {
+        'APROVADO' => 'Aprovado PGE',
+        'REPROVADO' => 'Reprovado PGE',
+        default => 'Data de conclusão PGE',
+    };
+    $pgeResultadoData = in_array($pgeResultadoCodigo, ['APROVADO', 'REPROVADO'], true)
+        ? ($registro['data_decreto_homologacao'] ?? $registro['data_conclusao_pge'] ?? null)
+        : ($registro['data_conclusao_pge'] ?? null);
+    $homologacaoDataLabel = (string) ($registro['homologacao_codigo'] ?? '') === 'NAO_HOMOLOGADO'
+        ? 'Data da não homologação'
+        : 'Data de homologação';
 ?>
 
 <div class="page-header page-header-modern decree-detail-header">
@@ -18,7 +30,7 @@
     </div>
 </div>
 
-<section class="detail-hero">
+<section class="detail-hero detail-hero-modern">
     <div>
         <span>Município</span>
         <strong><?= e($registro['municipio']); ?></strong>
@@ -32,12 +44,12 @@
         <strong><?= e($registro['total_afetados']); ?></strong>
     </div>
     <div>
-        <span>Prazo PGE</span>
+        <span>Status PGE</span>
         <?= status_badge($registro['status_prazo_pge_calculado']); ?>
     </div>
 </section>
 
-<section class="detail-section">
+<section class="detail-section detail-overview-section">
     <div class="detail-section-heading">
         <div>
             <span>01</span>
@@ -60,7 +72,7 @@
     </div>
 </section>
 
-<section class="detail-section">
+<section class="detail-section detail-institutional-section">
     <div class="detail-section-heading">
         <div>
             <span>02</span>
@@ -74,18 +86,19 @@
         <div><strong>Decreto municipal</strong><span><?= e($valueOrDash($registro['numero_decreto_municipal'] ?? null)); ?></span></div>
         <div><strong>Data do decreto municipal</strong><span><?= e($formatDate($registro['data_decreto_municipal'] ?? null)); ?></span></div>
         <div><strong>Homologação</strong><span><?= status_badge($registro['homologacao']); ?></span></div>
+        <div><strong><?= e($homologacaoDataLabel); ?></strong><span><?= e($formatDate($registro['data_decreto_homologacao'] ?? null)); ?></span></div>
         <div><strong>Reconhecimento</strong><span><?= status_badge($registro['reconhecimento']); ?></span></div>
         <div><strong>Protocolo PAE/PGE</strong><span><?= e($valueOrDash($registro['protocolo_pae_pge'] ?? null)); ?></span></div>
         <div><strong>Envio à PGE</strong><span><?= status_badge($registro['status_envio_pge']); ?></span></div>
         <div><strong>Data de envio à PGE</strong><span><?= e($formatDate($registro['data_envio_pge'] ?? null)); ?></span></div>
-        <div><strong>Data de conclusão PGE</strong><span><?= e($formatDate($registro['data_conclusao_pge'] ?? null)); ?></span></div>
+        <div><strong><?= e($pgeResultadoLabel); ?></strong><span><?= e($formatDate($pgeResultadoData)); ?></span></div>
         <div><strong>Dias PGE</strong><span><?= e($valueOrDash($registro['duracao_pge_dias'] ?? null)); ?></span></div>
-        <div><strong>Prazo PGE</strong><span><?= status_badge($registro['status_prazo_pge_calculado'] ?? null); ?></span></div>
+        <div><strong>Status PGE</strong><span><?= status_badge($registro['status_prazo_pge_calculado'] ?? null); ?></span></div>
         <div><strong>Analista</strong><span><?= e($valueOrDash($registro['analista'] ?? null)); ?></span></div>
     </div>
 </section>
 
-<section class="detail-section">
+<section class="detail-section detail-damage-section">
     <div class="detail-section-heading">
         <div>
             <span>03</span>
@@ -112,7 +125,7 @@
 </section>
 
 <?php if (!empty($registro['observacoes'])): ?>
-    <section class="detail-section">
+    <section class="detail-section observation-detail-section">
         <div class="detail-section-heading">
             <div>
                 <span>04</span>
@@ -123,7 +136,7 @@
     </section>
 <?php endif; ?>
 
-<section class="detail-section">
+<section class="detail-section evidence-detail-section">
     <div class="detail-section-heading">
         <div>
             <span>05</span>
@@ -196,7 +209,7 @@
     </div>
 </section>
 
-<section class="detail-section">
+<section class="detail-section history-section">
     <div class="detail-section-heading">
         <div>
             <span>06</span>

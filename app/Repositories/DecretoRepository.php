@@ -124,6 +124,7 @@ class DecretoRepository
             'reconhecimento_status_id',
             'status_envio_pge_id',
             'analista_id',
+            'data_decreto_homologacao',
             'data_envio_pge',
             'data_conclusao_pge',
             'status_envio_pge_antes_homologacao_id',
