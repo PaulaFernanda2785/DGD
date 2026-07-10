@@ -1664,6 +1664,515 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-panel-map]').forEach(function (shell) {
+        var canvas = shell.querySelector('[data-panel-map-canvas]');
+        var status = shell.querySelector('[data-panel-map-status]');
+        var mapSection = shell.closest('.panel-map-section') || document;
+        var toggles = Array.prototype.slice.call(mapSection.querySelectorAll('[data-panel-layer-toggle]'));
+        var defaultLat = parseCoordinate(shell.dataset.defaultLat) || -3.79;
+        var defaultLng = parseCoordinate(shell.dataset.defaultLng) || -52.48;
+        var layers = parseLayers(shell.dataset.layers || '{}');
+        var tileErrorCount = 0;
+
+        if (!(canvas instanceof HTMLElement)) {
+            return;
+        }
+
+        function parseCoordinate(value) {
+            if (typeof value !== 'string' && typeof value !== 'number') {
+                return null;
+            }
+
+            var normalized = String(value).trim().replace(',', '.');
+
+            if (normalized === '' || Number.isNaN(Number(normalized))) {
+                return null;
+            }
+
+            return Number(normalized);
+        }
+
+        function parseLayers(raw) {
+            try {
+                var parsed = JSON.parse(raw);
+                var result = {
+                    compdecs: [],
+                    ubms: [],
+                    desastres: []
+                };
+
+                Object.keys(result).forEach(function (layerName) {
+                    var source = Array.isArray(parsed[layerName]) ? parsed[layerName] : [];
+
+                    result[layerName] = source.reduce(function (items, point) {
+                        var lat = parseCoordinate(point.latitude);
+                        var lng = parseCoordinate(point.longitude);
+
+                        if (lat === null || lng === null || lat < -35 || lat > 6 || lng < -75 || lng > -30) {
+                            return items;
+                        }
+
+                        point.lat = lat;
+                        point.lng = lng;
+                        point.layer = layerName;
+                        items.push(point);
+
+                        return items;
+                    }, []);
+                });
+
+                return result;
+            } catch (error) {
+                return {
+                    compdecs: [],
+                    ubms: [],
+                    desastres: []
+                };
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, function (char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[char];
+            });
+        }
+
+        function setStatus(message, warning) {
+            if (!(status instanceof HTMLElement)) {
+                return;
+            }
+
+            status.textContent = message;
+            status.classList.toggle('is-warning', warning === true);
+        }
+
+        function activeLayers() {
+            return toggles
+                .filter(function (toggle) {
+                    return toggle.checked;
+                })
+                .map(function (toggle) {
+                    return toggle.value;
+                });
+        }
+
+        function visiblePoints() {
+            var selected = activeLayers();
+
+            return selected.reduce(function (items, layerName) {
+                return items.concat(layers[layerName] || []);
+            }, []);
+        }
+
+        function layerLabel(layerName) {
+            return {
+                compdecs: 'COMPDEC',
+                ubms: 'UBM',
+                desastres: 'Desastre'
+            }[layerName] || 'Ponto';
+        }
+
+        function isCompdecRegistered(point) {
+            return Number(point.tem_compdec || 0) === 1;
+        }
+
+        function pointLayerKey(point) {
+            if (point.layer === 'compdecs') {
+                return isCompdecRegistered(point) ? 'compdecs-com' : 'compdecs-sem';
+            }
+
+            return point.layer || 'default';
+        }
+
+        function pointLayerLabel(point) {
+            if (point.layer === 'compdecs') {
+                return isCompdecRegistered(point) ? 'Com COMPDEC' : 'Sem COMPDEC';
+            }
+
+            return layerLabel(point.layer);
+        }
+
+        function appUrl(path) {
+            var baseUrl = document.documentElement.dataset.appBaseUrl || '';
+            return baseUrl.replace(/\/$/, '') + '/' + String(path || '').replace(/^\//, '');
+        }
+
+        function pointTitle(point) {
+            if (point.layer === 'ubms') {
+                return point.nome || 'UBM';
+            }
+
+            return point.municipio || point.nome || 'Ponto territorial';
+        }
+
+        function pointTooltip(point) {
+            if (point.layer === 'compdecs') {
+                return point.municipio || 'Munic\u00edpio n\u00e3o informado';
+            }
+
+            if (point.layer === 'ubms') {
+                return point.nome || 'UBM n\u00e3o informada';
+            }
+
+            if (point.layer === 'desastres') {
+                return point.protocolo_dgd || 'Protocolo DGD n\u00e3o informado';
+            }
+
+            return pointTitle(point);
+        }
+
+        function tooltipOptions() {
+            return {
+                className: 'panel-map-tooltip',
+                direction: 'top',
+                opacity: 0.95,
+                sticky: true
+            };
+        }
+
+        function pointValue(point) {
+            if (point.layer === 'desastres') {
+                return Number(point.total_desastres || 1);
+            }
+
+            if (point.layer === 'ubms') {
+                return Number(point.municipios_vinculados || 1);
+            }
+
+            return Number(point.tem_compdec || 0) === 1 ? 1 : 0;
+        }
+
+        function markerClass(point) {
+            return 'is-' + String(pointLayerKey(point)).replace(/[^a-z0-9_-]/gi, '');
+        }
+
+        function createIcon(point) {
+            var value = Math.max(1, pointValue(point));
+            var label = point.layer === 'compdecs' ? (isCompdecRegistered(point) ? 'C' : 'S') : value;
+
+            return L.divIcon({
+                className: 'panel-map-marker ' + markerClass(point),
+                html: '<span><b>' + escapeHtml(label) + '</b></span>',
+                iconSize: [46, 52],
+                iconAnchor: [23, 48],
+                popupAnchor: [0, -42]
+            });
+        }
+
+        function pointPopup(point) {
+            var rows = [
+                '<header><strong>' + escapeHtml(pointTitle(point)) + '</strong><span>' + escapeHtml(pointLayerLabel(point)) + '</span></header>'
+            ];
+
+            if (point.municipio && point.layer === 'ubms') {
+                rows.push('<div><b>Município referência</b><span>' + escapeHtml(point.municipio) + '</span></div>');
+            }
+
+            if (point.codigo_ibge) {
+                rows.push('<div><b>Código IBGE</b><span>' + escapeHtml(point.codigo_ibge) + '</span></div>');
+            }
+
+            if (point.regiao_integracao) {
+                rows.push('<div><b>Região</b><span>' + escapeHtml(point.regiao_integracao) + '</span></div>');
+            }
+
+            if (point.layer === 'desastres') {
+                rows.push('<div><b>Registros</b><span>' + escapeHtml(point.total_desastres || 0) + '</span></div>');
+                rows.push('<div><b>Afetados</b><span>' + escapeHtml(point.total_afetados || 0) + '</span></div>');
+                rows.push('<div><b>Homologados</b><span>' + escapeHtml(point.homologados || 0) + '</span></div>');
+
+                if (point.cobrade_tipo) {
+                    rows.push('<div><b>Tipo COBRADE</b><span>' + escapeHtml(point.cobrade_tipo) + '</span></div>');
+                }
+
+                if (point.municipio_id) {
+                    rows.push('<a href="' + escapeHtml(appUrl('/decretos?municipio_id=' + encodeURIComponent(point.municipio_id))) + '">Abrir decretos do município</a>');
+                }
+            }
+
+            if (point.layer === 'compdecs') {
+                rows.push('<div><b>Situação</b><span>' + (isCompdecRegistered(point) ? 'Com COMPDEC' : 'Sem COMPDEC') + '</span></div>');
+
+                if (point.coordenador) {
+                    rows.push('<div><b>Coordenador</b><span>' + escapeHtml(point.coordenador) + '</span></div>');
+                }
+
+                if (point.ubm_nome) {
+                    rows.push('<div><b>UBM atuante</b><span>' + escapeHtml(point.ubm_nome) + '</span></div>');
+                }
+
+                if (point.id) {
+                    rows.push('<a href="' + escapeHtml(appUrl('/compdecs/' + encodeURIComponent(point.id))) + '">Abrir COMPDEC</a>');
+                }
+            }
+
+            if (point.layer === 'ubms') {
+                rows.push('<div><b>Municípios vinculados</b><span>' + escapeHtml(point.municipios_vinculados || 1) + '</span></div>');
+            }
+
+            return '<div class="panel-map-popup">' + rows.join('') + '</div>';
+        }
+
+        function createClusterIcon(cluster) {
+            var totals = cluster.points.reduce(function (summary, point) {
+                var key = pointLayerKey(point);
+                summary[key] = (summary[key] || 0) + 1;
+                return summary;
+            }, {});
+            var total = cluster.points.length;
+            var badges = [
+                ['desastres', 'D', totals.desastres || 0],
+                ['compdecs-com', 'C', totals['compdecs-com'] || 0],
+                ['compdecs-sem', 'S', totals['compdecs-sem'] || 0],
+                ['ubms', 'U', totals.ubms || 0]
+            ].filter(function (item) {
+                return item[2] > 0;
+            }).map(function (item) {
+                return '<em data-layer="' + escapeHtml(item[0]) + '"><i>' + escapeHtml(item[1]) + '</i>' + escapeHtml(item[2]) + '</em>';
+            }).join('');
+
+            return L.divIcon({
+                className: 'panel-map-cluster',
+                html: '<span><b>' + escapeHtml(total) + '</b><small>pontos</small></span><strong>' + badges + '</strong>',
+                iconSize: [76, 72],
+                iconAnchor: [38, 36],
+                popupAnchor: [0, -26]
+            });
+        }
+
+        function clusterPopup(cluster) {
+            var totals = cluster.points.reduce(function (summary, point) {
+                var key = pointLayerKey(point);
+                summary[key] = (summary[key] || 0) + 1;
+                return summary;
+            }, {});
+            var items = cluster.points
+                .slice()
+                .sort(function (a, b) {
+                    return String(pointTitle(a)).localeCompare(String(pointTitle(b)), 'pt-BR');
+                })
+                .slice(0, 9)
+                .map(function (point) {
+                    return '<li><strong>' + escapeHtml(pointTitle(point)) + '</strong><span>' + escapeHtml(pointLayerLabel(point)) + '</span></li>';
+                });
+
+            if (cluster.points.length > items.length) {
+                items.push('<li><strong>Outros pontos</strong><span>+' + escapeHtml(cluster.points.length - items.length) + '</span></li>');
+            }
+
+            return '<div class="panel-map-popup is-cluster">' +
+                '<header><strong>' + escapeHtml(cluster.points.length) + ' pontos agrupados</strong><span>Aproxime o zoom para expandir</span></header>' +
+                '<div><b>Desastres</b><span>' + escapeHtml(totals.desastres || 0) + '</span></div>' +
+                '<div><b>Com COMPDEC</b><span>' + escapeHtml(totals['compdecs-com'] || 0) + '</span></div>' +
+                '<div><b>Sem COMPDEC</b><span>' + escapeHtml(totals['compdecs-sem'] || 0) + '</span></div>' +
+                '<div><b>UBM</b><span>' + escapeHtml(totals.ubms || 0) + '</span></div>' +
+                '<section><b>Pontos no agrupamento</b><ul>' + items.join('') + '</ul></section>' +
+                '</div>';
+        }
+
+        function countPointsByLayer(points) {
+            return points.reduce(function (summary, point) {
+                var key = pointLayerKey(point);
+                summary[key] = (summary[key] || 0) + 1;
+                return summary;
+            }, {
+                desastres: 0,
+                'compdecs-com': 0,
+                'compdecs-sem': 0,
+                ubms: 0
+            });
+        }
+
+        function updateLegendCounts(points) {
+            var totals = countPointsByLayer(points);
+
+            mapSection.querySelectorAll('[data-panel-legend-count]').forEach(function (element) {
+                var key = element.getAttribute('data-panel-legend-count') || '';
+                element.textContent = Number(totals[key] || 0).toLocaleString('pt-BR');
+            });
+        }
+
+        if (typeof L === 'undefined') {
+            shell.classList.add('is-map-unavailable');
+            setStatus('Biblioteca do mapa indisponível. Os indicadores continuam disponíveis.', true);
+            return;
+        }
+
+        var map = L.map(canvas, {
+            scrollWheelZoom: true,
+            zoomControl: true
+        }).setView([defaultLat, defaultLng], 6);
+
+        var tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            maxZoom: 19
+        });
+
+        tileLayer.on('tileerror', function () {
+            tileErrorCount++;
+
+            if (tileErrorCount <= 2) {
+                setStatus('O mapa base não carregou completamente. Os pontos cadastrados continuam disponíveis.', true);
+            }
+        });
+
+        tileLayer.on('load', function () {
+            tileErrorCount = 0;
+        });
+
+        tileLayer.addTo(map);
+
+        var markerLayer = L.layerGroup().addTo(map);
+
+        function clusterRadius() {
+            var zoom = map.getZoom();
+
+            if (zoom >= 11) {
+                return 0;
+            }
+
+            if (zoom >= 9) {
+                return 42;
+            }
+
+            if (zoom >= 8) {
+                return 58;
+            }
+
+            if (zoom >= 7) {
+                return 74;
+            }
+
+            return 92;
+        }
+
+        function buildClusters(points) {
+            var radius = clusterRadius();
+
+            if (radius <= 0) {
+                return points.map(function (point) {
+                    return {
+                        lat: point.lat,
+                        lng: point.lng,
+                        points: [point]
+                    };
+                });
+            }
+
+            return points.reduce(function (clusters, point) {
+                var screenPoint = map.latLngToLayerPoint([point.lat, point.lng]);
+                var targetCluster = clusters.find(function (cluster) {
+                    return screenPoint.distanceTo(cluster.screenPoint) <= radius;
+                });
+
+                if (targetCluster) {
+                    targetCluster.points.push(point);
+                    targetCluster.lat = targetCluster.points.reduce(function (total, clusterPoint) {
+                        return total + clusterPoint.lat;
+                    }, 0) / targetCluster.points.length;
+                    targetCluster.lng = targetCluster.points.reduce(function (total, clusterPoint) {
+                        return total + clusterPoint.lng;
+                    }, 0) / targetCluster.points.length;
+                    targetCluster.screenPoint = map.latLngToLayerPoint([targetCluster.lat, targetCluster.lng]);
+                    return clusters;
+                }
+
+                clusters.push({
+                    lat: point.lat,
+                    lng: point.lng,
+                    points: [point],
+                    screenPoint: screenPoint
+                });
+
+                return clusters;
+            }, []);
+        }
+
+        function renderMarkers() {
+            var points = visiblePoints();
+            markerLayer.clearLayers();
+            updateLegendCounts(points);
+
+            buildClusters(points).forEach(function (cluster) {
+                if (cluster.points.length === 1) {
+                    var point = cluster.points[0];
+
+                    L.marker([point.lat, point.lng], {
+                        icon: createIcon(point)
+                    }).bindPopup(pointPopup(point), {
+                        maxWidth: 340,
+                        closeButton: true
+                    }).bindTooltip(escapeHtml(pointTooltip(point)), tooltipOptions()).addTo(markerLayer);
+
+                    return;
+                }
+
+                L.marker([cluster.lat, cluster.lng], {
+                    icon: createClusterIcon(cluster)
+                }).bindPopup(clusterPopup(cluster), {
+                    maxWidth: 390,
+                    closeButton: true
+                }).bindTooltip(cluster.points.length + ' pontos agrupados', tooltipOptions()).addTo(markerLayer);
+            });
+
+            setStatus(points.length === 0 ? 'Nenhum ponto ativo para as camadas selecionadas.' : points.length + ' ponto(s) ativo(s) no mapa.', points.length === 0);
+        }
+
+        function fitVisiblePoints() {
+            var points = visiblePoints();
+
+            if (points.length === 0) {
+                map.setView([defaultLat, defaultLng], 6);
+                return;
+            }
+
+            var bounds = points.map(function (point) {
+                return [point.lat, point.lng];
+            });
+
+            if (bounds.length === 1) {
+                map.setView(bounds[0], 10);
+                return;
+            }
+
+            map.fitBounds(bounds, {
+                padding: [44, 44],
+                maxZoom: 9
+            });
+        }
+
+        toggles.forEach(function (toggle) {
+            toggle.addEventListener('change', function () {
+                renderMarkers();
+            });
+        });
+
+        fitVisiblePoints();
+        renderMarkers();
+        map.on('zoomend', renderMarkers);
+
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(function () {
+                map.invalidateSize();
+            }).observe(canvas);
+        }
+
+        window.setTimeout(function () {
+            map.invalidateSize();
+        }, 150);
+        window.setTimeout(function () {
+            map.invalidateSize();
+        }, 700);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
     var dataElement = document.getElementById('compdec-form-map-data');
 
     if (!dataElement) {
