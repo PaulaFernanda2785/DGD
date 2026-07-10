@@ -3223,6 +3223,8 @@ tbody tr:hover {
 .compdec-edit-header,
 .compdec-edit-profile-section,
 .compdec-edit-location-section,
+.compdec-edit-ubm-section,
+.compdec-edit-summary-section,
 .compdec-edit-contact-section {
     border-color: #cbd8e3;
     overflow: hidden;
@@ -3232,6 +3234,8 @@ tbody tr:hover {
 .compdec-edit-header::before,
 .compdec-edit-profile-section::before,
 .compdec-edit-location-section::before,
+.compdec-edit-ubm-section::before,
+.compdec-edit-summary-section::before,
 .compdec-edit-contact-section::before {
     content: "";
     height: 4px;
@@ -3242,11 +3246,13 @@ tbody tr:hover {
 }
 
 .compdec-edit-header::before,
-.compdec-edit-profile-section::before {
+.compdec-edit-profile-section::before,
+.compdec-edit-summary-section::before {
     background: #007c70;
 }
 
-.compdec-edit-location-section::before {
+.compdec-edit-location-section::before,
+.compdec-edit-ubm-section::before {
     background: #155e75;
 }
 
@@ -3263,25 +3269,157 @@ tbody tr:hover {
 }
 
 .compdec-edit-profile {
+    align-items: start;
     display: grid;
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
     gap: 18px;
     min-width: 0;
 }
 
-.compdec-edit-photo {
-    align-content: start;
-    background: #f7fbfa;
+.compdec-edit-summary-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compdec-edit-summary-grid article {
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbfa 100%);
     border: 1px solid #cfe0dc;
     border-radius: 8px;
     display: grid;
-    gap: 12px;
-    justify-items: start;
+    gap: 6px;
     min-width: 0;
-    padding: 14px;
+    padding: 16px;
 }
 
-.compdec-edit-photo .compdec-photo-large {
+.compdec-edit-summary-grid span,
+.compdec-status-label {
+    color: #52606d;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.compdec-edit-summary-grid strong {
+    color: #172331;
+    font-size: 18px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.compdec-edit-summary-grid small {
+    color: #52606d;
+    line-height: 1.45;
+}
+
+.compdec-photo-uploader {
+    align-content: start;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 250, 247, 0.9)),
+        radial-gradient(circle at top left, rgba(0, 124, 112, 0.16), transparent 34%);
+    border: 1px dashed #7aa7a0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid;
+    gap: 14px;
+    height: 100%;
+    justify-items: start;
+    min-width: 0;
+    padding: 16px;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.compdec-photo-uploader.is-dragover {
+    background: #eefaf7;
+    border-color: #007c70;
+    box-shadow: 0 0 0 4px rgba(0, 124, 112, 0.12);
+}
+
+.compdec-photo-uploader:focus-visible {
+    border-color: #007c70;
+    box-shadow: 0 0 0 4px rgba(0, 124, 112, 0.14);
+    outline: 0;
+}
+
+.compdec-photo-preview {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #cfe0dc;
+    border-radius: 8px;
+    color: #52606d;
+    display: flex;
+    font-weight: 900;
+    height: 220px;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+
+.compdec-photo-preview::after {
+    background: rgba(0, 124, 112, 0.86);
+    border-radius: 999px;
+    bottom: 12px;
+    color: #ffffff;
+    content: "Selecionar foto";
+    font-size: 12px;
+    font-weight: 900;
+    left: 50%;
+    padding: 7px 12px;
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.compdec-photo-preview img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.compdec-photo-controls {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+}
+
+.compdec-photo-title {
+    color: #172331;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.compdec-photo-text {
+    color: #52606d;
+    line-height: 1.45;
+}
+
+.compdec-photo-uploader input[type="file"] {
+    background: #ffffff;
+    border: 1px solid #cfe0dc;
+    border-radius: 8px;
+    color: #52606d;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 8px;
+    width: 100%;
+}
+
+.compdec-photo-uploader input[type="file"]::file-selector-button {
+    background: #007c70;
+    border: 0;
+    border-radius: 7px;
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 900;
+    margin-right: 10px;
+    padding: 9px 12px;
+}
+
+.compdec-edit-photo .compdec-photo-large,
+.compdec-photo-preview.compdec-photo-large {
     border-color: #cfe0dc;
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     height: 180px;
@@ -3310,6 +3448,14 @@ tbody tr:hover {
     min-width: 0;
 }
 
+.compdec-edit-profile > .compdec-edit-grid {
+    align-self: start;
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    padding: 14px;
+}
+
 .compdec-edit-form .field {
     align-content: start;
 }
@@ -3320,7 +3466,8 @@ tbody tr:hover {
 }
 
 .compdec-edit-form input,
-.compdec-edit-form select {
+.compdec-edit-form select,
+.compdec-edit-form textarea {
     border-color: #cbd8e3;
     border-radius: 8px;
     min-height: 46px;
@@ -3343,17 +3490,342 @@ tbody tr:hover {
 }
 
 .compdec-edit-form input:focus,
-.compdec-edit-form select:focus {
+.compdec-edit-form select:focus,
+.compdec-edit-form textarea:focus {
     border-color: #007c70;
     box-shadow: 0 0 0 4px rgba(0, 124, 112, 0.14);
     outline: 0;
 }
 
-.compdec-edit-form input:disabled {
+.compdec-edit-form input:disabled,
+.compdec-edit-form input[readonly] {
     background: #f8fafc;
     border-left: 4px solid #7aa7a0;
     color: #52606d;
     font-weight: 800;
+}
+
+.compdec-edit-location-layout {
+    align-items: start;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+    min-width: 0;
+}
+
+.compdec-field-full {
+    grid-column: 1 / -1;
+}
+
+.compdec-map-card,
+.compdec-status-card {
+    align-self: start;
+    background: #f8fafc;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px;
+}
+
+.compdec-map-toolbar {
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.compdec-map-toolbar .button {
+    align-self: flex-start;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 38px;
+    white-space: normal;
+}
+
+.compdec-map {
+    background: #e8eef3;
+    border: 1px solid #cbd8e3;
+    border-radius: 8px;
+    height: 320px;
+    min-height: 260px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.compdec-map .leaflet-container,
+.compdec-map.leaflet-container {
+    background: #e8eef3;
+    font: inherit;
+}
+
+.compdec-map .leaflet-tile,
+.compdec-map .leaflet-marker-icon,
+.compdec-map .leaflet-marker-shadow,
+.compdec-map .leaflet-pane img {
+    max-width: none !important;
+}
+
+.compdec-map-large {
+    height: 420px;
+}
+
+.compdec-ubm-smart-panel {
+    background: #f8fafc;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 12px;
+}
+
+.compdec-ubm-smart-panel[data-state="success"] {
+    background: #eefaf7;
+    border-color: #83c5b8;
+}
+
+.compdec-ubm-smart-panel[data-state="warning"] {
+    background: #fff7ed;
+    border-color: #f1b76b;
+}
+
+.compdec-ubm-smart-panel strong {
+    color: #172331;
+}
+
+.compdec-ubm-smart-panel span,
+.field-helper {
+    color: #52606d;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.field-helper[data-state="success"] {
+    color: #007c70;
+    font-weight: 800;
+}
+
+.field-helper[data-state="error"] {
+    color: #b42318;
+    font-weight: 800;
+}
+
+.compdec-ubm-smart-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.compdec-ubm-smart-option {
+    background: #ffffff;
+    border: 1px solid #cbd8e3;
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    text-align: left;
+}
+
+.compdec-ubm-smart-option:hover,
+.compdec-ubm-smart-option:focus {
+    border-color: #007c70;
+    box-shadow: 0 0 0 3px rgba(0, 124, 112, 0.12);
+    outline: 0;
+}
+
+.compdec-status-options {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compdec-status-option {
+    align-items: start;
+    background: #ffffff;
+    border: 1px solid #cbd8e3;
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 12px;
+}
+
+.compdec-status-option input {
+    margin-top: 4px;
+}
+
+.compdec-status-option span {
+    display: grid;
+    gap: 3px;
+}
+
+.compdec-status-option small {
+    color: #52606d;
+    line-height: 1.35;
+}
+
+.operational-unit-map-icon {
+    align-items: center;
+    background: #007c70;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.24);
+    display: flex;
+    justify-content: center;
+}
+
+.operational-unit-map-icon-house {
+    background: #ffffff;
+    clip-path: polygon(50% 8%, 92% 44%, 82% 44%, 82% 86%, 18% 86%, 18% 44%, 8% 44%);
+    height: 18px;
+    width: 20px;
+}
+
+.compdec-point-map-icon {
+    background: transparent;
+    border: 0;
+    position: relative;
+}
+
+.compdec-point-map-icon::before {
+    background: #ffffff;
+    border: 3px solid #007c70;
+    border-radius: 50% 50% 50% 0;
+    box-shadow: 0 12px 22px rgba(15, 23, 42, 0.26);
+    content: "";
+    height: 26px;
+    left: 3px;
+    position: absolute;
+    top: 2px;
+    transform: rotate(-45deg);
+    width: 26px;
+}
+
+.compdec-point-map-icon-dot {
+    background: #007c70;
+    border-radius: 50%;
+    display: block;
+    height: 12px;
+    left: 11px;
+    position: absolute;
+    top: 11px;
+    width: 12px;
+    z-index: 1;
+}
+
+.compdec-show-header,
+.compdec-show-summary-section,
+.compdec-show-profile-section,
+.compdec-show-location-section,
+.compdec-show-ubm-section {
+    border-color: #cbd8e3;
+    overflow: hidden;
+    position: relative;
+}
+
+.compdec-show-header::before,
+.compdec-show-summary-section::before,
+.compdec-show-profile-section::before,
+.compdec-show-location-section::before,
+.compdec-show-ubm-section::before {
+    content: "";
+    height: 4px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.compdec-show-header::before,
+.compdec-show-summary-section::before,
+.compdec-show-profile-section::before {
+    background: #007c70;
+}
+
+.compdec-show-location-section::before,
+.compdec-show-ubm-section::before {
+    background: #155e75;
+}
+
+.compdec-show-profile {
+    align-items: start;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    min-width: 0;
+}
+
+.compdec-show-photo {
+    align-items: center;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(238, 250, 247, 0.9)),
+        radial-gradient(circle at top left, rgba(0, 124, 112, 0.16), transparent 36%);
+    border: 1px solid #cfe0dc;
+    border-radius: 8px;
+    color: #52606d;
+    display: flex;
+    font-weight: 900;
+    height: 280px;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+
+.compdec-show-photo img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.compdec-show-detail-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+}
+
+.compdec-show-detail-grid article {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 14px;
+}
+
+.compdec-show-detail-grid span {
+    color: #52606d;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.compdec-show-detail-grid strong {
+    color: #172331;
+    font-size: 15px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.compdec-show-detail-wide {
+    grid-column: 1 / -1;
+}
+
+.compdec-show-location-layout {
+    align-items: start;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    min-width: 0;
 }
 
 .decree-detail-header h1 {
@@ -4393,7 +4865,15 @@ tbody tr:hover {
     }
 
     .compdec-edit-profile {
-        grid-template-columns: 190px minmax(0, 1fr);
+        grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    }
+
+    .compdec-edit-location-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .compdec-show-location-layout {
+        grid-template-columns: 1fr;
     }
 
     .compdec-edit-photo .compdec-photo-large {
@@ -4546,17 +5026,21 @@ tbody tr:hover {
     }
 
     .compdec-edit-profile,
-    .compdec-edit-grid {
+    .compdec-show-profile,
+    .compdec-edit-grid,
+    .compdec-show-detail-grid,
+    .compdec-edit-summary-grid {
         grid-template-columns: 1fr;
     }
 
-    .compdec-edit-photo {
-        grid-template-columns: auto minmax(0, 1fr);
+    .compdec-photo-uploader {
+        align-items: start;
+        grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
         justify-items: stretch;
     }
 
-    .compdec-edit-photo .compdec-photo-large {
-        grid-row: span 3;
+    .compdec-photo-preview {
+        min-height: 180px;
     }
 
     .decree-filter-panel {
@@ -4949,20 +5433,31 @@ tbody tr:hover {
         width: 100%;
     }
 
-    .compdec-edit-photo {
+    .compdec-photo-uploader {
         grid-template-columns: 1fr;
         justify-items: start;
     }
 
-    .compdec-edit-photo .compdec-photo-large {
-        grid-row: auto;
-        height: 150px;
-        width: 150px;
+    .compdec-photo-preview {
+        height: 180px;
+    }
+
+    .compdec-show-photo {
+        height: 220px;
     }
 
     .compdec-edit-form input,
-    .compdec-edit-form select {
+    .compdec-edit-form select,
+    .compdec-edit-form textarea {
         min-height: 44px;
+    }
+
+    .compdec-map {
+        height: 280px;
+    }
+
+    .compdec-status-options {
+        grid-template-columns: 1fr;
     }
 
     .compdec-card,

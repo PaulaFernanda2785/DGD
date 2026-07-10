@@ -30,18 +30,20 @@ class CompdecController extends Controller
 
     public function show(string $id): void
     {
-        $this->view('compdecs/show', [
+        $this->view('compdecs/show', $this->compdecService->dadosDetalhe((int) $id) + [
             'title' => 'Detalhe da COMPDEC',
-            'compdec' => $this->compdecService->buscar((int) $id),
+            'stylesheets' => ['/assets/vendor/leaflet/leaflet.css'],
+            'scripts' => ['/assets/vendor/leaflet/leaflet.js'],
         ]);
     }
 
     public function edit(string $id): void
     {
-        $this->view('compdecs/edit', [
+        $this->view('compdecs/edit', $this->compdecService->dadosEdicao((int) $id) + [
             'title' => 'Editar COMPDEC',
-            'compdec' => $this->compdecService->buscar((int) $id),
             'errors' => Session::consumeFlash('errors', []),
+            'stylesheets' => ['/assets/vendor/leaflet/leaflet.css'],
+            'scripts' => ['/assets/vendor/leaflet/leaflet.js'],
         ]);
     }
 

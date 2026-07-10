@@ -213,6 +213,8 @@ CREATE TABLE ubms (
     codigo VARCHAR(50) NULL UNIQUE,
     nome VARCHAR(150) NOT NULL,
     descricao TEXT NULL,
+    latitude DECIMAL(11,8) NULL,
+    longitude DECIMAL(11,8) NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -1148,8 +1150,8 @@ ALTER TABLE compdecs AUTO_INCREMENT = 433;
 
 DELETE FROM ubms WHERE descricao IN ('Fonte: Multirriscos COMPDEC', 'Fonte: COMPDEC DGD');
 
-INSERT INTO ubms (municipio_id, codigo, nome, descricao, ativo)
-SELECT m.id, NULL, c.ubm_nome, 'Fonte: COMPDEC DGD', 1
+INSERT INTO ubms (municipio_id, codigo, nome, descricao, latitude, longitude, ativo)
+SELECT m.id, NULL, c.ubm_nome, 'Fonte: COMPDEC DGD', c.latitude, c.longitude, 1
 FROM compdecs c
 INNER JOIN municipios m ON m.codigo_ibge = CAST(c.municipio_codigo AS UNSIGNED)
 LEFT JOIN ubms existente ON existente.municipio_id = m.id AND existente.nome = c.ubm_nome

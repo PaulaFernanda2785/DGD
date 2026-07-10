@@ -1662,3 +1662,673 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    var dataElement = document.getElementById('compdec-form-map-data');
+
+    if (!dataElement) {
+        return;
+    }
+
+    function parseData() {
+        try {
+            return JSON.parse(dataElement.textContent || '{}');
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function toNumber(value) {
+        var normalized = String(value || '').trim().replace(',', '.');
+
+        if (normalized === '') {
+            return null;
+        }
+
+        var number = Number.parseFloat(normalized);
+        return Number.isFinite(number) ? number : null;
+    }
+
+    function formatCoordinate(value) {
+        return Number(value).toFixed(8);
+    }
+
+    function isCoordinatePair(latitude, longitude) {
+        return Number.isFinite(latitude)
+            && Number.isFinite(longitude)
+            && latitude >= -90
+            && latitude <= 90
+            && longitude >= -180
+            && longitude <= 180;
+    }
+
+    function normalizeText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toUpperCase();
+    }
+
+    var data = parseData();
+    var compdecLatitudeInput = document.getElementById('compdec_latitude');
+    var compdecLongitudeInput = document.getElementById('compdec_longitude');
+    var ubmIdInput = document.getElementById('ubm_id');
+    var ubmNameInput = document.getElementById('ubm_nome');
+    var ubmLatitudeInput = document.getElementById('ubm_latitude');
+    var ubmLongitudeInput = document.getElementById('ubm_longitude');
+    var ubmSmartPanel = document.getElementById('ubm-smart-panel');
+    var compdecMapApi = null;
+    var ubmMapApi = null;
+
+    function setMapFeedback(id, message, state) {
+        var feedback = document.getElementById(id);
+
+        if (feedback instanceof HTMLElement) {
+            feedback.textContent = message;
+            feedback.dataset.state = state || 'neutral';
+        }
+    }
+
+    function createUbmIcon() {
+        return L.divIcon({
+            className: 'operational-unit-map-icon',
+            html: '<span class="operational-unit-map-icon-house" aria-hidden="true"></span>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 34],
+            popupAnchor: [0, -32],
+        });
+    }
+
+    function createCompdecIcon() {
+        return L.divIcon({
+            className: 'compdec-point-map-icon',
+            html: '<span class="compdec-point-map-icon-dot" aria-hidden="true"></span>',
+            iconSize: [34, 42],
+            iconAnchor: [17, 40],
+            popupAnchor: [0, -34],
+        });
+    }
+
+    function createPointMap(config) {
+        var mapElement = document.getElementById(config.mapId);
+        var latitudeInput = document.getElementById(config.latitudeId);
+        var longitudeInput = document.getElementById(config.longitudeId);
+        var feedback = document.getElementById(config.feedbackId);
+
+        if (!(mapElement instanceof HTMLElement) || !(latitudeInput instanceof HTMLInputElement) || !(longitudeInput instanceof HTMLInputElement)) {
+            return null;
+        }
+
+        var defaultCenter = [-3.5, -52];
+        var initialLatitude = toNumber(latitudeInput.value);
+        var initialLongitude = toNumber(longitudeInput.value);
+        var hasInitialPoint = isCoordinatePair(initialLatitude, initialLongitude);
+        var center = hasInitialPoint ? [initialLatitude, initialLongitude] : defaultCenter;
+        var readOnly = mapElement.getAttribute('data-readonly') === 'true';
+        var map = L.map(mapElement, {
+            zoomControl: true,
+            scrollWheelZoom: true,
+            minZoom: 5,
+            maxZoom: 20,
+        }).setView(center, hasInitialPoint ? 14 : 6);
+        var marker = null;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(map);
+
+        function setFeedback(message, state) {
+            if (feedback instanceof HTMLElement) {
+                feedback.textContent = message;
+                feedback.dataset.state = state || 'neutral';
+            }
+        }
+
+        function refreshSize() {
+            map.invalidateSize();
+            window.setTimeout(function () { map.invalidateSize(); }, 180);
+        }
+
+        function setPoint(latitude, longitude, message, options) {
+            options = options || {};
+
+            if (!isCoordinatePair(latitude, longitude)) {
+                setFeedback('Informe coordenadas válidas para ajustar o mapa.', 'error');
+                return false;
+            }
+
+            latitudeInput.value = formatCoordinate(latitude);
+            longitudeInput.value = formatCoordinate(longitude);
+
+            if (!marker) {
+                var markerOptions = { draggable: true };
+
+                if (readOnly) {
+                    markerOptions.draggable = false;
+                }
+
+                if (config.icon) {
+                    markerOptions.icon = config.icon;
+                }
+
+                marker = L.marker([latitude, longitude], markerOptions).addTo(map);
+                marker.on('dragend', function (event) {
+                    var position = event.target.getLatLng();
+                    setPoint(position.lat, position.lng, 'Ponto ajustado no mapa.', { pan: false });
+                });
+            } else {
+                marker.setLatLng([latitude, longitude]);
+            }
+
+            if (options.pan !== false) {
+                map.setView([latitude, longitude], Math.max(map.getZoom(), 14), { animate: true });
+            }
+
+            setFeedback(message || 'Ponto atualizado no mapa.', 'success');
+            return true;
+        }
+
+        function syncFromInputs() {
+            var latitude = toNumber(latitudeInput.value);
+            var longitude = toNumber(longitudeInput.value);
+
+            if (latitudeInput.value.trim() === '' && longitudeInput.value.trim() === '') {
+                if (marker) {
+                    map.removeLayer(marker);
+                    marker = null;
+                }
+
+                setFeedback(config.emptyMessage || 'Clique no mapa para definir o ponto.', 'neutral');
+                return;
+            }
+
+            if (isCoordinatePair(latitude, longitude)) {
+                setPoint(latitude, longitude, 'Mapa sincronizado com os campos.', { pan: false });
+            }
+        }
+
+        if (!readOnly) {
+            map.on('click', function (event) {
+                setPoint(event.latlng.lat, event.latlng.lng, 'Ponto definido pelo clique no mapa.');
+            });
+
+            latitudeInput.addEventListener('input', syncFromInputs);
+            longitudeInput.addEventListener('input', syncFromInputs);
+        }
+
+        if (hasInitialPoint) {
+            setPoint(initialLatitude, initialLongitude, config.readyMessage || 'Ponto carregado no mapa.', { pan: false });
+        } else {
+            setFeedback(config.emptyMessage || 'Clique no mapa para definir o ponto.', 'neutral');
+        }
+
+        window.setTimeout(refreshSize, 120);
+
+        if ('ResizeObserver' in window) {
+            new ResizeObserver(refreshSize).observe(mapElement);
+        }
+
+        return {
+            setPoint: setPoint,
+            refreshSize: refreshSize,
+            centerOnCurrentFields: function () {
+                var latitude = toNumber(latitudeInput.value);
+                var longitude = toNumber(longitudeInput.value);
+
+                refreshSize();
+
+                if (!isCoordinatePair(latitude, longitude)) {
+                    setFeedback('Informe latitude e longitude válidas antes de centralizar.', 'error');
+                    return false;
+                }
+
+                return setPoint(latitude, longitude, 'Mapa atualizado com as coordenadas informadas.');
+            },
+            clear: function (message) {
+                latitudeInput.value = '';
+                longitudeInput.value = '';
+
+                if (marker) {
+                    map.removeLayer(marker);
+                    marker = null;
+                }
+
+                refreshSize();
+                setFeedback(message || 'Ponto removido.', 'neutral');
+            },
+        };
+    }
+
+    function setupMaps() {
+        if (typeof L === 'undefined') {
+            setMapFeedback('compdec-map-feedback', 'Não foi possível carregar a biblioteca do mapa.', 'error');
+            setMapFeedback('ubm-map-feedback', 'Não foi possível carregar a biblioteca do mapa.', 'error');
+            return;
+        }
+
+        if (L.Icon && L.Icon.Default) {
+            L.Icon.Default.mergeOptions({
+                iconRetinaUrl: appBaseUrl() + '/assets/vendor/leaflet/images/marker-icon-2x.png',
+                iconUrl: appBaseUrl() + '/assets/vendor/leaflet/images/marker-icon.png',
+                shadowUrl: appBaseUrl() + '/assets/vendor/leaflet/images/marker-shadow.png',
+            });
+        }
+
+        compdecMapApi = createPointMap({
+            mapId: 'compdec-map',
+            latitudeId: 'compdec_latitude',
+            longitudeId: 'compdec_longitude',
+            feedbackId: 'compdec-map-feedback',
+            icon: createCompdecIcon(),
+            readyMessage: 'Ponto da COMPDEC carregado. Arraste o marcador para ajustar.',
+            emptyMessage: 'Clique no mapa para definir o ponto da COMPDEC.',
+        });
+        ubmMapApi = createPointMap({
+            mapId: 'ubm-map',
+            latitudeId: 'ubm_latitude',
+            longitudeId: 'ubm_longitude',
+            feedbackId: 'ubm-map-feedback',
+            icon: createUbmIcon(),
+            readyMessage: 'Ponto da UBM carregado. Arraste o ícone da unidade para ajustar.',
+            emptyMessage: 'Informe a coordenada da UBM ou clique no mapa para definir o ponto.',
+        });
+
+        [
+            ['compdec-open-map', compdecMapApi, 'center'],
+            ['compdec-clear', compdecMapApi, 'clear'],
+            ['ubm-open-map', ubmMapApi, 'center'],
+            ['ubm-clear', ubmMapApi, 'clear'],
+        ].forEach(function (item) {
+            var button = document.getElementById(item[0]);
+
+            if (!(button instanceof HTMLButtonElement) || !item[1]) {
+                return;
+            }
+
+            button.addEventListener('click', function () {
+                if (item[2] === 'clear') {
+                    item[1].clear('Coordenadas removidas do formulário.');
+                    return;
+                }
+
+                item[1].centerOnCurrentFields();
+            });
+        });
+
+        var ubmUseCompdecButton = document.getElementById('ubm-use-compdec');
+
+        if (ubmUseCompdecButton instanceof HTMLButtonElement && ubmMapApi && compdecLatitudeInput && compdecLongitudeInput) {
+            ubmUseCompdecButton.addEventListener('click', function () {
+                ubmMapApi.setPoint(
+                    toNumber(compdecLatitudeInput.value),
+                    toNumber(compdecLongitudeInput.value),
+                    'Ponto da UBM preenchido com a coordenada da COMPDEC. Ajuste se necessário.'
+                );
+            });
+        }
+
+        [
+            ['compdec-use-current', compdecMapApi],
+            ['ubm-use-current', ubmMapApi],
+        ].forEach(function (item) {
+            var button = document.getElementById(item[0]);
+            var mapApi = item[1];
+
+            if (!(button instanceof HTMLButtonElement) || !mapApi) {
+                return;
+            }
+
+            button.addEventListener('click', function () {
+                if (!('geolocation' in navigator)) {
+                    return;
+                }
+
+                button.disabled = true;
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    mapApi.setPoint(position.coords.latitude, position.coords.longitude, 'Localização atual carregada. Ajuste o marcador se necessário.');
+                    button.disabled = false;
+                }, function () {
+                    button.disabled = false;
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0,
+                });
+            });
+        });
+
+        window.addEventListener('resize', function () {
+            if (compdecMapApi) {
+                compdecMapApi.refreshSize();
+            }
+
+            if (ubmMapApi) {
+                ubmMapApi.refreshSize();
+            }
+        });
+    }
+
+    function setupUbmSmartSelection() {
+        if (!(ubmNameInput instanceof HTMLInputElement) || !(ubmIdInput instanceof HTMLInputElement) || !(ubmSmartPanel instanceof HTMLElement)) {
+            return;
+        }
+
+        var currentUbmId = Number(ubmIdInput.value || 0);
+        var rawUbmOptions = Array.isArray(data.ubms) ? data.ubms.filter(function (item) {
+            return item && item.id && item.nome;
+        }).map(function (item) {
+            return {
+                id: Number(item.id),
+                nome: String(item.nome || ''),
+                municipio: String(item.municipio || ''),
+                regiao: String(item.regiao_integracao || ''),
+                latitude: item.latitude,
+                longitude: item.longitude,
+                ativo: Boolean(item.ativo),
+                searchable: normalizeText([item.nome, item.municipio, item.regiao_integracao].join(' ')),
+            };
+        }) : [];
+        var ubmOptionsByName = {};
+
+        rawUbmOptions.forEach(function (option) {
+            var key = normalizeText(option.nome);
+            var current = ubmOptionsByName[key];
+            var optionHasGeo = isCoordinatePair(toNumber(option.latitude), toNumber(option.longitude));
+            var currentHasGeo = current ? isCoordinatePair(toNumber(current.latitude), toNumber(current.longitude)) : false;
+
+            if (
+                !current
+                || option.id === currentUbmId
+                || (current.id !== currentUbmId && optionHasGeo && !currentHasGeo)
+                || (current.id !== currentUbmId && optionHasGeo === currentHasGeo && option.ativo && !current.ativo)
+            ) {
+                ubmOptionsByName[key] = option;
+            }
+        });
+
+        var ubmOptions = Object.keys(ubmOptionsByName)
+            .map(function (key) {
+                return ubmOptionsByName[key];
+            })
+            .sort(function (a, b) {
+                return a.nome.localeCompare(b.nome, 'pt-BR');
+            });
+
+        function setPanel(state, title, message, matches) {
+            matches = matches || [];
+            ubmSmartPanel.dataset.state = state || 'neutral';
+            ubmSmartPanel.innerHTML = '';
+
+            var strong = document.createElement('strong');
+            strong.textContent = title;
+            var span = document.createElement('span');
+            span.textContent = message;
+            ubmSmartPanel.append(strong, span);
+
+            if (matches.length === 0) {
+                return;
+            }
+
+            var list = document.createElement('div');
+            list.className = 'compdec-ubm-smart-list';
+
+            matches.slice(0, 6).forEach(function (option) {
+                var button = document.createElement('button');
+                var name = document.createElement('strong');
+                var meta = document.createElement('span');
+                var hasGeo = isCoordinatePair(toNumber(option.latitude), toNumber(option.longitude));
+
+                button.type = 'button';
+                button.className = 'compdec-ubm-smart-option';
+                button.dataset.ubmId = String(option.id);
+                name.textContent = option.nome;
+                meta.textContent = [
+                    option.municipio || 'Município não informado',
+                    option.regiao || 'Região não informada',
+                    hasGeo ? 'Com geolocalização' : 'Sem geolocalização',
+                ].join(' | ');
+                button.append(name, meta);
+                list.appendChild(button);
+            });
+
+            ubmSmartPanel.appendChild(list);
+        }
+
+        function selectOption(option, message) {
+            if (!option) {
+                return;
+            }
+
+            ubmIdInput.value = String(option.id);
+            ubmNameInput.value = option.nome;
+
+            var latitude = toNumber(option.latitude);
+            var longitude = toNumber(option.longitude);
+
+            if (isCoordinatePair(latitude, longitude)) {
+                if (ubmMapApi) {
+                    ubmMapApi.setPoint(latitude, longitude, message || 'UBM selecionada. Latitude e longitude preenchidas automaticamente.');
+                } else if (ubmLatitudeInput && ubmLongitudeInput) {
+                    ubmLatitudeInput.value = formatCoordinate(latitude);
+                    ubmLongitudeInput.value = formatCoordinate(longitude);
+                }
+            } else if (ubmLatitudeInput && ubmLongitudeInput) {
+                ubmLatitudeInput.value = '';
+                ubmLongitudeInput.value = '';
+                if (ubmMapApi) {
+                    ubmMapApi.clear('UBM selecionada, mas ainda sem coordenadas cadastradas.');
+                }
+            }
+
+            setPanel('success', 'UBM selecionada da base local', [option.nome, option.municipio, option.regiao].filter(Boolean).join(' | ') || option.nome);
+        }
+
+        function refreshSuggestions() {
+            var query = normalizeText(ubmNameInput.value);
+
+            if (query === '') {
+                ubmIdInput.value = '';
+                setPanel('neutral', 'Seleção inteligente da UBM', 'Digite o nome da unidade e selecione uma opção cadastrada para preencher latitude e longitude automaticamente.');
+                return;
+            }
+
+            var exactMatches = ubmOptions.filter(function (option) {
+                return normalizeText(option.nome) === query;
+            });
+
+            if (exactMatches.length === 1) {
+                selectOption(exactMatches[0], 'UBM localizada na base local. Latitude e longitude preenchidas automaticamente.');
+                return;
+            }
+
+            ubmIdInput.value = '';
+            var matches = ubmOptions.filter(function (option) {
+                return option.searchable.indexOf(query) !== -1;
+            }).slice(0, 6);
+
+            if (matches.length > 0) {
+                setPanel('neutral', matches.length + ' UBM(s) encontrada(s)', 'Selecione a unidade correta abaixo para evitar grafia divergente.', matches);
+                return;
+            }
+
+            setPanel('warning', 'UBM ainda não localizada', 'Confira a grafia antes de salvar. Se for uma unidade nova, o sistema criará o cadastro local.');
+        }
+
+        var initialOption = ubmOptions.find(function (option) {
+            return option.id === currentUbmId;
+        });
+
+        if (initialOption) {
+            setPanel('success', 'UBM vinculada da base local', [initialOption.nome, initialOption.municipio].filter(Boolean).join(' | '));
+        }
+
+        ubmNameInput.addEventListener('input', function () {
+            ubmIdInput.value = '';
+            refreshSuggestions();
+        });
+        ubmNameInput.addEventListener('change', refreshSuggestions);
+        ubmNameInput.addEventListener('blur', function () {
+            window.setTimeout(refreshSuggestions, 120);
+        });
+        ubmSmartPanel.addEventListener('click', function (event) {
+            var target = event.target instanceof Element ? event.target.closest('.compdec-ubm-smart-option') : null;
+
+            if (!target) {
+                return;
+            }
+
+            var selectedId = Number(target.dataset.ubmId || 0);
+            selectOption(ubmOptions.find(function (option) {
+                return option.id === selectedId;
+            }));
+        });
+    }
+
+    function setupPhotoUploader() {
+        var input = document.querySelector('[data-compdec-photo-input]');
+        var dropzone = document.querySelector('[data-compdec-photo-dropzone]');
+        var preview = document.querySelector('[data-compdec-photo-preview]');
+        var feedback = document.querySelector('[data-compdec-photo-feedback]');
+        var clearButton = document.querySelector('[data-compdec-photo-clear]');
+
+        if (!(input instanceof HTMLInputElement) || !(dropzone instanceof HTMLElement) || !(preview instanceof HTMLElement)) {
+            return;
+        }
+
+        var originalHtml = preview.innerHTML;
+        var originalEmpty = preview.dataset.empty || '1';
+        var allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+        function setFeedback(message, state) {
+            if (feedback instanceof HTMLElement) {
+                feedback.textContent = message;
+                feedback.dataset.state = state || 'neutral';
+            }
+        }
+
+        function restorePreview() {
+            preview.innerHTML = originalHtml;
+            preview.dataset.empty = originalEmpty;
+        }
+
+        function setInputFile(file) {
+            if (typeof DataTransfer === 'undefined') {
+                setFeedback('Este navegador não permite anexar por arrastar ou colar. Use o seletor de arquivo.', 'error');
+                return false;
+            }
+
+            var transfer = new DataTransfer();
+            transfer.items.add(file);
+            input.files = transfer.files;
+            return true;
+        }
+
+        function handleFile(file) {
+            if (!file) {
+                restorePreview();
+                setFeedback('Formatos aceitos: JPG, PNG ou WEBP. Limite de 5 MB.', 'neutral');
+                if (clearButton instanceof HTMLButtonElement) {
+                    clearButton.hidden = true;
+                }
+                return;
+            }
+
+            if (allowedTypes.indexOf(file.type) === -1) {
+                input.value = '';
+                restorePreview();
+                setFeedback('Formato inválido. Selecione uma imagem JPG, PNG ou WEBP.', 'error');
+                return;
+            }
+
+            if (file.size <= 0 || file.size > 5242880) {
+                input.value = '';
+                restorePreview();
+                setFeedback('A imagem excede o limite permitido de 5 MB.', 'error');
+                return;
+            }
+
+            var objectUrl = URL.createObjectURL(file);
+            var image = document.createElement('img');
+            image.src = objectUrl;
+            image.alt = 'Prévia da nova foto do coordenador';
+            image.onload = function () {
+                URL.revokeObjectURL(objectUrl);
+            };
+            preview.innerHTML = '';
+            preview.appendChild(image);
+            preview.dataset.empty = '0';
+            setFeedback('Nova foto selecionada: ' + file.name, 'success');
+
+            if (clearButton instanceof HTMLButtonElement) {
+                clearButton.hidden = false;
+            }
+        }
+
+        input.addEventListener('change', function () {
+            handleFile(input.files && input.files[0] ? input.files[0] : null);
+        });
+
+        dropzone.addEventListener('click', function (event) {
+            if (event.target === input || event.target === clearButton) {
+                return;
+            }
+
+            input.click();
+        });
+
+        ['dragenter', 'dragover'].forEach(function (eventName) {
+            dropzone.addEventListener(eventName, function (event) {
+                event.preventDefault();
+                dropzone.classList.add('is-dragover');
+                setFeedback('Solte a imagem para anexar a foto do coordenador.', 'neutral');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function (eventName) {
+            dropzone.addEventListener(eventName, function () {
+                dropzone.classList.remove('is-dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
+                ? event.dataTransfer.files[0]
+                : null;
+
+            if (file && setInputFile(file)) {
+                handleFile(file);
+            }
+        });
+
+        dropzone.addEventListener('paste', function (event) {
+            var items = event.clipboardData && event.clipboardData.items ? Array.from(event.clipboardData.items) : [];
+            var imageItem = items.find(function (item) {
+                return item.kind === 'file' && String(item.type || '').indexOf('image/') === 0;
+            });
+            var file = imageItem ? imageItem.getAsFile() : null;
+
+            if (file && setInputFile(file)) {
+                event.preventDefault();
+                handleFile(file);
+            }
+        });
+
+        if (clearButton instanceof HTMLButtonElement) {
+            clearButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                input.value = '';
+                restorePreview();
+                setFeedback('Nova foto descartada. A foto atual será mantida ao salvar.', 'neutral');
+                clearButton.hidden = true;
+            });
+        }
+    }
+
+    setupMaps();
+    setupUbmSmartSelection();
+    setupPhotoUploader();
+});

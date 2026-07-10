@@ -92,6 +92,139 @@ class CompdecRepository
         return array_column($stmt->fetchAll(), 'ubm_nome');
     }
 
+    public function ubmOptions(int $limit = 1000): array
+    {
+        $latitudeSql = $this->ubmLatitudeSql();
+        $longitudeSql = $this->ubmLongitudeSql();
+        $stmt = Database::connection()->prepare(
+            "SELECT
+                u.id,
+                u.nome,
+                m.codigo_ibge AS municipio_codigo,
+                COALESCE(c.municipio, m.nome) AS municipio,
+                c.regiao_integracao,
+                {$latitudeSql} AS latitude,
+                {$longitudeSql} AS longitude,
+                u.ativo
+             FROM ubms u
+             LEFT JOIN municipios m ON m.id = u.municipio_id
+             LEFT JOIN compdecs c ON CAST(c.municipio_codigo AS UNSIGNED) = m.codigo_ibge
+             ORDER BY u.nome ASC, municipio ASC
+             LIMIT :limit"
+        );
+        $stmt->bindValue(':limit', min(max($limit, 1), 2000), \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function findUbmById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $latitudeSql = $this->ubmLatitudeSql();
+        $longitudeSql = $this->ubmLongitudeSql();
+        $stmt = Database::connection()->prepare(
+            "SELECT
+                u.*,
+                m.codigo_ibge AS municipio_codigo,
+                m.nome AS municipio,
+                c.regiao_integracao,
+                {$latitudeSql} AS latitude,
+                {$longitudeSql} AS longitude
+             FROM ubms u
+             LEFT JOIN municipios m ON m.id = u.municipio_id
+             LEFT JOIN compdecs c ON CAST(c.municipio_codigo AS UNSIGNED) = m.codigo_ibge
+             WHERE u.id = :id
+             LIMIT 1"
+        );
+        $stmt->execute(['id' => $id]);
+        $ubm = $stmt->fetch();
+
+        return $ubm ?: null;
+    }
+
+    public function findUniqueUbmByName(string $name): ?array
+    {
+        $name = trim($name);
+
+        if ($name === '') {
+            return null;
+        }
+
+        $latitudeSql = $this->ubmLatitudeSql();
+        $longitudeSql = $this->ubmLongitudeSql();
+        $stmt = Database::connection()->prepare(
+            "SELECT
+                u.*,
+                m.codigo_ibge AS municipio_codigo,
+                m.nome AS municipio,
+                c.regiao_integracao,
+                {$latitudeSql} AS latitude,
+                {$longitudeSql} AS longitude
+             FROM ubms u
+             LEFT JOIN municipios m ON m.id = u.municipio_id
+             LEFT JOIN compdecs c ON CAST(c.municipio_codigo AS UNSIGNED) = m.codigo_ibge
+             WHERE u.nome = :name
+             ORDER BY u.id ASC
+             LIMIT 2"
+        );
+        $stmt->execute(['name' => $name]);
+        $rows = $stmt->fetchAll();
+
+        return count($rows) === 1 ? $rows[0] : null;
+    }
+
+    public function countUbmsByName(string $name): int
+    {
+        $name = trim($name);
+
+        if ($name === '') {
+            return 0;
+        }
+
+        $stmt = Database::connection()->prepare('SELECT COUNT(*) FROM ubms WHERE nome = :name');
+        $stmt->execute(['name' => $name]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function findUbmByCompdec(array $compdec): ?array
+    {
+        $name = trim((string) ($compdec['ubm_nome'] ?? ''));
+
+        if ($name === '') {
+            return null;
+        }
+
+        $latitudeSql = $this->ubmLatitudeSql();
+        $longitudeSql = $this->ubmLongitudeSql();
+        $stmt = Database::connection()->prepare(
+            "SELECT
+                u.*,
+                m.codigo_ibge AS municipio_codigo,
+                m.nome AS municipio,
+                c.regiao_integracao,
+                {$latitudeSql} AS latitude,
+                {$longitudeSql} AS longitude
+             FROM ubms u
+             LEFT JOIN municipios m ON m.id = u.municipio_id
+             LEFT JOIN compdecs c ON CAST(c.municipio_codigo AS UNSIGNED) = m.codigo_ibge
+             WHERE u.nome = :name
+             ORDER BY
+                CASE WHEN {$latitudeSql} IS NOT NULL AND {$longitudeSql} IS NOT NULL THEN 0 ELSE 1 END,
+                CASE WHEN u.ativo = 1 THEN 0 ELSE 1 END,
+                u.id ASC
+             LIMIT 1"
+        );
+        $stmt->execute(['name' => $name]);
+        $ubm = $stmt->fetch();
+
+        return $ubm ?: null;
+    }
+
     public function findById(int $id): ?array
     {
         $stmt = Database::connection()->prepare(
@@ -135,13 +268,43 @@ class CompdecRepository
         $stmt->execute($data);
     }
 
-    public function syncUbm(array $compdec): ?int
+    public function syncUbm(array $compdec, ?float $latitude = null, ?float $longitude = null, bool $ativo = true, ?int $preferredId = null): ?int
     {
         $municipioId = (int) ($compdec['municipio_id'] ?? 0);
         $ubmNome = trim((string) ($compdec['ubm_nome'] ?? ''));
+        $hasGeoColumns = $this->ubmGeoColumnsAvailable();
 
         if ($municipioId <= 0 || $ubmNome === '') {
             return null;
+        }
+
+        if ($preferredId !== null && $preferredId > 0) {
+            $sql = $hasGeoColumns
+                ? 'UPDATE ubms
+                   SET descricao = :descricao,
+                       latitude = :latitude,
+                       longitude = :longitude,
+                       ativo = :ativo
+                   WHERE id = :id'
+                : 'UPDATE ubms
+                   SET descricao = :descricao,
+                       ativo = :ativo
+                   WHERE id = :id';
+            $params = [
+                'id' => $preferredId,
+                'descricao' => 'Fonte: COMPDEC DGD',
+                'ativo' => $ativo ? 1 : 0,
+            ];
+
+            if ($hasGeoColumns) {
+                $params['latitude'] = $latitude;
+                $params['longitude'] = $longitude;
+            }
+
+            $update = Database::connection()->prepare($sql);
+            $update->execute($params);
+
+            return $preferredId;
         }
 
         $stmt = Database::connection()->prepare(
@@ -159,31 +322,88 @@ class CompdecRepository
         $ubmId = $stmt->fetchColumn();
 
         if ($ubmId) {
-            $update = Database::connection()->prepare(
-                'UPDATE ubms
-                 SET nome = :nome, descricao = :descricao, ativo = 1
-                 WHERE id = :id'
-            );
-            $update->execute([
+            $sql = $hasGeoColumns
+                ? 'UPDATE ubms
+                   SET nome = :nome,
+                       descricao = :descricao,
+                       latitude = :latitude,
+                       longitude = :longitude,
+                       ativo = :ativo
+                   WHERE id = :id'
+                : 'UPDATE ubms
+                   SET nome = :nome,
+                       descricao = :descricao,
+                       ativo = :ativo
+                   WHERE id = :id';
+            $params = [
                 'id' => (int) $ubmId,
                 'nome' => $ubmNome,
                 'descricao' => 'Fonte: COMPDEC DGD',
-            ]);
+                'ativo' => $ativo ? 1 : 0,
+            ];
+
+            if ($hasGeoColumns) {
+                $params['latitude'] = $latitude;
+                $params['longitude'] = $longitude;
+            }
+
+            $update = Database::connection()->prepare($sql);
+            $update->execute($params);
 
             return (int) $ubmId;
         }
 
-        $insert = Database::connection()->prepare(
-            'INSERT INTO ubms (municipio_id, codigo, nome, descricao, ativo)
-             VALUES (:municipio_id, NULL, :nome, :descricao, 1)'
-        );
-        $insert->execute([
+        $sql = $hasGeoColumns
+            ? 'INSERT INTO ubms (municipio_id, codigo, nome, descricao, latitude, longitude, ativo)
+               VALUES (:municipio_id, NULL, :nome, :descricao, :latitude, :longitude, :ativo)'
+            : 'INSERT INTO ubms (municipio_id, codigo, nome, descricao, ativo)
+               VALUES (:municipio_id, NULL, :nome, :descricao, :ativo)';
+        $params = [
             'municipio_id' => $municipioId,
             'nome' => $ubmNome,
             'descricao' => 'Fonte: COMPDEC DGD',
-        ]);
+            'ativo' => $ativo ? 1 : 0,
+        ];
+
+        if ($hasGeoColumns) {
+            $params['latitude'] = $latitude;
+            $params['longitude'] = $longitude;
+        }
+
+        $insert = Database::connection()->prepare($sql);
+        $insert->execute($params);
 
         return (int) Database::connection()->lastInsertId();
+    }
+
+    private function ubmLatitudeSql(): string
+    {
+        return $this->ubmGeoColumnsAvailable() ? 'COALESCE(u.latitude, c.latitude)' : 'c.latitude';
+    }
+
+    private function ubmLongitudeSql(): string
+    {
+        return $this->ubmGeoColumnsAvailable() ? 'COALESCE(u.longitude, c.longitude)' : 'c.longitude';
+    }
+
+    private function ubmGeoColumnsAvailable(): bool
+    {
+        static $available = null;
+
+        if ($available !== null) {
+            return $available;
+        }
+
+        $stmt = Database::connection()->query(
+            'SELECT COUNT(*)
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = \'ubms\'
+               AND COLUMN_NAME IN (\'latitude\', \'longitude\')'
+        );
+        $available = (int) $stmt->fetchColumn() === 2;
+
+        return $available;
     }
 
     private function buildWhere(array $filters): array

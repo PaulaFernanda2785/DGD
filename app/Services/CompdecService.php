@@ -50,6 +50,27 @@ class CompdecService
         return $compdec;
     }
 
+    public function dadosEdicao(int $id): array
+    {
+        $compdec = $this->buscar($id);
+
+        return [
+            'compdec' => $compdec,
+            'ubm' => $this->compdecs->findUbmByCompdec($compdec),
+            'ubmOptions' => $this->compdecs->ubmOptions(),
+        ];
+    }
+
+    public function dadosDetalhe(int $id): array
+    {
+        $compdec = $this->buscar($id);
+
+        return [
+            'compdec' => $compdec,
+            'ubm' => $this->compdecs->findUbmByCompdec($compdec),
+        ];
+    }
+
     public function buscarPorMunicipio(int $municipioId): ?array
     {
         $compdec = $this->compdecs->findByMunicipioId($municipioId);
@@ -80,11 +101,45 @@ class CompdecService
     {
         $registro = $this->buscar($id);
         $payload = $this->normalizar($data);
+        $ubmPayload = $this->normalizarUbm($data, $payload);
         $errors = $this->validar($payload);
+        $errors = array_merge_recursive($errors, $this->validarFormatoCoordenadas($data));
+        $errors = array_merge_recursive($errors, $this->validarUbm($ubmPayload));
         $foto = $this->processarFoto($files['foto_coordenador'] ?? null, $registro);
 
         if (!$foto['success']) {
             $errors['foto_coordenador'][] = $foto['message'];
+        }
+
+        if ($ubmPayload['id'] > 0) {
+            $ubmSelecionada = $this->compdecs->findUbmById($ubmPayload['id']);
+
+            if (!$ubmSelecionada) {
+                $errors['ubm_nome'][] = 'A UBM selecionada nÃ£o foi encontrada. Atualize a tela e selecione novamente.';
+            } else {
+                $payload['ubm_nome'] = trim((string) $ubmSelecionada['nome']);
+                $ubmPayload['nome'] = $payload['ubm_nome'];
+
+                if ($ubmPayload['latitude'] === null && $ubmPayload['longitude'] === null) {
+                    $ubmPayload['latitude'] = $this->floatOrNull($ubmSelecionada['latitude'] ?? null);
+                    $ubmPayload['longitude'] = $this->floatOrNull($ubmSelecionada['longitude'] ?? null);
+                }
+            }
+        } elseif (($payload['ubm_nome'] ?? null) !== null) {
+            $ubmSelecionada = $this->compdecs->findUniqueUbmByName((string) $payload['ubm_nome']);
+
+            if ($ubmSelecionada) {
+                $ubmPayload['id'] = (int) $ubmSelecionada['id'];
+                $payload['ubm_nome'] = trim((string) $ubmSelecionada['nome']);
+                $ubmPayload['nome'] = $payload['ubm_nome'];
+
+                if ($ubmPayload['latitude'] === null && $ubmPayload['longitude'] === null) {
+                    $ubmPayload['latitude'] = $this->floatOrNull($ubmSelecionada['latitude'] ?? null);
+                    $ubmPayload['longitude'] = $this->floatOrNull($ubmSelecionada['longitude'] ?? null);
+                }
+            } elseif ($this->compdecs->countUbmsByName((string) $payload['ubm_nome']) > 1) {
+                $errors['ubm_nome'][] = 'Existe mais de uma UBM com esse nome. Selecione a unidade correta na lista inteligente.';
+            }
         }
 
         if ($errors !== []) {
@@ -99,7 +154,13 @@ class CompdecService
             Database::beginTransaction();
             $this->compdecs->update($id, $payload);
             $atualizado = $this->buscar($id);
-            $this->compdecs->syncUbm($atualizado);
+            $this->compdecs->syncUbm(
+                $atualizado,
+                $ubmPayload['latitude'],
+                $ubmPayload['longitude'],
+                $ubmPayload['ativo'],
+                $ubmPayload['id'] > 0 ? $ubmPayload['id'] : null
+            );
             $this->auditoria->registrar('compdecs', 'editar', [
                 'entidade' => 'compdecs',
                 'entidade_id' => $id,
@@ -130,6 +191,67 @@ class CompdecService
             }
         }
 
+        return array_merge_recursive(
+            $errors,
+            $this->validarParCoordenadas($data['latitude'] ?? null, $data['longitude'] ?? null, 'latitude', 'longitude', 'COMPDEC')
+        );
+    }
+
+    private function validarUbm(array $data): array
+    {
+        $errors = $this->validarParCoordenadas($data['latitude'], $data['longitude'], 'ubm_latitude', 'ubm_longitude', 'UBM');
+
+        if (($data['latitude'] !== null || $data['longitude'] !== null) && trim((string) ($data['nome'] ?? '')) === '') {
+            $errors['ubm_nome'][] = 'Informe a UBM antes de salvar a geolocalizaÃ§Ã£o.';
+        }
+
+        return $errors;
+    }
+
+    private function validarFormatoCoordenadas(array $data): array
+    {
+        $errors = [];
+        $fields = [
+            'latitude' => 'Latitude da COMPDEC',
+            'longitude' => 'Longitude da COMPDEC',
+            'ubm_latitude' => 'Latitude da UBM',
+            'ubm_longitude' => 'Longitude da UBM',
+        ];
+
+        foreach ($fields as $field => $label) {
+            $raw = trim(str_replace(',', '.', (string) ($data[$field] ?? '')));
+
+            if ($raw !== '' && filter_var($raw, FILTER_VALIDATE_FLOAT) === false) {
+                $errors[$field][] = $label . ': informe uma coordenada numÃ©rica vÃ¡lida.';
+            }
+        }
+
+        return $errors;
+    }
+
+    private function validarParCoordenadas(?float $latitude, ?float $longitude, string $latitudeField, string $longitudeField, string $label): array
+    {
+        $errors = [];
+        $hasLatitude = $latitude !== null;
+        $hasLongitude = $longitude !== null;
+
+        if ($hasLatitude !== $hasLongitude) {
+            $errors[$hasLatitude ? $longitudeField : $latitudeField][] = $label . ': informe latitude e longitude juntas.';
+            return $errors;
+        }
+
+        if (!$hasLatitude) {
+            return $errors;
+        }
+
+        if ($latitude < -10.5 || $latitude > 3.5) {
+            $errors[$latitudeField][] = $label . ': latitude fora dos limites esperados para o ParÃ¡.';
+        }
+
+        if ($longitude < -59.5 || $longitude > -45.5) {
+            $errors[$longitudeField][] = $label . ': longitude fora dos limites esperados para o ParÃ¡.';
+        }
+
         return $errors;
     }
 
@@ -147,7 +269,42 @@ class CompdecService
             'email' => $strOrNull($data['email'] ?? null),
             'endereco' => $strOrNull($data['endereco'] ?? null),
             'data_atualizacao' => $strOrNull($data['data_atualizacao'] ?? null),
+            'latitude' => $this->coordinateOrNull($data['latitude'] ?? null),
+            'longitude' => $this->coordinateOrNull($data['longitude'] ?? null),
         ];
+    }
+
+    private function normalizarUbm(array $data, array $payload): array
+    {
+        return [
+            'id' => max((int) ($data['ubm_id'] ?? 0), 0),
+            'nome' => $payload['ubm_nome'] ?? null,
+            'latitude' => $this->coordinateOrNull($data['ubm_latitude'] ?? null),
+            'longitude' => $this->coordinateOrNull($data['ubm_longitude'] ?? null),
+            'ativo' => (string) ($data['ubm_ativo'] ?? '1') === '1',
+        ];
+    }
+
+    private function coordinateOrNull(mixed $value): ?float
+    {
+        $value = trim(str_replace(',', '.', (string) $value));
+
+        if ($value === '') {
+            return null;
+        }
+
+        $float = filter_var($value, FILTER_VALIDATE_FLOAT);
+
+        return $float === false ? null : (float) $float;
+    }
+
+    private function floatOrNull(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float) $value;
     }
 
     private function campoRegistrado(mixed $value): string
@@ -175,7 +332,7 @@ class CompdecService
 
         $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
 
-        if (!in_array($extension, ['jpg', 'jpeg', 'png'], true)) {
+        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
             return ['success' => false, 'message' => 'Envie uma imagem JPG ou PNG.', 'path' => null];
         }
 
@@ -187,7 +344,7 @@ class CompdecService
 
         $mime = mime_content_type($tmpName) ?: '';
 
-        if (!in_array($mime, ['image/jpeg', 'image/png'], true)) {
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
             return ['success' => false, 'message' => 'O arquivo enviado não é uma imagem válida.', 'path' => null];
         }
 

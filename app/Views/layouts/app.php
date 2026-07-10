@@ -6,6 +6,8 @@ $usuario = Auth::user();
 $appJsVersion = is_file(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
     ? (string) filemtime(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
     : '1';
+$stylesheets = $stylesheets ?? [];
+$scripts = $scripts ?? [];
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
@@ -26,7 +28,13 @@ $isActive = static function (string $path) use ($currentPath): string {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? 'DGD'); ?> - DGD</title>
     <link rel="icon" href="<?= e($assetBaseUrl . '/assets/img/app-icon-192.png'); ?>">
+    <?php foreach ($stylesheets as $stylesheet): ?>
+        <link rel="stylesheet" href="<?= e(url((string) $stylesheet)); ?>">
+    <?php endforeach; ?>
     <link rel="stylesheet" href="<?= e($assetBaseUrl . '/assets/css/app.css'); ?>">
+    <?php foreach ($scripts as $script): ?>
+        <script src="<?= e(url((string) $script)); ?>" defer></script>
+    <?php endforeach; ?>
     <script src="<?= e($assetBaseUrl . '/assets/js/app.js?v=' . $appJsVersion); ?>" defer></script>
 </head>
 <body>
