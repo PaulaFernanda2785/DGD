@@ -153,6 +153,40 @@ class UsuarioService
         return ['success' => true];
     }
 
+    public function alterarStatus(int $id, int $ativo): array
+    {
+        $usuario = $this->buscar($id);
+        $ativo = $ativo === 1 ? 1 : 0;
+
+        if ((int) $usuario['id'] === (int) (Auth::id() ?? 0) && $ativo === 0) {
+            return ['success' => false, 'message' => 'Nao e permitido inativar o proprio usuario logado.'];
+        }
+
+        if ($ativo === 0 && $this->removeriaUltimoAdmin($usuario, ['perfil_id' => (int) $usuario['perfil_id'], 'ativo' => 0])) {
+            return ['success' => false, 'message' => 'Nao e permitido inativar o ultimo Admin ativo.'];
+        }
+
+        if ((int) $usuario['ativo'] === $ativo) {
+            return [
+                'success' => true,
+                'message' => $ativo === 1 ? 'Usuario ja estava ativo.' : 'Usuario ja estava inativo.',
+            ];
+        }
+
+        $this->usuarios->updateStatus($id, $ativo, Auth::id() ?? 0);
+        $this->auditoria->registrar('usuarios', $ativo === 1 ? 'ativar' : 'inativar', [
+            'entidade' => 'usuarios',
+            'entidade_id' => $id,
+            'valor_anterior' => ['ativo' => (int) $usuario['ativo']],
+            'valor_novo' => ['ativo' => $ativo],
+        ]);
+
+        return [
+            'success' => true,
+            'message' => $ativo === 1 ? 'Usuario ativado com sucesso.' : 'Usuario inativado com sucesso.',
+        ];
+    }
+
     public function alterarSenhaPropria(int $id, array $data): array
     {
         $usuario = $this->buscar($id);

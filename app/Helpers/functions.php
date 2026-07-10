@@ -148,6 +148,8 @@ function status_badge(?string $text): string
         'PENDENTE' => 'Pendente',
         'APROVADO' => 'Aprovado',
         'REPROVADO' => 'Reprovado',
+        'ATIVO' => 'Ativo',
+        'INATIVO' => 'Inativo',
         default => $text,
     };
     $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $displayText);
@@ -155,7 +157,7 @@ function status_badge(?string $text): string
 
     $class = 'badge-muted';
 
-    if (str_contains($normalized, 'homologado') || str_contains($normalized, 'reconhecido') || str_contains($normalized, 'concluido') || str_contains($normalized, 'aprovado')) {
+    if (str_contains($normalized, 'homologado') || str_contains($normalized, 'reconhecido') || str_contains($normalized, 'concluido') || str_contains($normalized, 'aprovado') || $normalized === 'ativo') {
         $class = 'badge-success';
     }
 
@@ -163,7 +165,7 @@ function status_badge(?string $text): string
         $class = 'badge-warning';
     }
 
-    if (str_contains($normalized, 'nao homologado') || str_contains($normalized, 'nao reconhecido') || str_contains($normalized, 'indeferido') || str_contains($normalized, 'reprovado')) {
+    if (str_contains($normalized, 'nao homologado') || str_contains($normalized, 'nao reconhecido') || str_contains($normalized, 'indeferido') || str_contains($normalized, 'reprovado') || $normalized === 'inativo') {
         $class = 'badge-danger';
     }
 

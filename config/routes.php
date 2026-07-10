@@ -60,6 +60,7 @@ return [
     ['GET', '/usuarios/{id}', [UsuarioController::class, 'show'], [AuthMiddleware::class, [PermissionMiddleware::class, 'usuarios.visualizar']]],
     ['GET', '/usuarios/{id}/editar', [UsuarioController::class, 'edit'], [AuthMiddleware::class, [PermissionMiddleware::class, 'usuarios.editar']]],
     ['POST', '/usuarios/{id}/editar', [UsuarioController::class, 'update'], [AuthMiddleware::class, [PermissionMiddleware::class, 'usuarios.editar'], CsrfMiddleware::class]],
+    ['POST', '/usuarios/{id}/status', [UsuarioController::class, 'status'], [AuthMiddleware::class, [PermissionMiddleware::class, 'usuarios.editar'], CsrfMiddleware::class]],
     ['POST', '/usuarios/{id}/excluir', [UsuarioController::class, 'destroy'], [AuthMiddleware::class, [PermissionMiddleware::class, 'usuarios.excluir'], CsrfMiddleware::class]],
 
     ['GET', '/alterar-senha', [SenhaController::class, 'edit'], [AuthMiddleware::class, [PermissionMiddleware::class, 'senha.alterar_propria']]],

@@ -23,7 +23,7 @@ class UsuarioController extends Controller
         $data = $this->usuarioService->listar($this->request->query());
 
         $this->view('usuarios/index', $data + [
-            'title' => 'Usuarios',
+            'title' => 'Usuários',
             'filtros' => $this->request->query(),
         ]);
     }
@@ -31,7 +31,7 @@ class UsuarioController extends Controller
     public function create(): void
     {
         $this->view('usuarios/create', $this->usuarioService->dadosFormulario() + [
-            'title' => 'Novo usuario',
+            'title' => 'Novo usuário',
             'errors' => Session::consumeFlash('errors', []),
         ]);
     }
@@ -53,7 +53,7 @@ class UsuarioController extends Controller
     public function show(string $id): void
     {
         $this->view('usuarios/show', [
-            'title' => 'Detalhe do usuario',
+            'title' => 'Detalhe do usuário',
             'usuario' => $this->usuarioService->buscar((int) $id),
         ]);
     }
@@ -61,7 +61,7 @@ class UsuarioController extends Controller
     public function edit(string $id): void
     {
         $this->view('usuarios/edit', $this->usuarioService->dadosFormulario() + [
-            'title' => 'Editar usuario',
+            'title' => 'Editar usuário',
             'usuario' => $this->usuarioService->buscar((int) $id),
             'errors' => Session::consumeFlash('errors', []),
         ]);
@@ -79,6 +79,19 @@ class UsuarioController extends Controller
 
         Session::flash('success', 'Usuario atualizado com sucesso.');
         $this->redirect('/usuarios/' . $id);
+    }
+
+    public function status(string $id): void
+    {
+        $result = $this->usuarioService->alterarStatus((int) $id, (int) ($this->request->post()['ativo'] ?? 0));
+
+        if (!$result['success']) {
+            Session::flash('error', $result['message']);
+            $this->redirect('/usuarios');
+        }
+
+        Session::flash('success', $result['message']);
+        $this->redirect('/usuarios');
     }
 
     public function destroy(string $id): void

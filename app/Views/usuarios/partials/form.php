@@ -2,12 +2,22 @@
 
 $isEdit = isset($usuario);
 $action = $isEdit ? url('/usuarios/' . $usuario['id'] . '/editar') : url('/usuarios');
-$submit = $isEdit ? 'Salvar alteracoes' : 'Criar usuario';
+$submit = $isEdit ? 'Salvar alterações' : 'Criar usuário';
 ?>
 
-<form method="post" action="<?= e($action); ?>" class="form-grid">
+<form method="post" action="<?= e($action); ?>" class="form-grid user-form">
     <?= csrf_input(); ?>
 
+    <section class="span-2 form-section user-form-section">
+        <div class="form-section-heading">
+            <div>
+                <span>01</span>
+                <h2>Identificação e perfil</h2>
+            </div>
+            <p>Dados principais usados para autenticação, autorização e contato institucional.</p>
+        </div>
+
+        <div class="user-form-grid">
     <div class="field span-2">
         <label for="nome">Nome completo</label>
         <input id="nome" name="nome" value="<?= e(old('nome', $usuario['nome'] ?? '')); ?>" required>
@@ -47,18 +57,31 @@ $submit = $isEdit ? 'Salvar alteracoes' : 'Criar usuario';
     </div>
 
     <div class="field">
-        <label for="instituicao">Instituicao</label>
+        <label for="instituicao">Instituição</label>
         <input id="instituicao" name="instituicao" value="<?= e(old('instituicao', $usuario['instituicao'] ?? 'CEDEC-PA')); ?>">
     </div>
 
     <div class="field">
-        <label for="ativo">Situacao</label>
+        <label for="ativo">Situação</label>
         <select id="ativo" name="ativo">
             <?php $ativo = (string) old('ativo', $usuario['ativo'] ?? '1'); ?>
             <option value="1" <?= $ativo === '1' ? 'selected' : ''; ?>>Ativo</option>
             <option value="0" <?= $ativo === '0' ? 'selected' : ''; ?>>Inativo</option>
         </select>
     </div>
+        </div>
+    </section>
+
+    <section class="span-2 form-section user-form-section">
+        <div class="form-section-heading">
+            <div>
+                <span>02</span>
+                <h2>Senha e primeiro acesso</h2>
+            </div>
+            <p>Defina a senha inicial ou redefina a senha somente quando necessário.</p>
+        </div>
+
+        <div class="user-form-grid">
 
     <div class="field">
         <label for="senha"><?= $isEdit ? 'Nova senha' : 'Senha inicial'; ?></label>
@@ -70,10 +93,16 @@ $submit = $isEdit ? 'Salvar alteracoes' : 'Criar usuario';
         <input id="senha_confirmacao" name="senha_confirmacao" type="password" <?= $isEdit ? '' : 'required'; ?> autocomplete="new-password">
     </div>
 
-    <label class="check-field span-2">
+    <label class="user-password-switch span-2">
         <input type="checkbox" name="trocar_senha_proximo_acesso" value="1" <?= old('trocar_senha_proximo_acesso', $usuario['trocar_senha_proximo_acesso'] ?? '0') ? 'checked' : ''; ?>>
-        Exigir troca de senha no proximo acesso
+        <span class="user-password-switch-toggle" aria-hidden="true"></span>
+        <span>
+            <strong>Exigir troca de senha no próximo acesso</strong>
+            <small>O usuário será direcionado para cadastrar uma nova senha após concluir o login.</small>
+        </span>
     </label>
+        </div>
+    </section>
 
     <div class="form-actions span-2">
         <button type="submit" class="button button-primary"><?= e($submit); ?></button>

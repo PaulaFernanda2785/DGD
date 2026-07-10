@@ -48,8 +48,11 @@ class UsuarioRepository
         $params = [];
 
         if (!empty($filters['busca'])) {
-            $sql .= ' AND (u.nome LIKE :busca OR u.email LIKE :busca OR u.cpf LIKE :busca)';
-            $params['busca'] = '%' . $filters['busca'] . '%';
+            $busca = '%' . trim((string) $filters['busca']) . '%';
+            $sql .= ' AND (u.nome LIKE :busca_nome OR u.email LIKE :busca_email OR u.cpf LIKE :busca_cpf)';
+            $params['busca_nome'] = $busca;
+            $params['busca_email'] = $busca;
+            $params['busca_cpf'] = $busca;
         }
 
         if (isset($filters['perfil_id']) && $filters['perfil_id'] !== '') {
@@ -148,6 +151,21 @@ class UsuarioRepository
             'senha_hash' => $senhaHash,
             'atualizado_por' => $id,
             'id' => $id,
+        ]);
+    }
+
+    public function updateStatus(int $id, int $ativo, int $updatedBy): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE usuarios
+             SET ativo = :ativo,
+                 atualizado_por = :atualizado_por
+             WHERE id = :id AND excluido_em IS NULL'
+        );
+        $stmt->execute([
+            'id' => $id,
+            'ativo' => $ativo,
+            'atualizado_por' => $updatedBy,
         ]);
     }
 
