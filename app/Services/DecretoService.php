@@ -44,8 +44,10 @@ class DecretoService
     public function listar(array $filters): array
     {
         $page = max((int) ($filters['page'] ?? 1), 1);
+        $resultado = $this->decretos->paginate($filters, $page, 20);
+        $resultado['registros'] = $this->pgePrazo->enriquecerRegistros($resultado['registros']);
 
-        return $this->decretos->paginate($filters, $page, 20) + [
+        return $resultado + [
             'dominios' => $this->formData(),
         ];
     }
@@ -76,6 +78,8 @@ class DecretoService
             throw new HttpException(404, 'Registro de desastre não encontrado.');
         }
 
+        $registro = $this->pgePrazo->enriquecerRegistro($registro);
+
         $protocoloCorrigido = $this->protocolo->corrigirMunicipioEmProtocolo(
             (string) $registro['protocolo_dgd'],
             (string) $registro['municipio']
@@ -102,7 +106,7 @@ class DecretoService
 
         $calculados = $this->decretos->detalhe($id) ?? [];
 
-        return $this->preencherHierarquiaCobrade($registro + $calculados);
+        return $this->preencherHierarquiaCobrade($this->pgePrazo->enriquecerRegistro($registro + $calculados));
     }
 
     public function cadastrar(array $data, array $files = []): array
@@ -152,7 +156,7 @@ class DecretoService
     {
         $registro = $this->buscarParaEdicao($id);
         $observacaoHistorico = $this->observacaoHistorico($data);
-        $errors = $this->validar($data);
+        $errors = $this->validar($data, $registro);
 
         if ($errors !== []) {
             return ['success' => false, 'errors' => $errors];
@@ -227,6 +231,16 @@ class DecretoService
                 }
 
                 $this->validarDataHomologacaoOuFalhar($dataHomologacao);
+                $dataEnvioEfetiva = $dataEnvioPge !== '' ? $dataEnvioPge : trim((string) ($registro['data_envio_pge'] ?? ''));
+
+                if ($dataEnvioEfetiva === '') {
+                    throw new \InvalidArgumentException('Registre primeiro a data de envio à PGE antes de concluir a homologação.');
+                }
+
+                if (strtotime($dataHomologacao) < strtotime($dataEnvioEfetiva)) {
+                    throw new \InvalidArgumentException('A data de homologação não pode ser anterior à data de envio à PGE.');
+                }
+
                 $payload['data_decreto_homologacao'] = $dataHomologacao;
             } elseif ($codigo !== 'ENVIADO_PGE') {
                 $payload['data_decreto_homologacao'] = null;
@@ -262,7 +276,7 @@ class DecretoService
         }
     }
 
-    private function validar(array $data): array
+    private function validar(array $data, ?array $registroAtual = null): array
     {
         $errors = [];
 
@@ -314,6 +328,22 @@ class DecretoService
             $errors['data_decreto_homologacao'][] = $statusHomologacaoCodigo === 'HOMOLOGADO'
                 ? 'Informe a data de homologação.'
                 : 'Informe a data da não homologação.';
+        }
+
+        $dataEnvioPgeEfetiva = $dataEnvioPge !== ''
+            ? $dataEnvioPge
+            : trim((string) ($registroAtual['data_envio_pge'] ?? ''));
+
+        if (in_array($statusHomologacaoCodigo, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true) && $dataEnvioPgeEfetiva === '') {
+            $errors['data_envio_pge'][] = 'Registre primeiro a data de envio à PGE antes de concluir a homologação.';
+        }
+
+        if (
+            $dataEnvioPgeEfetiva !== ''
+            && $dataHomologacao !== ''
+            && strtotime($dataHomologacao) < strtotime($dataEnvioPgeEfetiva)
+        ) {
+            $errors['data_decreto_homologacao'][] = 'A data de homologação não pode ser anterior à data de envio à PGE.';
         }
 
         foreach (['numero_obitos', 'numero_feridos', 'numero_enfermos', 'numero_desabrigados', 'numero_desalojados', 'numero_outros_afetados'] as $field) {

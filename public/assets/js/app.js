@@ -1154,11 +1154,13 @@ function initHomologacaoDateSync(form) {
                 : 'Informe a data oficial da homologa\u00e7\u00e3o.';
         }
 
-        if (!shouldShowPgeDate && dateInput instanceof HTMLInputElement) {
+        var isPgeLifecycleStatus = shouldShowPgeDate || shouldShowHomologacaoDate;
+
+        if (!isPgeLifecycleStatus && dateInput instanceof HTMLInputElement) {
             dateInput.value = '';
         }
 
-        if (!shouldShowPgeDate && pgeProtocolInput instanceof HTMLInputElement) {
+        if (!isPgeLifecycleStatus && pgeProtocolInput instanceof HTMLInputElement) {
             pgeProtocolInput.value = '';
         }
 
@@ -1166,7 +1168,13 @@ function initHomologacaoDateSync(form) {
             homologacaoDateInput.value = '';
         }
 
-        updatePgeStatusPreview(pgeStatusPreview, homologacaoCode, dateInput instanceof HTMLInputElement ? dateInput.value : '');
+        updatePgeIndicators(
+            form,
+            pgeStatusPreview,
+            homologacaoCode,
+            dateInput instanceof HTMLInputElement ? dateInput.value : '',
+            homologacaoDateInput instanceof HTMLInputElement ? homologacaoDateInput.value : ''
+        );
     };
 
     homologacaoSelect.addEventListener('change', syncHomologacaoDateFields);
@@ -1174,15 +1182,18 @@ function initHomologacaoDateSync(form) {
         dateInput.addEventListener('input', syncHomologacaoDateFields);
         dateInput.addEventListener('change', syncHomologacaoDateFields);
     }
+    if (homologacaoDateInput instanceof HTMLInputElement) {
+        homologacaoDateInput.addEventListener('input', syncHomologacaoDateFields);
+        homologacaoDateInput.addEventListener('change', syncHomologacaoDateFields);
+    }
     syncHomologacaoDateFields();
 }
 
-function updatePgeStatusPreview(container, homologacaoCode, dataEnvioPge) {
+function renderPgeStatusPreview(container, status) {
     if (!(container instanceof HTMLElement)) {
         return;
     }
 
-    var status = previewPgeStatus(homologacaoCode, dataEnvioPge);
     var badge = document.createElement('span');
 
     badge.className = 'status-badge ' + status.className;
@@ -1191,29 +1202,76 @@ function updatePgeStatusPreview(container, homologacaoCode, dataEnvioPge) {
     container.replaceChildren(badge);
 }
 
-function previewPgeStatus(homologacaoCode, dataEnvioPge) {
+function updatePgeIndicators(form, primaryContainer, homologacaoCode, dataEnvioPge, dataHomologacao) {
+    var preview = previewPgeIndicators(homologacaoCode, dataEnvioPge, dataHomologacao);
+
+    renderPgeStatusPreview(primaryContainer, preview.status);
+    renderPgeStatusPreview(form.querySelector('[data-pge-send-status-preview]'), preview.status);
+    renderPgeStatusPreview(form.querySelector('[data-pge-deadline-status-preview]'), preview.status);
+
+    var daysPreview = form.querySelector('[data-pge-days-preview]');
+    if (daysPreview instanceof HTMLElement) {
+        daysPreview.textContent = preview.days === null ? '-' : String(preview.days);
+    }
+}
+
+function previewPgeIndicators(homologacaoCode, dataEnvioPge, dataHomologacao) {
+    var days = previewPgeDuration(homologacaoCode, dataEnvioPge, dataHomologacao);
+
     if (homologacaoCode === 'HOMOLOGADO') {
-        return { label: 'Aprovado', className: 'badge-success' };
+        return { status: { label: 'Aprovado', className: 'badge-success' }, days: days };
     }
 
     if (homologacaoCode === 'NAO_HOMOLOGADO') {
-        return { label: 'Reprovado', className: 'badge-danger' };
+        return { status: { label: 'Reprovado', className: 'badge-danger' }, days: days };
     }
 
-    if (homologacaoCode === 'ENVIADO_PGE' && dataEnvioPge) {
-        var sentDate = new Date(dataEnvioPge + 'T00:00:00');
-        var today = new Date();
-        var todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        var diffDays = Math.floor((todayDate.getTime() - sentDate.getTime()) / 86400000);
-
-        if (!Number.isNaN(diffDays) && diffDays > 7) {
-            return { label: 'Pendente', className: 'badge-warning' };
+    if (homologacaoCode === 'ENVIADO_PGE' && days !== null && days >= 0) {
+        if (days > 7) {
+            return { status: { label: 'Pendente', className: 'badge-warning' }, days: days };
         }
 
-        return { label: 'No prazo', className: 'badge-warning' };
+        return { status: { label: 'No prazo', className: 'badge-warning' }, days: days };
     }
 
-    return { label: 'Não registrado', className: 'badge-muted' };
+    return { status: { label: 'Não registrado', className: 'badge-muted' }, days: days };
+}
+
+function previewPgeDuration(homologacaoCode, dataEnvioPge, dataHomologacao) {
+    var sentDate = parseIsoDateUtc(dataEnvioPge);
+    if (sentDate === null) {
+        return null;
+    }
+
+    var endDate = null;
+    if (homologacaoCode === 'ENVIADO_PGE') {
+        var today = new Date();
+        endDate = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    } else if (['HOMOLOGADO', 'NAO_HOMOLOGADO'].indexOf(homologacaoCode) >= 0) {
+        endDate = parseIsoDateUtc(dataHomologacao);
+    }
+
+    if (endDate === null) {
+        return null;
+    }
+
+    return Math.round((endDate - sentDate) / 86400000);
+}
+
+function parseIsoDateUtc(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) {
+        return null;
+    }
+
+    var parts = value.split('-').map(Number);
+    var timestamp = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+    var parsed = new Date(timestamp);
+
+    if (parsed.getUTCFullYear() !== parts[0] || parsed.getUTCMonth() !== parts[1] - 1 || parsed.getUTCDate() !== parts[2]) {
+        return null;
+    }
+
+    return timestamp;
 }
 
 function collectHistoryChangedFields(form) {

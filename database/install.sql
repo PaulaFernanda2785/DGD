@@ -1210,7 +1210,10 @@ SELECT
     d.data_conclusao_pge,
     CASE
         WHEN d.data_envio_pge IS NULL THEN NULL
-        ELSE DATEDIFF(COALESCE(d.data_conclusao_pge, d.data_decreto_homologacao, CURRENT_DATE), d.data_envio_pge)
+        WHEN sh.codigo IN ('HOMOLOGADO', 'NAO_HOMOLOGADO') THEN
+            DATEDIFF(COALESCE(d.data_decreto_homologacao, d.data_conclusao_pge), d.data_envio_pge)
+        WHEN sh.codigo = 'ENVIADO_PGE' THEN DATEDIFF(CURRENT_DATE, d.data_envio_pge)
+        ELSE NULL
     END AS duracao_pge_dias,
     (SELECT id FROM status_envio_pge WHERE codigo = (CASE
         WHEN sh.codigo = 'HOMOLOGADO' THEN 'APROVADO'

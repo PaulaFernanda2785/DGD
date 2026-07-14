@@ -351,3 +351,37 @@ Decisoes aplicadas:
 7. Foi criado o arquivo unico `deploy/dgd_app/database/u696029111_dgd_banco_limpo.sql` para importacao no banco `u696029111_dgd`, com estrutura, cadastros de referencia e administrador inicial, sem decretos, anexos, sessoes, logs, recuperacoes de senha ou historico de usuario.
 8. O administrador inicial usa a conta `admin@defesacivilpa.com.br` com senha temporaria, exigindo cadastro de 2FA e troca de senha no primeiro acesso.
 A instalacao do DGD em dispositivos moveis passou a utilizar um Web App Manifest publico, com icones PNG opacos em 192x192 e 512x512, icone adaptativo `maskable`, `apple-touch-icon` em 180x180 e favicon ICO. O manifesto usa caminhos relativos para funcionar tanto no WampServer quanto no subdominio de producao, sem armazenar paginas autenticadas em cache.
+
+---
+
+## 2026-07-14 - Indicadores PGE em tempo real nos formularios
+
+Os formularios de novo registro e edicao passaram a atualizar os indicadores da PGE antes do salvamento.
+
+Decisoes aplicadas:
+
+1. `Status de envio`, `Dias PGE` e `Status PGE` acompanham imediatamente as alteracoes na homologacao, na data de envio e na data de homologacao ou nao homologacao.
+2. O limite de sete dias permanece igual ao servico de backend: de zero a sete dias e `No prazo`; acima de sete dias e `Pendente`.
+3. `Homologado` apresenta `Aprovado`, `Nao homologado` apresenta `Reprovado` e a data de homologacao encerra a contagem visual.
+4. A data de envio e o protocolo permanecem preservados ao transitar entre `Enviado a PGE`, `Homologado` e `Nao homologado`, embora os campos continuem visiveis apenas no estado correspondente.
+5. O calculo no navegador e apenas uma pre-visualizacao; validacao, persistencia e regra definitiva continuam sob responsabilidade do backend.
+6. Nao houve alteracao no banco de dados.
+
+Arquivos principais: `app/Views/decretos/partials/form.php`, `public/assets/js/app.js`, `app/Views/layouts/app.php`.
+
+---
+
+## 2026-07-14 - Preservacao da duracao PGE apos homologacao
+
+O indicador `Dias PGE` passou a preservar o total transcorrido entre o envio a PGE e a homologacao ou nao homologacao.
+
+Decisoes aplicadas:
+
+1. A data oficial de homologacao ou nao homologacao e o marco final prioritario da contagem.
+2. Enquanto o processo estiver como `Enviado a PGE`, a contagem continua usando a data atual.
+3. Depois de `Homologado` ou `Nao homologado`, o total permanece fixo e e reutilizado na listagem, nos formularios, no detalhe, na impressao/PDF e no relatorio do painel.
+4. `PgePrazoService` centraliza o enriquecimento dos registros para impedir divergencias entre telas quando uma view desatualizada retornar o indicador vazio.
+5. A conclusao da homologacao exige uma data de envio previamente registrada e bloqueia data de homologacao anterior ao envio.
+6. A migration `2026_07_14_preserve_pge_duration_after_homologation.sql` consolida a data final dos registros existentes e recria as views operacionais.
+
+Arquivos principais: `app/Services/PgePrazoService.php`, `app/Services/DecretoService.php`, `app/Services/PainelService.php`, `database/views.sql`, `database/install.sql` e `database/migrations/2026_07_14_preserve_pge_duration_after_homologation.sql`.

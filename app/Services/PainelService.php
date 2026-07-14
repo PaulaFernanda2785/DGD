@@ -8,6 +8,13 @@ use App\Core\Database;
 
 class PainelService
 {
+    private PgePrazoService $pgePrazo;
+
+    public function __construct()
+    {
+        $this->pgePrazo = new PgePrazoService();
+    }
+
     public function resumo(array $filters = []): array
     {
         try {
@@ -146,10 +153,13 @@ class PainelService
                     cobrade_subtipo,
                     data_desastre,
                     numero_decreto_municipal,
+                    homologacao_codigo,
                     homologacao,
+                    data_decreto_homologacao,
                     reconhecimento,
                     status_envio_pge,
                     data_envio_pge,
+                    data_conclusao_pge,
                     duracao_pge_dias,
                     status_prazo_pge_calculado,
                     total_afetados
@@ -160,7 +170,7 @@ class PainelService
             );
             $stmt->execute($params);
 
-            return $stmt->fetchAll();
+            return $this->pgePrazo->enriquecerRegistros($stmt->fetchAll());
         } catch (\Throwable) {
             return [];
         }

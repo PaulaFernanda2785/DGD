@@ -1,6 +1,13 @@
--- DGD - Views operacionais
+-- Preserva a duracao da PGE depois da homologacao ou nao homologacao.
 
 SET NAMES utf8mb4;
+
+UPDATE desastres d
+INNER JOIN status_homologacao sh ON sh.id = d.homologacao_status_id
+SET d.data_conclusao_pge = COALESCE(d.data_decreto_homologacao, d.data_conclusao_pge)
+WHERE sh.codigo IN ('HOMOLOGADO', 'NAO_HOMOLOGADO')
+  AND d.data_envio_pge IS NOT NULL
+  AND COALESCE(d.data_decreto_homologacao, d.data_conclusao_pge) IS NOT NULL;
 
 DROP VIEW IF EXISTS vw_painel_resumo;
 DROP VIEW IF EXISTS vw_decretos_listagem;

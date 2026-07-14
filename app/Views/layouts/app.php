@@ -5,7 +5,7 @@ use App\Core\Auth;
 $usuario = Auth::user();
 $appJsVersion = is_file(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
     ? (string) filemtime(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
-    : '1';
+    : '20260714.3';
 $stylesheets = $stylesheets ?? [];
 $scripts = $scripts ?? [];
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';

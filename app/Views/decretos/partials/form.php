@@ -282,7 +282,7 @@
                     </div>
                     <div class="field readonly-status-field">
                         <label>Status de envio à PGE</label>
-                        <div class="readonly-status-value" data-pge-status-preview>
+                        <div class="readonly-status-value" data-pge-status-preview aria-live="polite">
                             <?= status_badge($registro['status_envio_pge'] ?? 'Não registrado'); ?>
                         </div>
                         <small>Atualizado automaticamente.</small>
@@ -316,7 +316,9 @@
             <div class="pge-consistency-panel span-2" aria-label="Resumo operacional da PGE">
                 <div>
                     <span>Status de envio</span>
-                    <?= status_badge($registro['status_envio_pge'] ?? 'Não registrado'); ?>
+                    <div data-pge-send-status-preview aria-live="polite">
+                        <?= status_badge($registro['status_envio_pge'] ?? 'Não registrado'); ?>
+                    </div>
                 </div>
                 <div>
                     <span>Data de envio</span>
@@ -328,11 +330,13 @@
                 </div>
                 <div>
                     <span>Dias PGE</span>
-                    <strong><?= e($dash($registro['duracao_pge_dias'] ?? null)); ?></strong>
+                    <strong data-pge-days-preview aria-live="polite"><?= e($dash($registro['duracao_pge_dias'] ?? null)); ?></strong>
                 </div>
                 <div>
                     <span>Status PGE</span>
-                    <?= status_badge($registro['status_prazo_pge_calculado'] ?? 'Não registrado'); ?>
+                    <div data-pge-deadline-status-preview aria-live="polite">
+                        <?= status_badge($registro['status_prazo_pge_calculado'] ?? 'Não registrado'); ?>
+                    </div>
                 </div>
             </div>
         </div>

@@ -63,4 +63,35 @@ class PgePrazoService
             default => 'Não registrado',
         };
     }
+
+    public function enriquecerRegistro(array $registro): array
+    {
+        $homologacaoCodigo = trim((string) ($registro['homologacao_codigo'] ?? ''));
+        $dataEnvioPge = $this->dataOuNula($registro['data_envio_pge'] ?? null);
+        $dataConclusaoPge = null;
+        $homologacaoConcluida = in_array($homologacaoCodigo, ['HOMOLOGADO', 'NAO_HOMOLOGADO'], true);
+
+        if ($homologacaoConcluida) {
+            $dataConclusaoPge = $this->dataOuNula($registro['data_decreto_homologacao'] ?? null)
+                ?? $this->dataOuNula($registro['data_conclusao_pge'] ?? null);
+        }
+
+        $registro['duracao_pge_dias'] = $homologacaoConcluida && $dataConclusaoPge === null
+            ? null
+            : $this->duracao($dataEnvioPge, $dataConclusaoPge);
+
+        return $registro;
+    }
+
+    public function enriquecerRegistros(array $registros): array
+    {
+        return array_map(fn (array $registro): array => $this->enriquecerRegistro($registro), $registros);
+    }
+
+    private function dataOuNula(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : null;
+    }
 }
