@@ -60,11 +60,39 @@ document.addEventListener('click', function (event) {
             }
         }
     }
+
+    var decreePrintOpen = target.closest('[data-decree-print-open]');
+
+    if (decreePrintOpen) {
+        event.preventDefault();
+        openDecreePrintModal(decreePrintOpen);
+    }
+
+    if (target.matches('[data-decree-print-backdrop]')) {
+        closeDecreePrintModal();
+        return;
+    }
+
+    var decreePrintClose = target.closest('[data-decree-print-close]');
+
+    if (decreePrintClose) {
+        closeDecreePrintModal();
+    }
+
+    var decreePrintConfirm = target.closest('[data-decree-print-confirm]');
+
+    if (decreePrintConfirm) {
+        printDecreeReport();
+    }
 });
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
         closeSidebar();
+    }
+
+    if (event.key === 'Escape') {
+        closeDecreePrintModal();
     }
 });
 
@@ -170,6 +198,394 @@ function initBackToTop() {
 
     syncVisibility();
     window.addEventListener('scroll', syncVisibility, { passive: true });
+}
+
+function decreePrintElements() {
+    return {
+        backdrop: document.querySelector('[data-decree-print-backdrop]'),
+        body: document.querySelector('[data-decree-print-body]'),
+        title: document.querySelector('[data-decree-print-title]'),
+        printButton: document.querySelector('[data-decree-print-confirm]')
+    };
+}
+
+function openDecreePrintModal(trigger) {
+    var elements = decreePrintElements();
+    var url = trigger instanceof HTMLElement ? trigger.getAttribute('data-report-url') : '';
+
+    if (!(elements.backdrop instanceof HTMLElement) || !(elements.body instanceof HTMLElement) || !url) {
+        return;
+    }
+
+    elements.backdrop.hidden = false;
+    elements.backdrop.dataset.decreePrintFilename = 'relatorio-decreto.pdf';
+    elements.body.innerHTML = '<div class="panel-empty">Carregando relatório do decreto...</div>';
+
+    if (elements.title instanceof HTMLElement) {
+        elements.title.textContent = 'Relatório para impressão';
+    }
+
+    if (elements.printButton instanceof HTMLButtonElement) {
+        elements.printButton.disabled = true;
+        elements.printButton.setAttribute('aria-busy', 'true');
+    }
+
+    fetch(url, {
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(function (response) {
+            if (!response.ok) {
+                throw new Error('Não foi possível carregar o relatório.');
+            }
+
+            return response.json();
+        })
+        .then(function (data) {
+            if (!data || data.success !== true || !data.html) {
+                throw new Error(data && data.message ? data.message : 'Relatório indisponível.');
+            }
+
+            elements.body.innerHTML = data.html;
+            elements.backdrop.dataset.decreePrintFilename = data.filename || 'relatorio-decreto.pdf';
+
+            if (elements.title instanceof HTMLElement) {
+                elements.title.textContent = data.title || 'Relatório para impressão';
+            }
+
+            if (elements.printButton instanceof HTMLButtonElement) {
+                elements.printButton.disabled = false;
+                elements.printButton.removeAttribute('aria-busy');
+                elements.printButton.focus();
+            }
+        })
+        .catch(function (error) {
+            elements.body.innerHTML = '<div class="panel-empty">' + escapeText(error.message || 'Erro ao carregar relatório.') + '</div>';
+
+            if (elements.printButton instanceof HTMLButtonElement) {
+                elements.printButton.disabled = true;
+                elements.printButton.removeAttribute('aria-busy');
+            }
+        });
+}
+
+function closeDecreePrintModal() {
+    var elements = decreePrintElements();
+
+    if (!(elements.backdrop instanceof HTMLElement) || elements.backdrop.hidden) {
+        return;
+    }
+
+    elements.backdrop.hidden = true;
+    delete elements.backdrop.dataset.decreePrintFilename;
+
+    if (elements.body instanceof HTMLElement) {
+        elements.body.innerHTML = '<div class="panel-empty">Selecione um decreto para carregar o relatório.</div>';
+    }
+
+    cleanupDecreePrintPages();
+
+    if (elements.printButton instanceof HTMLButtonElement) {
+        elements.printButton.disabled = false;
+        elements.printButton.removeAttribute('aria-busy');
+    }
+}
+
+function printDecreeReport() {
+    var elements = decreePrintElements();
+    var report = elements.body instanceof HTMLElement ? elements.body.querySelector('[data-decree-print-content]') : null;
+
+    if (!(elements.backdrop instanceof HTMLElement) || !(report instanceof HTMLElement)) {
+        return;
+    }
+
+    if (elements.printButton instanceof HTMLButtonElement) {
+        elements.printButton.disabled = true;
+        elements.printButton.setAttribute('aria-busy', 'true');
+    }
+
+    waitForDecreePrintAssets(report).then(function () {
+        var pagedReport = prepareDecreePrintPages(report);
+
+        if (!(pagedReport instanceof HTMLElement)) {
+            return;
+        }
+
+        var previousTitle = document.title;
+        var restored = false;
+
+        var restore = function () {
+            if (restored) {
+                return;
+            }
+
+            restored = true;
+            document.body.classList.remove('is-printing-decree-report');
+            document.title = previousTitle;
+            cleanupDecreePrintPages();
+            window.removeEventListener('afterprint', restore);
+
+            if (elements.printButton instanceof HTMLButtonElement) {
+                elements.printButton.disabled = false;
+                elements.printButton.removeAttribute('aria-busy');
+            }
+        };
+
+        document.title = elements.backdrop.dataset.decreePrintFilename || previousTitle;
+        document.body.classList.add('is-printing-decree-report');
+        window.addEventListener('afterprint', restore);
+        window.print();
+
+        window.setTimeout(restore, 1000);
+    }).catch(function () {
+        if (elements.printButton instanceof HTMLButtonElement) {
+            elements.printButton.disabled = false;
+            elements.printButton.removeAttribute('aria-busy');
+        }
+    });
+}
+
+function waitForDecreePrintAssets(report) {
+    var images = Array.prototype.filter.call(report.querySelectorAll('img'), function (image) {
+        return image instanceof HTMLImageElement && !image.complete;
+    });
+
+    if (images.length === 0) {
+        return Promise.resolve();
+    }
+
+    return Promise.race([
+        Promise.all(images.map(function (image) {
+            return new Promise(function (resolve) {
+                image.addEventListener('load', resolve, { once: true });
+                image.addEventListener('error', resolve, { once: true });
+            });
+        })),
+        new Promise(function (resolve) {
+            window.setTimeout(resolve, 1500);
+        })
+    ]);
+}
+
+function prepareDecreePrintPages(report) {
+    cleanupDecreePrintPages();
+
+    var footer = report.querySelector('.decree-print-footer');
+    var contentNodes = Array.prototype.filter.call(report.children, function (node) {
+        return node !== footer;
+    });
+
+    if (contentNodes.length === 0) {
+        return null;
+    }
+
+    var container = document.createElement('div');
+    container.className = 'decree-print-paged-report is-measuring';
+    container.setAttribute('data-decree-print-paged', '');
+    document.body.appendChild(container);
+
+    var current = createDecreePrintPage(footer, false);
+    container.appendChild(current.page);
+
+    contentNodes.forEach(function (node) {
+        current = appendDecreePrintNode(node, footer, container, current);
+    });
+
+    var pages = Array.prototype.slice.call(container.querySelectorAll('[data-decree-print-page]'));
+    var totalPages = Math.max(pages.length, 1);
+
+    pages.forEach(function (page, index) {
+        var number = page.querySelector('[data-decree-print-page-number]');
+
+        if (number instanceof HTMLElement) {
+            number.textContent = 'P\u00e1gina ' + (index + 1) + ' de ' + totalPages;
+        }
+    });
+
+    container.classList.remove('is-measuring');
+
+    return container;
+}
+
+function appendDecreePrintNode(node, footer, container, current) {
+    var clone = node.cloneNode(true);
+    current.body.appendChild(clone);
+
+    if (current.body.children.length > 1 && decreePrintPageOverflows(current)) {
+        current.body.removeChild(clone);
+        current = createDecreePrintPage(footer, true);
+        container.appendChild(current.page);
+        current.body.appendChild(clone);
+    }
+
+    if (decreePrintPageOverflows(current)) {
+        current.body.removeChild(clone);
+        return splitDecreePrintNode(node, footer, container, current);
+    }
+
+    return current;
+}
+
+function splitDecreePrintNode(node, footer, container, current) {
+    if (!(node instanceof HTMLElement) || !node.classList.contains('decree-print-section')) {
+        var clone = node.cloneNode(true);
+        current.body.appendChild(clone);
+        current.page.classList.add('decree-print-page-overflow-review');
+        return current;
+    }
+
+    return splitDecreePrintSection(node, footer, container, current);
+}
+
+function splitDecreePrintSection(section, footer, container, current) {
+    var title = Array.prototype.find.call(section.children, function (child) {
+        return child instanceof HTMLElement && child.tagName.toLowerCase() === 'h3';
+    });
+    var content = Array.prototype.find.call(section.children, function (child) {
+        return child instanceof HTMLElement && child !== title;
+    });
+
+    if (!(title instanceof HTMLElement) || !(content instanceof HTMLElement)) {
+        current.body.appendChild(section.cloneNode(true));
+        return current;
+    }
+
+    var plan = createDecreePrintSectionPlan(content);
+    var fragment = createDecreePrintSectionFragment(section, title, plan.template, false);
+    current.body.appendChild(fragment.section);
+
+    plan.items.forEach(function (item) {
+        var clone = item.cloneNode(true);
+        fragment.container.appendChild(clone);
+
+        if (decreePrintPageOverflows(current)) {
+            fragment.container.removeChild(clone);
+
+            if (fragment.container.children.length <= fragment.fixedChildren) {
+                fragment.container.appendChild(clone);
+                fragment.section.classList.add('decree-print-section-overflow-review');
+                return;
+            }
+
+            current = createDecreePrintPage(footer, true);
+            container.appendChild(current.page);
+            fragment = createDecreePrintSectionFragment(section, title, plan.template, true);
+            current.body.appendChild(fragment.section);
+            fragment.container.appendChild(clone);
+        }
+    });
+
+    return current;
+}
+
+function createDecreePrintSectionPlan(content) {
+    var template = content.cloneNode(false);
+    var fixedChildren = 0;
+    var items = Array.prototype.slice.call(content.children);
+
+    if (content.classList.contains('decree-print-table')) {
+        var header = items.find(function (child) {
+            return child instanceof HTMLElement && child.classList.contains('decree-print-row-head');
+        });
+
+        if (header instanceof HTMLElement) {
+            template.appendChild(header.cloneNode(true));
+            fixedChildren = 1;
+            items = items.filter(function (child) {
+                return child !== header;
+            });
+        }
+    }
+
+    if (items.length === 0) {
+        items = [content.cloneNode(true)];
+        template = document.createElement('div');
+    }
+
+    return {
+        fixedChildren: fixedChildren,
+        items: items,
+        template: template
+    };
+}
+
+function createDecreePrintSectionFragment(section, title, contentTemplate, continued) {
+    var fragment = section.cloneNode(false);
+    var heading = title.cloneNode(true);
+    var container = contentTemplate.cloneNode(true);
+
+    if (continued) {
+        heading.appendChild(document.createTextNode(' (continua\u00e7\u00e3o)'));
+    }
+
+    fragment.appendChild(heading);
+    fragment.appendChild(container);
+
+    return {
+        container: container,
+        fixedChildren: container.children.length,
+        section: fragment
+    };
+}
+
+function decreePrintPageOverflows(current) {
+    var last = current.body.lastElementChild;
+
+    if (!(last instanceof HTMLElement)) {
+        return false;
+    }
+
+    var bodyRect = current.body.getBoundingClientRect();
+    var lastRect = last.getBoundingClientRect();
+    var safeGap = current.page.classList.contains('decree-print-page-first') ? 96 : 48;
+
+    return lastRect.bottom > bodyRect.bottom - safeGap;
+}
+
+function createDecreePrintPage(footer, continued) {
+    var page = document.createElement('article');
+    page.className = 'decree-print-report decree-print-page';
+    page.setAttribute('data-decree-print-page', '');
+
+    if (continued) {
+        page.classList.add('decree-print-page-continued');
+    } else {
+        page.classList.add('decree-print-page-first');
+    }
+
+    var body = document.createElement('div');
+    body.className = 'decree-print-page-body';
+    page.appendChild(body);
+
+    if (footer instanceof HTMLElement) {
+        page.appendChild(footer.cloneNode(true));
+    }
+
+    return {
+        page: page,
+        body: body
+    };
+}
+
+function cleanupDecreePrintPages() {
+    document.querySelectorAll('[data-decree-print-paged]').forEach(function (node) {
+        node.remove();
+    });
+}
+
+function escapeText(value) {
+    return String(value || '').replace(/[&<>"']/g, function (char) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[char];
+    });
 }
 
 document.addEventListener('submit', function (event) {

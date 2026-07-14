@@ -143,6 +143,24 @@ $isActive = static function (string $path) use ($currentPath): string {
         </div>
     </div>
 
+    <div class="modal-backdrop decree-print-backdrop" data-decree-print-backdrop hidden>
+        <div class="modal decree-print-modal" role="dialog" aria-modal="true" aria-labelledby="decree-print-title">
+            <div class="decree-print-modal-toolbar">
+                <div>
+                    <span>Relatório do processo</span>
+                    <h2 id="decree-print-title" data-decree-print-title>Relatório para impressão</h2>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="button button-primary" data-decree-print-confirm>Imprimir / PDF</button>
+                    <button type="button" class="button button-light" data-decree-print-close>Fechar</button>
+                </div>
+            </div>
+            <div class="decree-print-modal-body" data-decree-print-body>
+                <div class="panel-empty">Selecione um decreto para carregar o relatório.</div>
+            </div>
+        </div>
+    </div>
+
     <button type="button" class="back-to-top" data-back-to-top aria-label="Voltar para o topo" hidden>
         <img src="<?= e(url('/assets/icons/icon-arrow-up.svg')); ?>" alt="">
     </button>

@@ -5260,6 +5260,562 @@ tbody tr:hover {
     margin: 0;
 }
 
+.decree-print-backdrop {
+    align-items: stretch;
+    padding: clamp(10px, 2vw, 24px);
+    z-index: 55;
+}
+
+.decree-print-modal {
+    background: #edf3f6;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    max-height: calc(100vh - 28px);
+    overflow: hidden;
+    padding: 0;
+    width: min(1120px, 100%);
+}
+
+.decree-print-modal-toolbar {
+    align-items: center;
+    background: #ffffff;
+    border-bottom: 1px solid #d8dee6;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 14px 16px;
+}
+
+.decree-print-modal-toolbar > div:first-child {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.decree-print-modal-toolbar span {
+    color: #007c70;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.decree-print-modal-toolbar h2 {
+    color: #172331;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.decree-print-modal-body {
+    min-height: 0;
+    overflow: auto;
+    padding: clamp(14px, 2vw, 24px);
+}
+
+.decree-print-report {
+    background: #ffffff;
+    border: 1px solid #cbd8e3;
+    border-radius: 8px;
+    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.12);
+    color: #172331;
+    display: grid;
+    gap: 16px;
+    margin: 0 auto;
+    max-width: 900px;
+    min-height: 1120px;
+    overflow: hidden;
+    padding: 26px;
+}
+
+.decree-print-header {
+    align-items: center;
+    border-bottom: 2px solid #007c70;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.58fr);
+    padding-bottom: 16px;
+}
+
+.decree-print-brand {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+    min-width: 0;
+}
+
+.decree-print-brand img {
+    height: 58px;
+    object-fit: contain;
+    width: 72px;
+}
+
+.decree-print-brand div,
+.decree-print-meta {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.decree-print-brand strong,
+.decree-print-meta strong {
+    color: #172331;
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+.decree-print-brand span,
+.decree-print-meta span,
+.decree-print-meta small {
+    color: #52606d;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.decree-print-meta {
+    background: #f8fafc;
+    border: 1px solid #e4eaf1;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.decree-print-meta span {
+    color: #007c70;
+    text-transform: uppercase;
+}
+
+.decree-print-cover {
+    align-items: center;
+    background: linear-gradient(135deg, #172331, #155e75);
+    border-radius: 8px;
+    color: #ffffff;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 0.82fr) minmax(280px, 1fr);
+    padding: 18px;
+}
+
+.decree-print-cover span,
+.decree-print-summary span,
+.decree-print-grid span,
+.decree-print-table span,
+.decree-print-history p {
+    color: #52606d;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.decree-print-cover span {
+    color: #9ee8dc;
+}
+
+.decree-print-cover h2 {
+    color: #ffffff;
+    font-size: 28px;
+    line-height: 1.1;
+    margin: 4px 0;
+}
+
+.decree-print-cover p {
+    color: #d8e6ef;
+    margin: 0;
+}
+
+.decree-print-cover img {
+    background: #ffffff;
+    border-radius: 8px;
+    flex: 0 0 92px;
+    height: 92px;
+    object-fit: contain;
+    padding: 8px;
+    width: 92px;
+}
+
+.decree-print-disaster-info {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    display: flex;
+    gap: 14px;
+    min-width: 0;
+    padding: 12px;
+}
+
+.decree-print-disaster-info > div {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.decree-print-disaster-info p {
+    color: #f4fbff;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.decree-print-summary,
+.decree-print-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.decree-print-summary > div,
+.decree-print-grid > div {
+    background: #fbfdff;
+    border: 1px solid #dbe7f1;
+    border-left: 4px solid #d5e7e3;
+    border-radius: 8px;
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px;
+}
+
+.decree-print-summary strong,
+.decree-print-grid strong {
+    color: #172331;
+    font-size: 13px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.decree-print-section {
+    break-inside: avoid;
+    display: grid;
+    gap: 12px;
+    page-break-inside: avoid;
+}
+
+.decree-print-section h3 {
+    align-items: center;
+    border-bottom: 1px solid #e4e7ec;
+    color: #172331;
+    display: flex;
+    font-size: 16px;
+    gap: 10px;
+    margin: 0;
+    padding-bottom: 8px;
+}
+
+.decree-print-section h3 span {
+    align-items: center;
+    background: #007c70;
+    border-radius: 999px;
+    color: #ffffff;
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 900;
+    height: 30px;
+    justify-content: center;
+    min-width: 30px;
+}
+
+.decree-print-text,
+.decree-print-empty {
+    background: #f8fafc;
+    border: 1px solid #e4eaf1;
+    border-radius: 8px;
+    color: #364152;
+    line-height: 1.5;
+    margin: 0;
+    padding: 12px;
+}
+
+.decree-print-table,
+.decree-print-history {
+    border: 1px solid #dbe7f1;
+    border-radius: 8px;
+    display: grid;
+    overflow: hidden;
+}
+
+.decree-print-row {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 0.8fr minmax(0, 1.4fr) 0.7fr 0.45fr;
+    padding: 10px;
+}
+
+.decree-print-row + .decree-print-row,
+.decree-print-history > div + div {
+    border-top: 1px solid #e4eaf1;
+}
+
+.decree-print-row-head {
+    background: #f8fafc;
+    font-weight: 900;
+}
+
+.decree-print-history > div {
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+}
+
+.decree-print-history header {
+    align-items: start;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.decree-print-history strong {
+    color: #172331;
+}
+
+.decree-print-history time {
+    color: #52606d;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.decree-print-history p {
+    color: #364152;
+    line-height: 1.45;
+    margin: 0;
+    text-transform: none;
+}
+
+.decree-print-footer {
+    align-items: center;
+    border-top: 1px solid #d8dee6;
+    color: #52606d;
+    display: flex;
+    font-size: 11px;
+    font-weight: 800;
+    gap: 10px;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 10px;
+}
+
+.decree-print-paged-report {
+    display: none;
+}
+
+.decree-print-paged-report.is-measuring {
+    display: block;
+    left: -10000px;
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    visibility: hidden;
+    width: 210mm;
+}
+
+.decree-print-paged-report .decree-print-page {
+    border: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+    box-shadow: none;
+    height: 297mm;
+    margin: 0;
+    max-width: none;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+    width: 210mm;
+}
+
+.decree-print-page-body {
+    align-content: start;
+    box-sizing: border-box;
+    display: grid;
+    gap: 10px;
+    left: 12mm;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    right: 12mm;
+    top: 12mm;
+    bottom: 28mm;
+}
+
+.decree-print-paged-report .decree-print-page .decree-print-footer {
+    background: #ffffff;
+    bottom: 12mm;
+    box-sizing: border-box;
+    left: 12mm;
+    margin: 0;
+    min-height: 10mm;
+    padding: 6px 0 0;
+    position: absolute;
+    right: 12mm;
+}
+
+.decree-print-paged-report .decree-print-page-first .decree-print-page-body {
+    bottom: 34mm;
+}
+
+.decree-print-paged-report.is-measuring .decree-print-grid,
+.decree-print-paged-report.is-measuring .decree-print-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.decree-print-paged-report.is-measuring .decree-print-row {
+    grid-template-columns: 0.8fr 1.3fr 0.7fr 0.45fr;
+}
+
+@media (max-width: 920px) {
+    .decree-print-modal-toolbar,
+    .decree-print-header,
+    .decree-print-cover {
+        grid-template-columns: 1fr;
+    }
+
+    .decree-print-modal-toolbar {
+        align-items: stretch;
+        display: grid;
+    }
+
+    .decree-print-modal-toolbar .modal-actions {
+        justify-content: stretch;
+    }
+
+    .decree-print-modal-toolbar .button {
+        flex: 1 1 140px;
+    }
+
+    .decree-print-summary,
+    .decree-print-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .decree-print-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .decree-print-backdrop {
+        padding: 0;
+    }
+
+    .decree-print-modal {
+        border-radius: 0;
+        max-height: 100vh;
+    }
+
+    .decree-print-report {
+        border-radius: 0;
+        padding: 16px;
+    }
+
+    .decree-print-disaster-info {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .decree-print-summary,
+    .decree-print-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    @page {
+        margin: 0;
+        size: A4;
+    }
+
+    body.is-printing-decree-report {
+        background: #ffffff !important;
+        margin: 0 !important;
+    }
+
+    body.is-printing-decree-report .app-shell,
+    body.is-printing-decree-report .sidebar-backdrop,
+    body.is-printing-decree-report .back-to-top,
+    body.is-printing-decree-report .modal-backdrop {
+        display: none !important;
+    }
+
+    body.is-printing-decree-report .decree-print-paged-report {
+        background: #ffffff !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.is-printing-decree-report .decree-print-report {
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        width: 210mm !important;
+    }
+
+    body.is-printing-decree-report .decree-print-page {
+        break-after: page;
+        height: 297mm !important;
+        min-height: 0 !important;
+        page-break-after: always;
+        position: relative !important;
+        width: 210mm !important;
+    }
+
+    body.is-printing-decree-report .decree-print-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    body.is-printing-decree-report .decree-print-page-body {
+        box-sizing: border-box !important;
+        display: grid !important;
+        gap: 10px !important;
+        left: 12mm !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        position: absolute !important;
+        right: 12mm !important;
+        top: 12mm !important;
+        bottom: 28mm !important;
+    }
+
+    body.is-printing-decree-report .decree-print-page-first .decree-print-page-body {
+        bottom: 34mm !important;
+    }
+
+    body.is-printing-decree-report .decree-print-header,
+    body.is-printing-decree-report .decree-print-section,
+    body.is-printing-decree-report .decree-print-summary,
+    body.is-printing-decree-report .decree-print-cover {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    body.is-printing-decree-report .decree-print-grid,
+    body.is-printing-decree-report .decree-print-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body.is-printing-decree-report .decree-print-row {
+        grid-template-columns: 0.8fr 1.3fr 0.7fr 0.45fr;
+    }
+
+    body.is-printing-decree-report .decree-print-footer {
+        background: #ffffff;
+        box-sizing: border-box;
+        bottom: 12mm;
+        left: 12mm;
+        margin: 0;
+        min-height: 10mm;
+        padding: 6px 0 0;
+        position: absolute;
+        right: 12mm;
+    }
+}
+
 .history-summary-head {
     display: grid;
     gap: 3px;

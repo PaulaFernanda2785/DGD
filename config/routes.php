@@ -37,6 +37,7 @@ return [
     ['GET', '/decretos', [DecretoController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.visualizar']]],
     ['GET', '/decretos/novo', [DecretoController::class, 'create'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.criar']]],
     ['POST', '/decretos', [DecretoController::class, 'store'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.criar'], CsrfMiddleware::class]],
+    ['GET', '/decretos/{id}/relatorio-impressao', [DecretoController::class, 'printReport'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.detalhe']]],
     ['GET', '/decretos/{id}', [DecretoController::class, 'show'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.detalhe']]],
     ['GET', '/decretos/{id}/editar', [DecretoController::class, 'edit'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar']]],
     ['POST', '/decretos/{id}/editar', [DecretoController::class, 'update'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar'], CsrfMiddleware::class]],

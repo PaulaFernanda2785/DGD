@@ -53,7 +53,16 @@ class DecretoRepository
 
     public function detalhe(int $id): ?array
     {
-        $stmt = Database::connection()->prepare('SELECT * FROM vw_decretos_listagem WHERE id = :id LIMIT 1');
+        $stmt = Database::connection()->prepare(
+            'SELECT
+                v.*,
+                cs.descricao AS cobrade_descricao
+             FROM vw_decretos_listagem v
+             INNER JOIN desastres d ON d.id = v.id
+             INNER JOIN cobrade_subtipos cs ON cs.id = d.cobrade_subtipo_id
+             WHERE v.id = :id
+             LIMIT 1'
+        );
         $stmt->execute(['id' => $id]);
         $registro = $stmt->fetch();
 

@@ -296,3 +296,24 @@ Quando `homologacao_status_id` passa para `HOMOLOGADO`, o sistema:
 Quando a homologação deixa de ser `HOMOLOGADO`, o sistema restaura o status e a data de conclusão PGE preservados antes da homologação e limpa os campos técnicos de backup.
 
 Migration relacionada: `database/migrations/2026_07_08_homologacao_pge_restore_rule.sql`.
+
+---
+
+## 2026-07-14 - Relatorio de impressao do decreto
+
+Foi incluida na listagem de decretos a acao `Imprimir`, que abre um modal com relatorio administrativo do processo de decreto registrado.
+
+Decisoes aplicadas:
+
+1. O relatorio e carregado por rota autenticada `GET /decretos/{id}/relatorio-impressao`, protegida pela permissao `decretos.detalhe`.
+2. Os dados sao obtidos por `DecretoService::buscarDetalhe()`, garantindo informacoes atualizadas, anexos e historico de edicao.
+3. A geracao do PDF utiliza a impressao nativa do navegador (`window.print()`), evitando dependencia de biblioteca PDF no servidor e mantendo compatibilidade com WampServer e hospedagem compartilhada.
+4. O CSS de impressao oculta a aplicacao e imprime somente uma versao paginada do relatorio, montada em A4 real (`210mm x 297mm`) com rodape por pagina.
+5. A numeracao `Pagina X de Y` e calculada pelo JavaScript antes da chamada de impressao, sem depender de `counter(page)` ou `counter(pages)`, que podem retornar `0 de 0` em alguns navegadores.
+6. A paginacao reserva a area do rodape e fragmenta secoes extensas, como historico de edicao, para evitar conteudo escondido na parte inferior da pagina.
+7. A medicao da paginacao usa o mesmo desenho aplicado ao PDF (`@media print`), incluindo colunas dos grids e linhas das tabelas, para evitar divergencia entre o calculo em tela e a impressao.
+8. A primeira pagina possui reserva inferior maior porque concentra cabecalho, capa, imagem e blocos de resumo, reduzindo risco de sobreposicao com o rodape.
+9. O hero do relatorio exibe a simbologia COBRADE ao lado da descricao oficial do desastre registrado.
+10. Nao houve alteracao de banco de dados.
+
+Arquivos principais: `config/routes.php`, `app/Controllers/DecretoController.php`, `app/Views/decretos/partials/print_report.php`, `app/Views/decretos/index.php`, `app/Views/layouts/app.php`, `public/assets/js/app.js`, `public/assets/css/app.css`.

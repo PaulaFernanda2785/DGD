@@ -64,6 +64,23 @@ class DecretoController extends Controller
         ]);
     }
 
+    public function printReport(string $id): void
+    {
+        $registro = $this->decretoService->buscarDetalhe((int) $id);
+        $geradoEm = new \DateTimeImmutable('now');
+
+        ob_start();
+        require view_path('decretos/partials/print_report');
+        $html = (string) ob_get_clean();
+
+        $this->json([
+            'success' => true,
+            'title' => 'Relatório do decreto ' . ($registro['protocolo_dgd'] ?? ''),
+            'filename' => 'relatorio-' . preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) ($registro['protocolo_dgd'] ?? 'decreto')) . '.pdf',
+            'html' => $html,
+        ]);
+    }
+
     public function edit(string $id): void
     {
         $this->view('decretos/edit', [

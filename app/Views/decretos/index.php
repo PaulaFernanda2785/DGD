@@ -87,6 +87,12 @@
 
                 <div class="decree-card-actions">
                     <a class="button button-light" href="<?= e(url('/decretos/' . $registro['id'])); ?>">Ver</a>
+                    <button
+                        type="button"
+                        class="button button-light"
+                        data-decree-print-open
+                        data-report-url="<?= e(url('/decretos/' . $registro['id'] . '/relatorio-impressao')); ?>"
+                    >Imprimir</button>
                     <?php if (can('decretos.editar')): ?>
                         <a class="button button-secondary" href="<?= e(url('/decretos/' . $registro['id'] . '/editar')); ?>">Editar</a>
                     <?php endif; ?>
