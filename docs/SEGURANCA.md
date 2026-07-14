@@ -77,14 +77,22 @@ Configuracoes SMTP esperadas no `.env`:
 
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.seudominio.com
-MAIL_PORT=587
+MAIL_HOST=smtp.hostinger.com
+MAIL_PORT=465
 MAIL_USERNAME=sistema@seudominio.com
 MAIL_PASSWORD=senha_do_email
-MAIL_ENCRYPTION=tls
+MAIL_ENCRYPTION=ssl
 MAIL_FROM_ADDRESS=sistema@seudominio.com
 MAIL_FROM_NAME="DGD - CEDEC-PA"
 ```
+
+Na hospedagem Hostinger, `MAIL_USERNAME` e `MAIL_FROM_ADDRESS` devem usar o mesmo e-mail profissional completo. Credenciais e tokens nunca devem ser registrados nos logs da aplicacao.
+
+A validacao TLS usa `MAIL_CA_FILE` quando informado. Se a variavel estiver vazia, o sistema utiliza a cadeia confiavel distribuida em `config/certs/cacert.pem`; `MAIL_VERIFY_PEER` deve permanecer habilitado em producao.
+
+Falhas de entrega e etapas da recuperacao sao registradas, sem e-mail ou token em texto aberto, nos arquivos `storage/logs/mail.log` e `storage/logs/password_recovery.log`.
+
+A criacao e a validacao da expiracao usam exclusivamente o relogio do MySQL. O prazo e calculado a partir de `recuperacoes_senha.criado_em`, evitando invalidacao imediata quando PHP e banco operam em fusos horarios diferentes.
 
 ---
 

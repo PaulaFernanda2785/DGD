@@ -26,8 +26,14 @@ class PasswordRecoveryService
     {
         $email = mb_strtolower(trim($email));
 
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $this->tooManyAttempts($email, $ip)) {
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->registerAttempt($email, $ip);
+            $this->logRecoveryEvent('email_invalido', $email);
+            return $this->genericResponse();
+        }
+
+        if ($this->tooManyAttempts($email, $ip)) {
+            $this->logRecoveryEvent('limite_excedido', $email);
             return $this->genericResponse();
         }
 
@@ -35,6 +41,7 @@ class PasswordRecoveryService
         $usuario = $this->usuarios->findByEmail($email);
 
         if (!$usuario || (int) $usuario['ativo'] !== 1) {
+            $this->logRecoveryEvent('usuario_inexistente_ou_inativo', $email);
             return $this->genericResponse();
         }
 
@@ -46,11 +53,12 @@ class PasswordRecoveryService
             'email_solicitado' => $email,
             'ip_solicitacao' => $ip,
             'user_agent' => $userAgent ? substr($userAgent, 0, 255) : null,
-            'expira_em' => date('Y-m-d H:i:s', time() + (self::EXPIRES_MINUTES * 60)),
+            'expira_minutos' => self::EXPIRES_MINUTES,
         ]);
 
         $resetUrl = rtrim((string) config('app.url', 'http://dgd.local'), '/') . '/recuperar-senha/' . $token;
         $emailSent = $this->sendRecoveryEmail((string) $usuario['email'], (string) $usuario['nome'], $resetUrl);
+        $this->logRecoveryEvent($emailSent ? 'email_aceito_pelo_smtp' : 'falha_no_envio', $email);
 
         $response = $this->genericResponse();
 
@@ -59,7 +67,7 @@ class PasswordRecoveryService
             return $response;
         }
 
-        if ((string) config('app.env', 'local') === 'local' && (bool) config('app.debug', false)) {
+        if ($this->isLocalDebugEnvironment()) {
             $this->logLocalLink($resetUrl);
             $response['local_link'] = true;
         }
@@ -73,7 +81,7 @@ class PasswordRecoveryService
             return null;
         }
 
-        return $this->resets->findValidByTokenHash($this->hashToken($token));
+        return $this->resets->findValidByTokenHash($this->hashToken($token), self::EXPIRES_MINUTES);
     }
 
     public function resetPassword(string $token, array $data): array
@@ -167,7 +175,13 @@ class PasswordRecoveryService
             'Se voce nao solicitou essa recuperacao, ignore este e-mail.',
         ]);
 
-        return $this->email->send($email, 'Recuperacao de senha - DGD', $html, $text);
+        try {
+            return $this->email->send($email, 'Recuperacao de senha - DGD', $html, $text);
+        } catch (Throwable $exception) {
+            error_log('[PasswordRecoveryService] Falha no envio: ' . $exception::class);
+
+            return false;
+        }
     }
 
     private function tooManyAttempts(string $email, ?string $ip): bool
@@ -216,5 +230,38 @@ class PasswordRecoveryService
     private function throttlePath(): string
     {
         return STORAGE_PATH . '/cache/password_recovery_throttle.json';
+    }
+
+    private function isLocalDebugEnvironment(): bool
+    {
+        if ((string) config('app.env', 'local') !== 'local' || !(bool) config('app.debug', false)) {
+            return false;
+        }
+
+        $host = strtolower((string) parse_url((string) config('app.url', ''), PHP_URL_HOST));
+
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true) || str_ends_with($host, '.local');
+    }
+
+    private function logRecoveryEvent(string $status, string $email): void
+    {
+        $directory = STORAGE_PATH . DIRECTORY_SEPARATOR . 'logs';
+
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            return;
+        }
+
+        $context = [
+            'status' => $status,
+            'email_hash' => substr(hash('sha256', mb_strtolower(trim($email))), 0, 16),
+        ];
+        $line = sprintf(
+            "[%s] %s%s",
+            date('Y-m-d H:i:s'),
+            json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            PHP_EOL
+        );
+
+        file_put_contents($directory . DIRECTORY_SEPARATOR . 'password_recovery.log', $line, FILE_APPEND | LOCK_EX);
     }
 }

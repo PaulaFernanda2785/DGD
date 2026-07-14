@@ -333,3 +333,21 @@ Decisoes aplicadas:
 5. Nao houve alteracao de banco de dados.
 
 Arquivos principais: `config/routes.php`, `app/Controllers/PainelController.php`, `app/Services/PainelService.php`, `app/Views/painel/index.php`, `app/Views/painel/partials/print_report.php`, `public/assets/js/app.js`, `public/assets/css/app.css`.
+
+---
+
+## 2026-07-14 - Deploy Hostinger DGD
+
+Foi preparada a estrutura local `deploy/` para publicacao do DGD no subdominio `dgd.defesacivilpa.com.br`.
+
+Decisoes aplicadas:
+
+1. A pasta publica foi separada em `deploy/public_html`, prevista para envio ao diretorio `/home/u696029111/domains/defesacivilpa.com.br/public_html/dgd`.
+2. A aplicacao foi separada em `deploy/dgd_app`, prevista para envio ao diretorio `/home/u696029111/domains/defesacivilpa.com.br/dgd_app`.
+3. O `index.php` publico procura o front controller em `dgd_app/public/index.php`, priorizando a aplicacao fora de `public_html`.
+4. O `.env` de producao foi gerado com `APP_URL=https://dgd.defesacivilpa.com.br`, banco `u696029111_dgd` e usuario `u696029111_dgd`; a senha real do banco deve ser preenchida manualmente no servidor.
+5. Arquivos locais sensiveis de `storage`, logs, cache, credenciais temporarias e backups locais de banco nao foram incluidos no deploy.
+6. A pasta `deploy/` foi adicionada ao `.gitignore` para evitar commit acidental de configuracoes de publicacao.
+7. Foi criado o arquivo unico `deploy/dgd_app/database/u696029111_dgd_banco_limpo.sql` para importacao no banco `u696029111_dgd`, com estrutura, cadastros de referencia e administrador inicial, sem decretos, anexos, sessoes, logs, recuperacoes de senha ou historico de usuario.
+8. O administrador inicial usa a conta `admin@defesacivilpa.com.br` com senha temporaria, exigindo cadastro de 2FA e troca de senha no primeiro acesso.
+A instalacao do DGD em dispositivos moveis passou a utilizar um Web App Manifest publico, com icones PNG opacos em 192x192 e 512x512, icone adaptativo `maskable`, `apple-touch-icon` em 180x180 e favicon ICO. O manifesto usa caminhos relativos para funcionar tanto no WampServer quanto no subdominio de producao, sem armazenar paginas autenticadas em cache.

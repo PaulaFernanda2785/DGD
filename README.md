@@ -88,6 +88,14 @@ database/install.sql
 
 O `install.sql` foi gerado como SQL concatenado para facilitar importacao.
 
+Para o deploy do subdominio `dgd.defesacivilpa.com.br`, use o arquivo unico limpo:
+
+```text
+deploy/dgd_app/database/u696029111_dgd_banco_limpo.sql
+```
+
+Ele cria a estrutura, carrega os cadastros de referencia e sobe a base sem decretos, anexos, sessoes, logs ou historico de usuario.
+
 ---
 
 ## 5. Admin inicial
@@ -106,6 +114,8 @@ Depois execute no banco:
 INSERT INTO usuarios (perfil_id, nome, email, senha_hash, ativo, trocar_senha_proximo_acesso)
 VALUES (1, 'Administrador DGD', 'admin@dgd.local', 'HASH_GERADO_AQUI', 1, 1);
 ```
+
+No SQL limpo de deploy, o administrador inicial ja esta incluido com a conta `admin@defesacivilpa.com.br` e senha temporaria `DGD@2026#Admin`.
 
 ---
 
@@ -141,11 +151,11 @@ Para envio real por e-mail profissional, configure o SMTP no `.env`:
 
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.seudominio.com
-MAIL_PORT=587
+MAIL_HOST=smtp.hostinger.com
+MAIL_PORT=465
 MAIL_USERNAME=sistema@seudominio.com
 MAIL_PASSWORD=senha_do_email
-MAIL_ENCRYPTION=tls
+MAIL_ENCRYPTION=ssl
 MAIL_FROM_ADDRESS=sistema@seudominio.com
 MAIL_FROM_NAME="DGD - CEDEC-PA"
 MAIL_CA_FILE="D:\wamp64\bin\php\certs\cacert.pem"
@@ -153,6 +163,10 @@ MAIL_VERIFY_PEER=true
 ```
 
 No Wampserver, mantenha `MAIL_VERIFY_PEER=true` e informe um `cacert.pem` valido em `MAIL_CA_FILE` quando o PHP nao tiver `openssl.cafile` configurado.
+
+Na Hostinger, use o e-mail profissional completo em `MAIL_USERNAME` e mantenha `MAIL_FROM_ADDRESS` com o mesmo endereco. A configuracao validada pelo projeto Plancon usa SMTP autenticado na porta `465` com `MAIL_ENCRYPTION=ssl`.
+
+O projeto inclui uma cadeia de autoridades certificadoras em `config/certs/cacert.pem`. Quando `MAIL_CA_FILE` estiver vazio, essa cadeia e utilizada automaticamente para validar o certificado TLS do servidor SMTP.
 
 ---
 

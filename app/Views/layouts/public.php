@@ -3,8 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#3d4098">
+    <meta name="application-name" content="DGD">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="DGD">
     <title><?= e($title ?? 'DGD'); ?> - DGD</title>
-    <link rel="icon" href="<?= e(url('/assets/img/app-icon-192.png')); ?>">
+    <link rel="manifest" href="<?= e(url('/manifest.webmanifest')); ?>">
+    <link rel="icon" href="<?= e(url('/favicon.ico')); ?>" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= e(url('/assets/img/app-icon-192.png')); ?>">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= e(url('/assets/img/app-icon-180.png')); ?>">
     <link rel="stylesheet" href="<?= e(url('/assets/css/app.css')); ?>">
     <?= $extraHead ?? ''; ?>
     <script src="<?= e(url('/assets/js/app.js')); ?>" defer></script>

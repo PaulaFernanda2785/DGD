@@ -34,3 +34,6 @@ Thumbs.db
 # Dependencias opcionais
 /vendor/
 /node_modules/
+
+# Pacote local de publicacao
+/deploy/

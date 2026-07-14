@@ -7,7 +7,6 @@ use App\Core\App;
 define('BASE_PATH', dirname(__DIR__));
 define('APP_PATH', BASE_PATH . DIRECTORY_SEPARATOR . 'app');
 define('CONFIG_PATH', BASE_PATH . DIRECTORY_SEPARATOR . 'config');
-define('PUBLIC_PATH', BASE_PATH . DIRECTORY_SEPARATOR . 'public');
 define('STORAGE_PATH', BASE_PATH . DIRECTORY_SEPARATOR . 'storage');
 
 spl_autoload_register(static function (string $class): void {
@@ -28,6 +27,20 @@ spl_autoload_register(static function (string $class): void {
 require APP_PATH . DIRECTORY_SEPARATOR . 'Helpers' . DIRECTORY_SEPARATOR . 'functions.php';
 
 load_env(BASE_PATH . DIRECTORY_SEPARATOR . '.env');
+
+$configuredPublicPath = trim((string) env('PUBLIC_PATH', ''));
+$frontController = (string) ($_SERVER['SCRIPT_FILENAME'] ?? '');
+$frontControllerPath = $frontController !== '' ? realpath($frontController) : false;
+$detectedPublicPath = $frontControllerPath !== false && basename($frontControllerPath) === 'index.php'
+    ? dirname($frontControllerPath)
+    : '';
+
+define(
+    'PUBLIC_PATH',
+    $configuredPublicPath !== ''
+        ? rtrim($configuredPublicPath, '/\\')
+        : ($detectedPublicPath !== '' ? $detectedPublicPath : BASE_PATH . DIRECTORY_SEPARATOR . 'public')
+);
 
 $appConfig = require CONFIG_PATH . DIRECTORY_SEPARATOR . 'app.php';
 
