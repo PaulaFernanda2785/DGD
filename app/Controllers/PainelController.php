@@ -34,6 +34,31 @@ class PainelController extends Controller
         ]);
     }
 
+    public function printReport(): void
+    {
+        $filters = $this->filters();
+        $relatorio = $this->painelService->relatorio($filters);
+        $geradoEm = new \DateTimeImmutable('now');
+
+        ob_start();
+        require view_path('painel/partials/print_report');
+        $html = (string) ob_get_clean();
+
+        $filenameSuffix = preg_replace('/[^A-Za-z0-9_-]+/', '-', implode('-', array_filter([
+            'painel',
+            $filters['ano'] ?? '',
+            $filters['municipio_id'] !== '' ? 'municipio-' . $filters['municipio_id'] : '',
+            $filters['regiao_integracao'] !== '' ? $filters['regiao_integracao'] : '',
+        ]))) ?: 'painel';
+
+        $this->json([
+            'success' => true,
+            'title' => 'Relatório do painel',
+            'filename' => 'relatorio-' . $filenameSuffix . '.pdf',
+            'html' => $html,
+        ]);
+    }
+
     private function filters(): array
     {
         $query = $this->request->query();

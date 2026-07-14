@@ -317,3 +317,19 @@ Decisoes aplicadas:
 10. Nao houve alteracao de banco de dados.
 
 Arquivos principais: `config/routes.php`, `app/Controllers/DecretoController.php`, `app/Views/decretos/partials/print_report.php`, `app/Views/decretos/index.php`, `app/Views/layouts/app.php`, `public/assets/js/app.js`, `public/assets/css/app.css`.
+
+---
+
+## 2026-07-14 - Relatorio de impressao do painel
+
+Foi incluida na pagina Painel a acao `Gerar relatorio`, usando o mesmo modal e mecanismo de impressao/PDF do relatorio de decreto.
+
+Decisoes aplicadas:
+
+1. O relatorio e carregado por rota autenticada `GET /painel/relatorio-impressao`, protegida pela permissao `painel.visualizar`.
+2. O botao monta a URL do relatorio a partir dos campos atuais do formulario de filtros, garantindo que o PDF respeite o recorte selecionado pelo usuario.
+3. O `PainelService::relatorio()` consolida resumo, indicadores, camadas do mapa, registros recentes e decretos do recorte.
+4. O layout usa a mesma estrutura visual do relatorio de decreto, com cabecalho, hero, secoes, tabelas, rodape e paginacao.
+5. Nao houve alteracao de banco de dados.
+
+Arquivos principais: `config/routes.php`, `app/Controllers/PainelController.php`, `app/Services/PainelService.php`, `app/Views/painel/index.php`, `app/Views/painel/partials/print_report.php`, `public/assets/js/app.js`, `public/assets/css/app.css`.

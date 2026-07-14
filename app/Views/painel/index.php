@@ -43,6 +43,8 @@ $formatDate = static function (?string $date): string {
         return $date;
     }
 };
+$reportQuery = http_build_query(array_filter($filters, static fn (mixed $value): bool => trim((string) $value) !== ''));
+$reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $reportQuery : ''));
 ?>
 
 <section class="panel-page">
@@ -54,6 +56,13 @@ $formatDate = static function (?string $date): string {
         </div>
 
         <div class="panel-hero-actions">
+            <button
+                type="button"
+                class="button button-secondary"
+                data-panel-print-open
+                data-report-base-url="<?= e(url('/painel/relatorio-impressao')); ?>"
+                data-report-url="<?= e($reportUrl); ?>"
+            >Gerar relatório</button>
             <?php if (can('decretos.visualizar')): ?>
                 <a class="button button-light" href="<?= e(url('/decretos')); ?>">Ver decretos</a>
             <?php endif; ?>

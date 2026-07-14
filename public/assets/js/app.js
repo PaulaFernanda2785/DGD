@@ -61,6 +61,14 @@ document.addEventListener('click', function (event) {
         }
     }
 
+    var panelPrintOpen = target.closest('[data-panel-print-open]');
+
+    if (panelPrintOpen) {
+        event.preventDefault();
+        openPanelPrintModal(panelPrintOpen);
+        return;
+    }
+
     var decreePrintOpen = target.closest('[data-decree-print-open]');
 
     if (decreePrintOpen) {
@@ -270,6 +278,34 @@ function openDecreePrintModal(trigger) {
                 elements.printButton.removeAttribute('aria-busy');
             }
         });
+}
+
+function openPanelPrintModal(trigger) {
+    if (!(trigger instanceof HTMLElement)) {
+        return;
+    }
+
+    var baseUrl = trigger.getAttribute('data-report-base-url') || trigger.getAttribute('data-report-url') || '';
+
+    if (!baseUrl) {
+        return;
+    }
+
+    var form = document.querySelector('.panel-filter-form');
+    var query = new URLSearchParams();
+
+    if (form instanceof HTMLFormElement) {
+        new FormData(form).forEach(function (value, key) {
+            value = String(value || '').trim();
+
+            if (value !== '') {
+                query.set(key, value);
+            }
+        });
+    }
+
+    trigger.setAttribute('data-report-url', baseUrl + (query.toString() !== '' ? '?' + query.toString() : ''));
+    openDecreePrintModal(trigger);
 }
 
 function closeDecreePrintModal() {

@@ -5190,7 +5190,7 @@ tbody tr:hover {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    z-index: 1200;
     display: grid;
     place-items: center;
     padding: 20px;
@@ -5263,7 +5263,7 @@ tbody tr:hover {
 .decree-print-backdrop {
     align-items: stretch;
     padding: clamp(10px, 2vw, 24px);
-    z-index: 55;
+    z-index: 1300;
 }
 
 .decree-print-modal {
@@ -5451,6 +5451,42 @@ tbody tr:hover {
     color: #f4fbff;
     font-size: 12px;
     line-height: 1.35;
+}
+
+.panel-print-report .decree-print-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.panel-print-cover {
+    grid-template-columns: minmax(0, 0.72fr) minmax(320px, 1fr);
+}
+
+.panel-print-filter-brief {
+    align-items: flex-start;
+}
+
+.panel-print-filter-brief p {
+    font-size: 12px;
+}
+
+.panel-print-ranking-row {
+    grid-template-columns: minmax(0, 1fr) 0.35fr 0.45fr;
+}
+
+.panel-print-recent-row {
+    grid-template-columns: 0.75fr 0.7fr minmax(0, 1fr) minmax(0, 0.85fr);
+}
+
+.panel-print-register-row {
+    grid-template-columns: 0.72fr 0.75fr minmax(0, 1.25fr) minmax(0, 0.8fr) 0.55fr 0.42fr;
+}
+
+.panel-print-register-row small,
+.panel-print-recent-row small {
+    color: #667085;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: none;
 }
 
 .decree-print-summary,
@@ -5660,6 +5696,18 @@ tbody tr:hover {
     grid-template-columns: 0.8fr 1.3fr 0.7fr 0.45fr;
 }
 
+.decree-print-paged-report.is-measuring .panel-print-ranking-row {
+    grid-template-columns: minmax(0, 1fr) 0.35fr 0.45fr;
+}
+
+.decree-print-paged-report.is-measuring .panel-print-recent-row {
+    grid-template-columns: 0.75fr 0.7fr minmax(0, 1fr) minmax(0, 0.85fr);
+}
+
+.decree-print-paged-report.is-measuring .panel-print-register-row {
+    grid-template-columns: 0.72fr 0.75fr minmax(0, 1.25fr) minmax(0, 0.8fr) 0.55fr 0.42fr;
+}
+
 @media (max-width: 920px) {
     .decree-print-modal-toolbar,
     .decree-print-header,
@@ -5801,6 +5849,18 @@ tbody tr:hover {
 
     body.is-printing-decree-report .decree-print-row {
         grid-template-columns: 0.8fr 1.3fr 0.7fr 0.45fr;
+    }
+
+    body.is-printing-decree-report .panel-print-ranking-row {
+        grid-template-columns: minmax(0, 1fr) 0.35fr 0.45fr;
+    }
+
+    body.is-printing-decree-report .panel-print-recent-row {
+        grid-template-columns: 0.75fr 0.7fr minmax(0, 1fr) minmax(0, 0.85fr);
+    }
+
+    body.is-printing-decree-report .panel-print-register-row {
+        grid-template-columns: 0.72fr 0.75fr minmax(0, 1.25fr) minmax(0, 0.8fr) 0.55fr 0.42fr;
     }
 
     body.is-printing-decree-report .decree-print-footer {

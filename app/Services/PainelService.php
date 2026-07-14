@@ -117,6 +117,55 @@ class PainelService
         ];
     }
 
+    public function relatorio(array $filters = []): array
+    {
+        return [
+            'filters' => $filters,
+            'opcoes' => $this->opcoesFiltros(),
+            'resumo' => $this->resumo($filters),
+            'indicadores' => $this->indicadores($filters),
+            'mapa' => $this->mapa($filters),
+            'recentes' => $this->recentes($filters),
+            'registros' => $this->registrosRelatorio($filters),
+        ];
+    }
+
+    private function registrosRelatorio(array $filters): array
+    {
+        try {
+            [$where, $params] = $this->decretoWhere($filters);
+            $stmt = Database::connection()->prepare(
+                'SELECT
+                    id,
+                    protocolo_dgd,
+                    municipio,
+                    compdec_regiao_integracao,
+                    ubm_atuante,
+                    tipo_decreto,
+                    cobrade_codigo,
+                    cobrade_subtipo,
+                    data_desastre,
+                    numero_decreto_municipal,
+                    homologacao,
+                    reconhecimento,
+                    status_envio_pge,
+                    data_envio_pge,
+                    duracao_pge_dias,
+                    status_prazo_pge_calculado,
+                    total_afetados
+                 FROM vw_decretos_listagem
+                 WHERE ativo = 1' . $where . '
+                 ORDER BY protocolo_ano DESC, protocolo_sequencial DESC
+                 LIMIT 200'
+            );
+            $stmt->execute($params);
+
+            return $stmt->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function desastrePoints(array $filters): array
     {
         try {

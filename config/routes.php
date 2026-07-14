@@ -33,6 +33,7 @@ return [
     ['POST', '/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]],
 
     ['GET', '/painel', [PainelController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'painel.visualizar']]],
+    ['GET', '/painel/relatorio-impressao', [PainelController::class, 'printReport'], [AuthMiddleware::class, [PermissionMiddleware::class, 'painel.visualizar']]],
 
     ['GET', '/decretos', [DecretoController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.visualizar']]],
     ['GET', '/decretos/novo', [DecretoController::class, 'create'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.criar']]],
