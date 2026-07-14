@@ -16,4 +16,8 @@ Options -Indexes
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    <FilesMatch "^(manifest\.webmanifest|favicon\.ico|app-icon-(180|192|512|maskable-512)\.png)$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
 </IfModule>

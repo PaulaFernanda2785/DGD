@@ -33,10 +33,10 @@ $isActive = static function (string $path) use ($currentPath): string {
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="DGD">
     <title><?= e($title ?? 'DGD'); ?> - DGD</title>
-    <link rel="manifest" href="<?= e($assetBaseUrl . '/manifest.webmanifest'); ?>">
-    <link rel="icon" href="<?= e($assetBaseUrl . '/favicon.ico'); ?>" sizes="any">
-    <link rel="icon" type="image/png" sizes="192x192" href="<?= e($assetBaseUrl . '/assets/img/app-icon-192.png'); ?>">
-    <link rel="apple-touch-icon" sizes="180x180" href="<?= e($assetBaseUrl . '/assets/img/app-icon-180.png'); ?>">
+    <link rel="manifest" href="<?= e($assetBaseUrl . '/manifest.webmanifest?v=20260714.2'); ?>">
+    <link rel="icon" href="<?= e($assetBaseUrl . '/favicon.ico?v=20260714.2'); ?>" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= e($assetBaseUrl . '/assets/img/app-icon-192.png?v=20260714.2'); ?>">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= e($assetBaseUrl . '/assets/img/app-icon-180.png?v=20260714.2'); ?>">
     <?php foreach ($stylesheets as $stylesheet): ?>
         <link rel="stylesheet" href="<?= e(url((string) $stylesheet)); ?>">
     <?php endforeach; ?>

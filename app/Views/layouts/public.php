@@ -10,10 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="DGD">
     <title><?= e($title ?? 'DGD'); ?> - DGD</title>
-    <link rel="manifest" href="<?= e(url('/manifest.webmanifest')); ?>">
-    <link rel="icon" href="<?= e(url('/favicon.ico')); ?>" sizes="any">
-    <link rel="icon" type="image/png" sizes="192x192" href="<?= e(url('/assets/img/app-icon-192.png')); ?>">
-    <link rel="apple-touch-icon" sizes="180x180" href="<?= e(url('/assets/img/app-icon-180.png')); ?>">
+    <link rel="manifest" href="<?= e(url('/manifest.webmanifest?v=20260714.2')); ?>">
+    <link rel="icon" href="<?= e(url('/favicon.ico?v=20260714.2')); ?>" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= e(url('/assets/img/app-icon-192.png?v=20260714.2')); ?>">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= e(url('/assets/img/app-icon-180.png?v=20260714.2')); ?>">
     <link rel="stylesheet" href="<?= e(url('/assets/css/app.css')); ?>">
     <?= $extraHead ?? ''; ?>
     <script src="<?= e(url('/assets/js/app.js')); ?>" defer></script>
