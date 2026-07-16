@@ -23,6 +23,7 @@
 11. `database/migrations/2026_07_08_homologacao_pge_restore_rule.sql` - preserva e restaura o estado PGE quando a homologacao muda para ou deixa de ser homologada.
 12. `database/migrations/2026_07_08_add_cobrade_simbologia_to_decretos_view.sql` - inclui `cobrade_simbologia` na view de listagem para exibir a imagem simbolica do desastre.
 13. `database/migrations/2026_07_08_align_pge_status_view_rule.sql` - alinha `status_prazo_pge_calculado` ao mesmo marco final de `duracao_pge_dias`.
+14. `database/migrations/2026_07_15_update_ubm_official_coordinates.sql` - cria as colunas de geolocalizacao quando necessario e substitui as coordenadas das UBMs pela base oficial recebida.
 
 ---
 
@@ -187,6 +188,21 @@ No formulario de novo cadastro de desastre, ao selecionar o municipio, o sistema
 6. E-mail.
 
 Esses campos sao gravados em `desastres` como snapshot para preservar o historico do cadastro.
+
+### 7.1. Coordenadas oficiais das UBMs
+
+A migration `database/migrations/2026_07_15_update_ubm_official_coordinates.sql` atualiza latitude e longitude a partir do arquivo de referencia `unidades_bombeiros_militares (1).sql`.
+
+A unidade e identificada pelo numero inicial do nome, pois uma mesma UBM aparece vinculada a varios municipios atendidos. Assim, todos os vinculos municipais de uma unidade recebem o mesmo ponto geografico oficial do quartel, sem alterar nomes, vinculos ou registros operacionais.
+
+Para atualizar um banco existente no servidor compartilhado:
+
+1. Fazer backup do banco.
+2. Selecionar o banco correto no phpMyAdmin.
+3. Importar somente `database/migrations/2026_07_15_update_ubm_official_coordinates.sql`.
+4. Confirmar que a consulta ao mapa do painel apresenta as UBMs nas novas localizacoes.
+
+A migration e idempotente e pode ser reexecutada. Ela contempla 30 unidades e atualiza os 144 vinculos existentes na base local validada em 15/07/2026.
 
 ---
 ## 8. Carga COBRADE

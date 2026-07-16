@@ -384,6 +384,8 @@ Armazena as UBM/unidades atuantes vinculáveis ao cadastro do desastre.
 | `nome` | `VARCHAR(150)` | Sim | IDX | Cadastro/CEDEC-PA | Nome completo da unidade atuante. |
 | `sigla` | `VARCHAR(40)` | Não | - | Cadastro/CEDEC-PA | Sigla ou identificação curta. |
 | `descricao` | `TEXT` | Não | - | Cadastro/CEDEC-PA | Observações sobre a unidade. |
+| `latitude` | `DECIMAL(11,8)` | Não | - | Base oficial UBM | Latitude geográfica oficial do quartel. |
+| `longitude` | `DECIMAL(11,8)` | Não | - | Base oficial UBM | Longitude geográfica oficial do quartel. |
 | `ativo` | `TINYINT(1)` | Sim | IDX | Sistema | Indica se a unidade aparece no cadastro do desastre. |
 | `criado_em` | `DATETIME` | Auto | - | Banco | Data/hora de criação. |
 | `atualizado_em` | `DATETIME` | Auto | - | Banco | Data/hora da última atualização. |

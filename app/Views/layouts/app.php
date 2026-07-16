@@ -3,6 +3,9 @@
 use App\Core\Auth;
 
 $usuario = Auth::user();
+$appCssVersion = is_file(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'app.css')
+    ? (string) filemtime(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'app.css')
+    : '20260716.1';
 $appJsVersion = is_file(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
     ? (string) filemtime(PUBLIC_PATH . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'app.js')
     : '20260714.3';
@@ -40,7 +43,7 @@ $isActive = static function (string $path) use ($currentPath): string {
     <?php foreach ($stylesheets as $stylesheet): ?>
         <link rel="stylesheet" href="<?= e(url((string) $stylesheet)); ?>">
     <?php endforeach; ?>
-    <link rel="stylesheet" href="<?= e($assetBaseUrl . '/assets/css/app.css'); ?>">
+    <link rel="stylesheet" href="<?= e($assetBaseUrl . '/assets/css/app.css?v=' . rawurlencode($appCssVersion)); ?>">
     <?php foreach ($scripts as $script): ?>
         <script src="<?= e(url((string) $script)); ?>" defer></script>
     <?php endforeach; ?>

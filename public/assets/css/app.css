@@ -5516,6 +5516,76 @@ tbody tr:hover {
     overflow-wrap: anywhere;
 }
 
+.decree-print-highlight {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.decree-print-summary > .decree-print-highlight,
+.decree-print-grid > .decree-print-highlight {
+    border-left-width: 5px;
+}
+
+.decree-print-summary > .decree-print-highlight--success,
+.decree-print-grid > .decree-print-highlight--success {
+    background: #ecfdf3;
+    border-color: #86d7a6;
+    border-left-color: #18794e;
+}
+
+.decree-print-highlight--success span,
+.decree-print-highlight--success strong {
+    color: #12633f;
+}
+
+.decree-print-summary > .decree-print-highlight--danger,
+.decree-print-grid > .decree-print-highlight--danger {
+    background: #fff1f2;
+    border-color: #f3a7ad;
+    border-left-color: #c62f3b;
+}
+
+.decree-print-highlight--danger span,
+.decree-print-highlight--danger strong {
+    color: #98242d;
+}
+
+.decree-print-summary > .decree-print-highlight--warning,
+.decree-print-grid > .decree-print-highlight--warning {
+    background: #fff8e6;
+    border-color: #ecc86c;
+    border-left-color: #b7791f;
+}
+
+.decree-print-highlight--warning span,
+.decree-print-highlight--warning strong {
+    color: #855511;
+}
+
+.decree-print-summary > .decree-print-highlight--info,
+.decree-print-grid > .decree-print-highlight--info {
+    background: #eaf7fb;
+    border-color: #8acbdc;
+    border-left-color: #16758a;
+}
+
+.decree-print-highlight--info span,
+.decree-print-highlight--info strong {
+    color: #115f70;
+}
+
+.decree-print-summary > .decree-print-highlight--muted,
+.decree-print-grid > .decree-print-highlight--muted {
+    background: #f3f5f7;
+    border-color: #cbd3dc;
+    border-left-color: #667085;
+}
+
+.decree-print-highlight--muted span,
+.decree-print-highlight--muted strong {
+    color: #475467;
+}
+
 .decree-print-section {
     break-inside: avoid;
     display: grid;
@@ -5773,6 +5843,12 @@ tbody tr:hover {
     body.is-printing-decree-report {
         background: #ffffff !important;
         margin: 0 !important;
+    }
+
+    body.is-printing-decree-report .decree-print-report,
+    body.is-printing-decree-report .decree-print-highlight {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     body.is-printing-decree-report .app-shell,

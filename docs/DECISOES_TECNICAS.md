@@ -385,3 +385,37 @@ Decisoes aplicadas:
 6. A migration `2026_07_14_preserve_pge_duration_after_homologation.sql` consolida a data final dos registros existentes e recria as views operacionais.
 
 Arquivos principais: `app/Services/PgePrazoService.php`, `app/Services/DecretoService.php`, `app/Services/PainelService.php`, `database/views.sql`, `database/install.sql` e `database/migrations/2026_07_14_preserve_pge_duration_after_homologation.sql`.
+
+---
+
+## 2026-07-15 - Coordenadas oficiais das UBMs
+
+As coordenadas da tabela `ubms` passaram a usar a base `unidades_bombeiros_militares (1).sql` fornecida para o DGD.
+
+Decisoes aplicadas:
+
+1. A correspondencia usa o numero inicial da unidade, evitando divergencias entre os simbolos ordinais e complementos presentes nos nomes.
+2. O municipio informado na base de referencia nao foi usado como chave, pois representa um municipio atendido e nao necessariamente a sede do quartel.
+3. Todos os vinculos municipais da mesma UBM recebem a latitude e a longitude oficiais da unidade.
+4. A migration cria as colunas de geolocalizacao quando elas ainda nao existirem e pode ser executada novamente sem efeitos colaterais.
+5. A validacao local confirmou 144 vinculos, 30 unidades, nenhuma coordenada invalida e nenhuma divergencia com a referencia.
+
+Arquivo principal: `database/migrations/2026_07_15_update_ubm_official_coordinates.sql`.
+
+---
+
+## 2026-07-16 - Destaques de status no relatório do decreto
+
+O modal de impressão e o PDF do decreto passaram a destacar os campos institucionais conforme o estado registrado.
+
+Decisões aplicadas:
+
+1. Tipo de decreto, Status PGE, Homologação, Reconhecimento federal e Envio à PGE usam cores semânticas.
+2. Estados aprovados ou concluídos usam verde; recusados usam vermelho; envio, análise e prazo regular usam azul; pendências e solicitações usam amarelo; estados sem classificação usam cinza.
+3. Situação de emergência usa amarelo e estado de calamidade pública usa vermelho.
+4. A mesma partial atende ao modal e à impressão, impedindo divergência visual entre a prévia e o PDF.
+5. Os estilos usam `print-color-adjust: exact` para preservar as cores na geração pelo navegador.
+6. Não houve alteração no banco de dados nem nas regras dos status.
+7. O CSS principal passou a usar versionamento por data de modificação para evitar cache desatualizado após o deploy.
+
+Arquivos principais: `app/Views/decretos/partials/print_report.php`, `app/Views/layouts/app.php` e `public/assets/css/app.css`.

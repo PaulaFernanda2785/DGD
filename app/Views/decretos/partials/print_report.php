@@ -37,6 +37,95 @@
     };
     $simbologiaUrl = $cobradeSymbolUrl($registro['cobrade_simbologia'] ?? null, $registro['cobrade_codigo'] ?? null);
     $descricaoDesastre = $valor($registro['cobrade_descricao'] ?? null);
+    $normalizarStatus = static function (mixed $value): string {
+        $text = mb_strtoupper(trim((string) $value), 'UTF-8');
+        $text = strtr($text, [
+            'Á' => 'A',
+            'À' => 'A',
+            'Â' => 'A',
+            'Ã' => 'A',
+            'Ä' => 'A',
+            'É' => 'E',
+            'È' => 'E',
+            'Ê' => 'E',
+            'Ë' => 'E',
+            'Í' => 'I',
+            'Ì' => 'I',
+            'Î' => 'I',
+            'Ï' => 'I',
+            'Ó' => 'O',
+            'Ò' => 'O',
+            'Ô' => 'O',
+            'Õ' => 'O',
+            'Ö' => 'O',
+            'Ú' => 'U',
+            'Ù' => 'U',
+            'Û' => 'U',
+            'Ü' => 'U',
+            'Ç' => 'C',
+        ]);
+
+        return preg_replace('/[^A-Z0-9]+/', '_', $text) ?? '';
+    };
+    $classeDestaque = static function (string $campo, mixed $codigo, mixed $value) use ($normalizarStatus): string {
+        $status = $normalizarStatus(trim((string) $codigo) . ' ' . trim((string) $value));
+
+        if ($campo === 'tipo_decreto') {
+            if (str_contains($status, 'CALAMIDADE')) {
+                return 'decree-print-highlight decree-print-highlight--danger';
+            }
+
+            if (str_contains($status, 'EMERGENCIA')) {
+                return 'decree-print-highlight decree-print-highlight--warning';
+            }
+
+            return 'decree-print-highlight decree-print-highlight--muted';
+        }
+
+        if (
+            str_contains($status, 'NAO_HOMOLOGADO')
+            || str_contains($status, 'NAO_RECONHECIDO')
+            || str_contains($status, 'REPROVADO')
+            || str_contains($status, 'INDEFERIDO')
+        ) {
+            return 'decree-print-highlight decree-print-highlight--danger';
+        }
+
+        if (
+            str_contains($status, 'HOMOLOGADO')
+            || str_contains($status, 'RECONHECIDO')
+            || str_contains($status, 'APROVADO')
+            || str_contains($status, 'CONCLUIDO')
+        ) {
+            return 'decree-print-highlight decree-print-highlight--success';
+        }
+
+        if (
+            str_contains($status, 'ENVIADO')
+            || str_contains($status, 'ANALISE')
+            || str_contains($status, 'NO_PRAZO')
+        ) {
+            return 'decree-print-highlight decree-print-highlight--info';
+        }
+
+        if (
+            str_contains($status, 'PENDENTE')
+            || str_contains($status, 'SOLICITADO')
+            || str_contains($status, 'PREPARACAO')
+            || str_contains($status, 'AGUARDANDO')
+        ) {
+            return 'decree-print-highlight decree-print-highlight--warning';
+        }
+
+        return 'decree-print-highlight decree-print-highlight--muted';
+    };
+    $destaquesRelatorio = [
+        'Tipo de decreto' => $classeDestaque('tipo_decreto', $registro['tipo_decreto_codigo'] ?? null, $registro['tipo_decreto'] ?? null),
+        'Homologação' => $classeDestaque('homologacao', $registro['homologacao_codigo'] ?? null, $registro['homologacao'] ?? null),
+        'Reconhecimento federal' => $classeDestaque('reconhecimento', $registro['reconhecimento_codigo'] ?? null, $registro['reconhecimento'] ?? null),
+        'Envio à PGE' => $classeDestaque('envio_pge', $registro['status_envio_pge_codigo'] ?? null, $registro['status_envio_pge'] ?? null),
+        'Status PGE' => $classeDestaque('status_pge', $registro['status_prazo_pge_calculado'] ?? null, $registro['status_prazo_pge_calculado'] ?? null),
+    ];
     $blocos = [
         'Dados do município e COMPDEC' => [
             'Município' => $valor($registro['municipio'] ?? null),
@@ -122,8 +211,8 @@
 
     <section class="decree-print-summary">
         <div><span>Protocolo DGD</span><strong><?= e($registro['protocolo_dgd'] ?? 'Não informado'); ?></strong></div>
-        <div><span>Tipo de decreto</span><strong><?= e($valor($registro['tipo_decreto'] ?? null)); ?></strong></div>
-        <div><span>Status PGE</span><strong><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?></strong></div>
+        <div class="<?= e($destaquesRelatorio['Tipo de decreto']); ?>"><span>Tipo de decreto</span><strong><?= e($valor($registro['tipo_decreto'] ?? null)); ?></strong></div>
+        <div class="<?= e($destaquesRelatorio['Status PGE']); ?>"><span>Status PGE</span><strong><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?></strong></div>
         <div><span>Total de afetados</span><strong><?= e($numero($registro['total_afetados'] ?? 0)); ?></strong></div>
     </section>
 
@@ -133,7 +222,7 @@
             <h3><span><?= e(str_pad((string) $sectionNumber, 2, '0', STR_PAD_LEFT)); ?></span><?= e($titulo); ?></h3>
             <div class="decree-print-grid">
                 <?php foreach ($campos as $label => $value): ?>
-                    <div>
+                    <div<?= isset($destaquesRelatorio[$label]) ? ' class="' . e($destaquesRelatorio[$label]) . '"' : ''; ?>>
                         <span><?= e($label); ?></span>
                         <strong><?= e($value); ?></strong>
                     </div>
