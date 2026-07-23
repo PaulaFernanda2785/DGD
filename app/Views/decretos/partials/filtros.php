@@ -22,6 +22,18 @@
     </div>
 
     <div class="field">
+        <label for="filtro_tipo_ajuda">Tipo de ajuda</label>
+        <select id="filtro_tipo_ajuda" name="tipo_ajuda_id">
+            <option value="">Todos os tipos de ajuda</option>
+            <?php foreach ($dominios['tiposAjuda'] as $tipoAjuda): ?>
+                <option value="<?= e($tipoAjuda['id']); ?>" <?= (string) ($filtros['tipo_ajuda_id'] ?? '') === (string) $tipoAjuda['id'] ? 'selected' : ''; ?>>
+                    <?= e($tipoAjuda['nome']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+
+    <div class="field">
         <label for="filtro_homologacao">Homologação</label>
         <select id="filtro_homologacao" name="homologacao_status_id">
             <option value="">Todas</option>

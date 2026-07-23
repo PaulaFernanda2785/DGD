@@ -30,9 +30,11 @@ class DecretoRepository
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
+        $registros = $stmt->fetchAll();
+        $this->adicionarResumoEntregas($registros);
 
         return [
-            'registros' => $stmt->fetchAll(),
+            'registros' => $registros,
             'paginacao' => [
                 'pagina' => $page,
                 'limite' => $limit,
@@ -40,6 +42,61 @@ class DecretoRepository
                 'paginas' => max((int) ceil($total / $limit), 1),
             ],
         ];
+    }
+
+    /**
+     * Anexa os itens de ajuda agrupados a todos os decretos da página em uma única consulta.
+     * Entregas repetidas do mesmo tipo são consolidadas por quantidade e valor.
+     *
+     * @param array<int, array<string, mixed>> $registros
+     */
+    private function adicionarResumoEntregas(array &$registros): void
+    {
+        if ($registros === []) {
+            return;
+        }
+
+        $ids = array_values(array_filter(array_map(
+            static fn (array $registro): int => (int) ($registro['id'] ?? 0),
+            $registros
+        )));
+
+        if ($ids === []) {
+            return;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = Database::connection()->prepare(
+            'SELECT
+                e.desastre_id,
+                t.nome AS tipo_ajuda_nome,
+                t.unidade_medida,
+                COALESCE(SUM(e.quantidade), 0) AS quantidade,
+                COALESCE(SUM(e.valor_total), 0) AS valor_total
+             FROM decreto_entregas e
+             INNER JOIN tipos_ajuda t ON t.id = e.tipo_ajuda_id
+             WHERE e.desastre_id IN (' . $placeholders . ')
+             GROUP BY e.desastre_id, t.id, t.nome, t.unidade_medida
+             ORDER BY t.nome'
+        );
+        $stmt->execute($ids);
+
+        $entregasPorDecreto = [];
+        foreach ($stmt->fetchAll() as $entrega) {
+            $entregasPorDecreto[(int) $entrega['desastre_id']][] = [
+                'tipo_ajuda_nome' => (string) $entrega['tipo_ajuda_nome'],
+                'unidade_medida' => (string) $entrega['unidade_medida'],
+                'quantidade' => (float) $entrega['quantidade'],
+                'valor_total' => (float) $entrega['valor_total'],
+            ];
+        }
+
+        foreach ($registros as &$registro) {
+            $entregas = $entregasPorDecreto[(int) $registro['id']] ?? [];
+            $registro['entregas_ajuda'] = $entregas;
+            $registro['valor_total_entregas'] = array_sum(array_column($entregas, 'valor_total'));
+        }
+        unset($registro);
     }
 
     public function resumo(array $filters = []): array
@@ -58,12 +115,33 @@ class DecretoRepository
         $stmt->execute($params);
         $resumo = $stmt->fetch() ?: [];
 
+        $whereEntregas = $where;
+        $paramsEntregas = $params;
+
+        if (($filters['tipo_ajuda_id'] ?? '') !== '') {
+            $whereEntregas .= ' AND e.tipo_ajuda_id = :tipo_ajuda_entrega_id';
+            $paramsEntregas['tipo_ajuda_entrega_id'] = (int) $filters['tipo_ajuda_id'];
+        }
+
+        $entregasStmt = Database::connection()->prepare(
+            'SELECT
+                COALESCE(SUM(e.quantidade), 0) AS quantidade_entregue,
+                COALESCE(SUM(e.valor_total), 0) AS valor_total_entregue
+             FROM decreto_entregas e
+             INNER JOIN vw_decretos_listagem ON vw_decretos_listagem.id = e.desastre_id
+             WHERE vw_decretos_listagem.ativo = 1' . $whereEntregas
+        );
+        $entregasStmt->execute($paramsEntregas);
+        $entregas = $entregasStmt->fetch() ?: [];
+
         return [
             'total_registros' => (int) ($resumo['total_registros'] ?? 0),
             'total_afetados' => (int) ($resumo['total_afetados'] ?? 0),
             'pendentes_pge' => (int) ($resumo['pendentes_pge'] ?? 0),
             'homologados' => (int) ($resumo['homologados'] ?? 0),
             'reconhecidos' => (int) ($resumo['reconhecidos'] ?? 0),
+            'quantidade_entregue' => (float) ($entregas['quantidade_entregue'] ?? 0),
+            'valor_total_entregue' => (float) ($entregas['valor_total_entregue'] ?? 0),
         ];
     }
 
@@ -215,6 +293,16 @@ class DecretoRepository
         if (!empty($filters['protocolo'])) {
             $where .= ' AND protocolo_dgd LIKE :protocolo';
             $params['protocolo'] = '%' . $filters['protocolo'] . '%';
+        }
+
+        if (($filters['tipo_ajuda_id'] ?? '') !== '') {
+            $where .= ' AND EXISTS (
+                SELECT 1
+                FROM decreto_entregas entrega_filtro
+                WHERE entrega_filtro.desastre_id = vw_decretos_listagem.id
+                  AND entrega_filtro.tipo_ajuda_id = :tipo_ajuda_id
+            )';
+            $params['tipo_ajuda_id'] = (int) $filters['tipo_ajuda_id'];
         }
 
         if (!empty($filters['status_prazo_pge'])) {

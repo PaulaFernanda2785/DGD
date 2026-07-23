@@ -5,11 +5,18 @@
         'pendentes_pge' => 0,
         'homologados' => 0,
         'reconhecidos' => 0,
+        'quantidade_entregue' => 0,
+        'valor_total_entregue' => 0,
     ], is_array($resumo ?? null) ? $resumo : []);
     $filtrosAtivos = array_filter($filtros ?? [], static fn (mixed $value, string $field): bool => $field !== 'page' && trim((string) $value) !== '', ARRAY_FILTER_USE_BOTH);
     $descricaoRecorte = $filtrosAtivos === [] ? 'Total de todos os registros cadastrados.' : 'Total conforme os filtros aplicados.';
     $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
     $dash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
+    $formatQuantity = static function (mixed $value): string {
+        $quantity = number_format((float) $value, 2, ',', '.');
+
+        return rtrim(rtrim($quantity, '0'), ',');
+    };
     $cobradeSymbolUrl = static function (mixed $path, mixed $codigo): ?string {
         $path = trim(str_replace('\\', '/', (string) $path));
 
@@ -72,6 +79,16 @@
         <span>Reconhecidos</span>
         <strong><?= e($resumo['reconhecidos']); ?></strong>
         <small>Registros com reconhecimento federal concluído.</small>
+    </div>
+    <div>
+        <span>Quantidade entregue</span>
+        <strong><?= e(number_format((float) $resumo['quantidade_entregue'], 0, ',', '.')); ?></strong>
+        <small>Soma das quantidades registradas nas entregas do recorte.</small>
+    </div>
+    <div>
+        <span>Valor das entregas</span>
+        <strong>R$ <?= e(number_format((float) $resumo['valor_total_entregue'], 2, ',', '.')); ?></strong>
+        <small>Valor total dos itens de ajuda entregues no recorte.</small>
     </div>
 </section>
 
@@ -182,6 +199,31 @@
                         </small>
                     </div>
                 </div>
+
+                <?php $entregasAjuda = is_array($registro['entregas_ajuda'] ?? null) ? $registro['entregas_ajuda'] : []; ?>
+                <?php if ($entregasAjuda !== []): ?>
+                    <section class="decree-delivery-summary" aria-label="Entregas de ajuda humanitária">
+                        <header class="decree-delivery-summary-header">
+                            <div>
+                                <span>Entregas de ajuda humanitária</span>
+                                <strong>Itens entregues neste decreto</strong>
+                            </div>
+                            <div class="decree-delivery-total">
+                                <span>Valor total entregue</span>
+                                <strong>R$ <?= e(number_format((float) ($registro['valor_total_entregas'] ?? 0), 2, ',', '.')); ?></strong>
+                            </div>
+                        </header>
+                        <div class="decree-delivery-items">
+                            <?php foreach ($entregasAjuda as $entrega): ?>
+                                <div class="decree-delivery-item">
+                                    <strong><?= e($entrega['tipo_ajuda_nome']); ?></strong>
+                                    <span>Quantidade: <?= e($formatQuantity($entrega['quantidade'] ?? 0)); ?> <?= e($entrega['unidade_medida'] ?? ''); ?></span>
+                                    <b>R$ <?= e(number_format((float) ($entrega['valor_total'] ?? 0), 2, ',', '.')); ?></b>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
             </div>
         </article>
     <?php endforeach; ?>
