@@ -179,10 +179,25 @@
     </div>
 </section>
 
+<section class="detail-section delivery-detail-section">
+    <div class="detail-section-heading"><div><span>05</span><h2>Entregas de ajuda humanitária</h2></div><p>Itens, quantidades, valores e datas de entrega vinculados a este decreto.</p></div>
+    <?php if (($registro['entregas'] ?? []) !== []): ?>
+        <?php $valorTotalEntregas = array_sum(array_map(static fn (array $item): float => (float) ($item['valor_total'] ?? 0), $registro['entregas'])); ?>
+        <div class="detail-card-grid">
+            <?php foreach ($registro['entregas'] as $entrega): ?>
+                <div><strong><?= e($entrega['tipo_ajuda_nome'] ?? 'Item entregue'); ?></strong><span>Quantidade: <?= e(number_format((float) ($entrega['quantidade'] ?? 0), 2, ',', '.')); ?> <?= e($entrega['unidade_medida'] ?? ''); ?></span><span>Valor total: R$ <?= e(number_format((float) ($entrega['valor_total'] ?? 0), 2, ',', '.')); ?></span><span>Data: <?= e($formatDate($entrega['data_entrega'] ?? null)); ?></span></div>
+            <?php endforeach; ?>
+        </div>
+        <div class="delivery-total-summary"><span>Valor total de todos os itens entregues</span><strong>R$ <?= e(number_format($valorTotalEntregas, 2, ',', '.')); ?></strong><small>Soma consolidada das entregas vinculadas a este decreto.</small></div>
+    <?php else: ?>
+        <p class="detail-observation">Nenhum item entregue foi registrado para este decreto.</p>
+    <?php endif; ?>
+</section>
+
 <section class="detail-section observation-detail-section">
     <div class="detail-section-heading">
         <div>
-            <span>05</span>
+            <span>06</span>
             <h2>Observações complementares</h2>
         </div>
         <p>Informações adicionais registradas para este decreto.</p>
@@ -193,7 +208,7 @@
 <section class="detail-section evidence-detail-section">
     <div class="detail-section-heading">
         <div>
-            <span>06</span>
+            <span>07</span>
             <h2>Anexos</h2>
         </div>
         <p>Documentos vinculados ao registro. É possível selecionar, arrastar ou colar um arquivo para envio.</p>
@@ -266,7 +281,7 @@
 <section class="detail-section history-section">
     <div class="detail-section-heading">
         <div>
-            <span>07</span>
+            <span>08</span>
             <h2>Histórico de edição</h2>
         </div>
         <p>Registro cronológico das alterações, anexos incluídos, usuário responsável e observações informadas.</p>

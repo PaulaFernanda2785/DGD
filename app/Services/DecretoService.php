@@ -186,6 +186,7 @@ class DecretoService
             Database::beginTransaction();
             $this->decretos->update($id, $payload);
             $this->entregas->substituir($id, $itensEntrega);
+            $this->registrarAlteracaoEntregas($id, $registro['entregas'] ?? [], $itensEntrega, $observacaoHistorico);
             $this->protocolo->reorganizarAnos([$anoAnterior, $anoAtualizado]);
             $protocoloAtual = $this->decretos->findById($id)['protocolo_dgd'] ?? $registro['protocolo_dgd'];
             $payloadAuditoria = $payload;
@@ -666,6 +667,40 @@ class DecretoService
             $itens[] = ['tipo_ajuda_id' => $tipo, 'quantidade' => $quantidade, 'valor_total' => $valor, 'data_entrega' => $dataEntrega];
         }
         return $itens;
+    }
+
+    private function registrarAlteracaoEntregas(int $desastreId, array $anteriores, array $atuais, ?string $observacao): void
+    {
+        $antes = $this->resumoEntregasHistorico($anteriores);
+        $depois = $this->resumoEntregasHistorico($atuais);
+
+        if ($antes === $depois) {
+            return;
+        }
+
+        $this->historico->registrar($desastreId, 'Itens entregues', $antes, $depois, $observacao);
+    }
+
+    private function resumoEntregasHistorico(array $itens): ?string
+    {
+        if ($itens === []) {
+            return null;
+        }
+
+        $tipos = (new \App\Repositories\TipoAjudaRepository())->listar(['busca' => '', 'status' => '', 'unidade' => ''])['tipos'];
+        $nomes = [];
+        foreach ($tipos as $tipo) {
+            $nomes[(int) $tipo['id']] = (string) $tipo['nome'];
+        }
+
+        $resumo = [];
+        foreach ($itens as $item) {
+            $tipoId = (int) ($item['tipo_ajuda_id'] ?? 0);
+            $nome = $item['tipo_ajuda_nome'] ?? $nomes[$tipoId] ?? 'Item não informado';
+            $resumo[] = $nome . ': ' . number_format((float) ($item['quantidade'] ?? 0), 2, ',', '.') . ' | R$ ' . number_format((float) ($item['valor_total'] ?? 0), 2, ',', '.') . ' | ' . (!empty($item['data_entrega']) ? date('d/m/Y', strtotime((string) $item['data_entrega'])) : '-');
+        }
+
+        return implode('; ', $resumo);
     }
 
     private function campoTecnicoPgeHomologacao(string $field): bool

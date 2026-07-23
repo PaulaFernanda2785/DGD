@@ -233,6 +233,21 @@
     <?php endforeach; ?>
 
     <section class="decree-print-section">
+        <h3><span><?= e(str_pad((string) $sectionNumber, 2, '0', STR_PAD_LEFT)); ?></span>Entregas de ajuda humanitária</h3>
+        <?php if (($registro['entregas'] ?? []) !== []): ?>
+            <?php $valorTotalEntregas = array_sum(array_map(static fn (array $item): float => (float) ($item['valor_total'] ?? 0), $registro['entregas'])); ?>
+            <div class="decree-print-table">
+                <div class="decree-print-row decree-print-row-head"><span>Item</span><span>Quantidade</span><span>Valor total</span><span>Data de entrega</span></div>
+                <?php foreach ($registro['entregas'] as $entrega): ?>
+                    <div class="decree-print-row"><span><?= e($valor($entrega['tipo_ajuda_nome'] ?? null)); ?></span><span><?= e(number_format((float) ($entrega['quantidade'] ?? 0), 2, ',', '.')); ?> <?= e($entrega['unidade_medida'] ?? ''); ?></span><span>R$ <?= e(number_format((float) ($entrega['valor_total'] ?? 0), 2, ',', '.')); ?></span><span><?= e($data($entrega['data_entrega'] ?? null)); ?></span></div>
+                <?php endforeach; ?>
+            </div>
+            <p class="decree-print-text"><strong>Valor total de todos os itens: R$ <?= e(number_format($valorTotalEntregas, 2, ',', '.')); ?></strong></p>
+        <?php else: ?><p class="decree-print-empty">Nenhum item entregue registrado.</p><?php endif; ?>
+    </section>
+    <?php $sectionNumber++; ?>
+
+    <section class="decree-print-section">
         <h3><span><?= e(str_pad((string) $sectionNumber, 2, '0', STR_PAD_LEFT)); ?></span>Observações complementares</h3>
         <p class="decree-print-text"><?= nl2br(e($valor($registro['observacoes'] ?? null))); ?></p>
     </section>

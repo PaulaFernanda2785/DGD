@@ -398,7 +398,7 @@
         <legend>Anexos previstos</legend>
         <div class="form-section-heading">
             <div>
-                <span>06</span>
+                <span>07</span>
                 <h2>Documentos e evidências</h2>
             </div>
             <p>Anexe os documentos previstos por tipo. Você pode selecionar, arrastar ou colar arquivos em cada bloco.</p>

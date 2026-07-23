@@ -22,6 +22,13 @@ document.addEventListener('click', function (event) {
         return;
     }
 
+    var historyBackdrop = target.closest('[data-history-backdrop]');
+    if (historyBackdrop && target === historyBackdrop) {
+        var historyCancel = document.querySelector('[data-history-cancel]');
+        if (historyCancel instanceof HTMLButtonElement) { historyCancel.click(); }
+        return;
+    }
+
     var menuButton = target.closest('[data-menu-toggle]');
 
     if (menuButton) {
@@ -941,13 +948,22 @@ function historyChangesForForm(form) {
         }];
     }
 
-    return collectHistoryChangedFields(form).slice(0, 8).map(function (item) {
+    var changes = collectHistoryChangedFields(form).slice(0, 8).map(function (item) {
         return {
             label: item.label,
             before: item.before || 'Não informado',
             after: item.value || 'Não informado'
         };
     });
+    var entregas = [];
+    form.querySelectorAll('.delivery-item-row').forEach(function (row) {
+        var tipo = row.querySelector('[data-field="tipo_ajuda_id"]'); var quantidade = row.querySelector('[data-field="quantidade"]'); var valor = row.querySelector('[data-field="valor_total"]'); var data = row.querySelector('[data-field="data_entrega"]');
+        if (!(tipo instanceof HTMLSelectElement) || !tipo.value) { return; }
+        var nome = tipo.options[tipo.selectedIndex] ? tipo.options[tipo.selectedIndex].textContent.trim() : 'Item não informado';
+        entregas.push(nome + ' — ' + (quantidade && quantidade.value || 'Quantidade não informada') + ' | ' + (valor && valor.value || 'Valor não informado') + ' | ' + (data && data.value ? data.value.split('-').reverse().join('/') : 'Data não informada'));
+    });
+    if (entregas.length > 0) { changes.push({ label: 'Itens entregues', before: 'Não informado', after: entregas.join('; ') }); }
+    return changes;
 }
 
 function historyFilesForForm(form) {
@@ -1296,7 +1312,7 @@ function collectHistoryChangedFields(form) {
             return;
         }
 
-        if (!control.name || control.type === 'hidden' || control.type === 'file' || control.name === '_csrf' || control.name === 'historico_observacao') {
+        if (!control.name || control.type === 'hidden' || control.type === 'file' || control.name === '_csrf' || control.name === 'historico_observacao' || control.name.indexOf('entregas[') === 0) {
             return;
         }
 
@@ -1365,7 +1381,7 @@ function collectChangedFields(form) {
             return;
         }
 
-        if (!control.name || control.type === 'hidden' || control.type === 'file' || control.name === '_csrf' || control.name === 'historico_observacao') {
+        if (!control.name || control.type === 'hidden' || control.type === 'file' || control.name === '_csrf' || control.name === 'historico_observacao' || control.name.indexOf('entregas[') === 0) {
             return;
         }
 
