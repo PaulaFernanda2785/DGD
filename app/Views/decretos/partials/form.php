@@ -385,6 +385,15 @@
         <textarea name="observacoes" rows="4"><?= e(old('observacoes', $registro['observacoes'] ?? '')); ?></textarea>
     </div>
 
+    <fieldset class="span-2 form-section delivery-section" data-delivery-items>
+        <legend>Itens entregues</legend>
+        <div class="form-section-heading"><div><span>06</span><h2>Entregas de ajuda humanitária</h2></div><p>Adicione todos os itens entregues neste decreto antes de salvar o formulário.</p></div>
+        <div class="delivery-item-list" data-delivery-list></div>
+        <div class="delivery-total-paid"><span>Valor total pago</span><strong data-delivery-total>R$ 0,00</strong><small>Soma automática dos valores de todos os itens informados.</small></div>
+        <button type="button" class="button button-light" data-delivery-add>Adicionar item entregue</button>
+        <template data-delivery-template><div class="delivery-item-row"><select data-field="tipo_ajuda_id"><option value="">Tipo de item entregue</option><?php foreach ($dominios['tiposAjuda'] as $tipoAjuda): ?><option value="<?= e($tipoAjuda['id']); ?>"><?= e($tipoAjuda['nome'] . ' — ' . $tipoAjuda['unidade_medida']); ?></option><?php endforeach; ?></select><input data-field="quantidade" type="number" min="0.01" step="0.01" placeholder="Quantidade"><input data-field="valor_total" type="text" inputmode="decimal" placeholder="R$ 0,00"><input data-field="data_entrega" type="date"><button type="button" class="button button-danger" data-delivery-remove>Excluir</button></div></template>
+    </fieldset>
+
     <fieldset class="span-2 form-section evidence-section">
         <legend>Anexos previstos</legend>
         <div class="form-section-heading">
@@ -441,3 +450,4 @@
         <a class="button button-light" href="<?= e(url('/decretos')); ?>">Cancelar</a>
     </div>
 </form>
+<script>document.addEventListener('DOMContentLoaded',function(){const root=document.querySelector('[data-delivery-items]');if(!root)return;const list=root.querySelector('[data-delivery-list]'),tpl=root.querySelector('[data-delivery-template]'),add=root.querySelector('[data-delivery-add]'),total=root.querySelector('[data-delivery-total]');let rows=<?= json_encode(old('entregas',$registro['entregas']??[])); ?>;rows=Array.isArray(rows)?rows:[];const numero=v=>parseFloat(String(v).replace(/[R$\.\s]/g,'').replace(',','.'))||0,moeda=v=>numero(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});function atualizarTotal(){let valor=0;list.querySelectorAll('[data-field="valor_total"]').forEach(i=>valor+=numero(i.value));if(total)total.textContent=valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}function row(data,i){const n=tpl.content.cloneNode(true),el=n.querySelector('.delivery-item-row');el.querySelectorAll('[data-field]').forEach(f=>{f.name='entregas['+i+']['+f.dataset.field+']';let valor=data[f.dataset.field]??'';if(f.dataset.field==='quantidade'&&valor!=='')valor=String(Number(valor));if(f.dataset.field==='valor_total'&&valor!==''){valor=moeda(valor);f.addEventListener('blur',()=>{if(f.value!=='')f.value=moeda(f.value)});f.addEventListener('input',atualizarTotal)}f.value=valor});el.querySelector('[data-delivery-remove]').addEventListener('click',()=>{el.remove();renumber();atualizarTotal()});list.appendChild(n)}function renumber(){[...list.children].forEach((el,i)=>el.querySelectorAll('[data-field]').forEach(f=>f.name='entregas['+i+']['+f.dataset.field+']'))}rows.forEach(row);atualizarTotal();add.addEventListener('click',()=>row({},list.children.length))});</script>

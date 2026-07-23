@@ -1,6 +1,20 @@
 var pendingSubmitter = null;
 var pendingHistorySubmitter = null;
 
+document.addEventListener('submit', function (event) {
+    var form = event.target;
+    if (!(form instanceof HTMLFormElement) || form.dataset.submitting === 'true') { event.preventDefault(); return; }
+    if (!form.checkValidity()) { return; }
+    var submitter = event.submitter;
+    if ((form.hasAttribute('data-history-modal') && form.dataset.historyConfirmed !== '1') || (submitter && submitter.hasAttribute('data-confirm') && pendingSubmitter !== submitter)) { return; }
+    form.dataset.submitting = 'true';
+    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (button) {
+        if (button.dataset.originalText === undefined) { button.dataset.originalText = button instanceof HTMLInputElement ? button.value : button.textContent; }
+        button.disabled = true; button.classList.add('is-processing');
+        if (button instanceof HTMLInputElement) { button.value = 'Processando...'; } else { button.textContent = 'Processando...'; }
+    });
+});
+
 document.addEventListener('click', function (event) {
     var target = event.target;
 

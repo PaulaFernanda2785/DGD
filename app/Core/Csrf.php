@@ -22,7 +22,7 @@ class Csrf
 
     public static function input(): string
     {
-        return '<input type="hidden" name="_csrf_token" value="' . e(self::token()) . '">';
+        return '<input type="hidden" name="_csrf_token" value="' . e(self::token()) . '">' . Idempotency::input();
     }
 
     public static function validate(?string $token): bool

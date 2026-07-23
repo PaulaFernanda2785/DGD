@@ -11,12 +11,14 @@ use App\Repositories\AnexoRepository;
 use App\Repositories\CobradeRepository;
 use App\Repositories\CompdecRepository;
 use App\Repositories\DecretoRepository;
+use App\Repositories\DecretoEntregaRepository;
 use App\Repositories\DominioRepository;
 use Throwable;
 
 class DecretoService
 {
     private DecretoRepository $decretos;
+    private DecretoEntregaRepository $entregas;
     private DominioRepository $dominios;
     private CompdecRepository $compdecs;
     private CobradeRepository $cobrade;
@@ -30,6 +32,7 @@ class DecretoService
     public function __construct()
     {
         $this->decretos = new DecretoRepository();
+        $this->entregas = new DecretoEntregaRepository();
         $this->dominios = new DominioRepository();
         $this->compdecs = new CompdecRepository();
         $this->cobrade = new CobradeRepository();
@@ -63,6 +66,7 @@ class DecretoService
             'statusRecurso' => $this->dominios->statusRecurso(),
             'statusEnvioPge' => $this->dominios->statusEnvioPge(),
             'tiposAnexo' => $this->dominios->tiposAnexo(),
+            'tiposAjuda' => (new \App\Repositories\TipoAjudaRepository())->listar(['busca' => '', 'status' => 'ativo', 'unidade' => ''])['tipos'],
             'analistas' => $this->dominios->analistas(),
             'cobradeGrupos' => $this->cobrade->grupos(),
             'cobradeSubgrupos' => $this->cobrade->subgrupos(null),
@@ -93,6 +97,7 @@ class DecretoService
 
         return $registro + [
             'anexos' => $this->anexos->byDesastre($id),
+            'entregas' => $this->entregas->porDecreto($id),
             'historico' => $this->historico->listar($id),
         ];
     }
@@ -107,13 +112,14 @@ class DecretoService
 
         $calculados = $this->decretos->detalhe($id) ?? [];
 
-        return $this->preencherHierarquiaCobrade($this->pgePrazo->enriquecerRegistro($registro + $calculados));
+        return $this->preencherHierarquiaCobrade($this->pgePrazo->enriquecerRegistro($registro + $calculados)) + ['entregas' => $this->entregas->porDecreto($id)];
     }
 
     public function cadastrar(array $data, array $files = []): array
     {
         $observacaoHistorico = $this->observacaoHistorico($data);
         $errors = $this->validar($data);
+        $itensEntrega = $this->normalizarEntregas($data, $errors);
 
         if ($errors !== []) {
             return ['success' => false, 'errors' => $errors];
@@ -133,6 +139,7 @@ class DecretoService
             ];
 
             $id = $this->decretos->create($payload);
+            $this->entregas->substituir($id, $itensEntrega);
             $this->protocolo->reorganizarAnos([(int) $payload['protocolo_ano']]);
             $protocoloAtual = $this->decretos->findById($id)['protocolo_dgd'] ?? $payload['protocolo_dgd'];
             $this->auditoria->registrar('decretos', 'criar', [
@@ -160,6 +167,7 @@ class DecretoService
         $registro = $this->buscarParaEdicao($id);
         $observacaoHistorico = $this->observacaoHistorico($data);
         $errors = $this->validar($data, $registro);
+        $itensEntrega = $this->normalizarEntregas($data, $errors);
 
         if ($errors !== []) {
             return ['success' => false, 'errors' => $errors];
@@ -177,6 +185,7 @@ class DecretoService
         try {
             Database::beginTransaction();
             $this->decretos->update($id, $payload);
+            $this->entregas->substituir($id, $itensEntrega);
             $this->protocolo->reorganizarAnos([$anoAnterior, $anoAtualizado]);
             $protocoloAtual = $this->decretos->findById($id)['protocolo_dgd'] ?? $registro['protocolo_dgd'];
             $payloadAuditoria = $payload;
@@ -635,6 +644,28 @@ class DecretoService
         $payload['data_conclusao_pge_antes_homologacao'] = null;
 
         return $payload;
+    }
+
+    private function normalizarEntregas(array $data, array &$errors): array
+    {
+        $itens = [];
+        foreach (($data['entregas'] ?? []) as $indice => $item) {
+            if (!is_array($item)) { continue; }
+            $linha = $indice + 1;
+            $tipoInformado = trim((string) ($item['tipo_ajuda_id'] ?? ''));
+            $quantidadeInformada = trim((string) ($item['quantidade'] ?? ''));
+            $valorInformado = trim((string) ($item['valor_total'] ?? ''));
+            $dataInformada = trim((string) ($item['data_entrega'] ?? ''));
+            if ($tipoInformado === '' && $quantidadeInformada === '' && $valorInformado === '' && $dataInformada === '') { continue; }
+            $tipo = (int) $item['tipo_ajuda_id']; $quantidade = (float) str_replace(',', '.', (string) ($item['quantidade'] ?? '0')); $valor = (float) str_replace(',', '.', preg_replace('/[^0-9,.-]/', '', (string) ($item['valor_total'] ?? '0'))); $dataEntrega = trim((string) ($item['data_entrega'] ?? ''));
+            if ($tipo < 1) { $errors['entregas'][] = 'Item de entrega ' . $linha . ': selecione o tipo de item entregue.'; }
+            if ($quantidade <= 0) { $errors['entregas'][] = 'Item de entrega ' . $linha . ': informe uma quantidade maior que zero.'; }
+            if ($valorInformado === '' || $valor < 0) { $errors['entregas'][] = 'Item de entrega ' . $linha . ': informe o valor total pago.'; }
+            if ($dataEntrega === '' || strtotime($dataEntrega) === false) { $errors['entregas'][] = 'Item de entrega ' . $linha . ': informe uma data de entrega válida.'; }
+            if (isset($errors['entregas']) && array_filter($errors['entregas'], static fn (string $mensagem): bool => str_starts_with($mensagem, 'Item de entrega ' . $linha . ':'))) { continue; }
+            $itens[] = ['tipo_ajuda_id' => $tipo, 'quantidade' => $quantidade, 'valor_total' => $valor, 'data_entrega' => $dataEntrega];
+        }
+        return $itens;
     }
 
     private function campoTecnicoPgeHomologacao(string $field): bool
