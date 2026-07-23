@@ -31,6 +31,7 @@ class Database
             $config['password'],
             $config['options']
         );
+        self::$connection->exec('SET time_zone = ' . self::$connection->quote((string) ($config['timezone'] ?? '-03:00')));
 
         return self::$connection;
     }
