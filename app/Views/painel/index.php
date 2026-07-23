@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $jsonAttr = static fn (mixed $value): string => e(json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
 $filters = array_merge([
-    'ano' => (string) date('Y'),
+    'ano' => '',
     'municipio_id' => '',
     'regiao_integracao' => '',
     'tipo_decreto_id' => '',
@@ -18,6 +18,7 @@ $resumo = array_merge([
     'total_decretos_municipais' => 0,
     'homologados' => 0,
     'nao_homologados' => 0,
+    'reconhecidos' => 0,
     'enviados_pge' => 0,
     'pendentes_pge' => 0,
     'total_afetados' => 0,
@@ -85,11 +86,7 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
             <div class="panel-filter-primary">
             <label class="modern-field panel-filter-year" for="panel_ano">
                 <span>Ano</span>
-                <select id="panel_ano" name="ano">
-                    <?php foreach (($opcoes['anos'] ?? [(int) date('Y')]) as $ano): ?>
-                        <option value="<?= e($ano); ?>"<?= (string) $filters['ano'] === (string) $ano ? ' selected' : ''; ?>><?= e($ano); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <input id="panel_ano" name="ano" value="<?= e($filters['ano']); ?>" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="<?= e((string) date('Y')); ?>">
                 <small>Ano do protocolo DGD.</small>
             </label>
 
@@ -180,12 +177,12 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
     </section>
 
     <section class="panel-indicator-grid" aria-label="Indicadores principais">
-        <article>
-            <span>Desastres</span>
+        <article class="panel-indicator-neutral">
+            <span>Total de registros</span>
             <strong><?= e($formatNumber($resumo['total_desastres'])); ?></strong>
-            <small>Registros no recorte selecionado.</small>
+            <small>Registros de desastres conforme o recorte.</small>
         </article>
-        <article>
+        <article class="panel-indicator-info">
             <span>Municípios</span>
             <strong><?= e($formatNumber($resumo['municipios_com_registro'])); ?></strong>
             <small>Com decreto registrado.</small>
@@ -200,22 +197,27 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
             <strong><?= e($formatNumber($compdecsSemTotal)); ?></strong>
             <small>Municípios sem coordenadoria registrada.</small>
         </article>
-        <article>
+        <article class="panel-indicator-info">
             <span>Decretos municipais</span>
             <strong><?= e($formatNumber($resumo['total_decretos_municipais'])); ?></strong>
             <small>Com número informado.</small>
         </article>
-        <article>
+        <article class="panel-indicator-success">
             <span>Homologados</span>
             <strong><?= e($formatNumber($resumo['homologados'])); ?></strong>
             <small>Ciclo estadual aprovado.</small>
         </article>
-        <article>
+        <article class="panel-indicator-success">
+            <span>Reconhecidos</span>
+            <strong><?= e($formatNumber($resumo['reconhecidos'])); ?></strong>
+            <small>Reconhecimento federal aprovado.</small>
+        </article>
+        <article class="panel-indicator-warning">
             <span>Pendências PGE</span>
             <strong><?= e($formatNumber($resumo['pendentes_pge'])); ?></strong>
             <small>Fora do prazo calculado.</small>
         </article>
-        <article>
+        <article class="panel-indicator-neutral">
             <span>Afetados</span>
             <strong><?= e($formatNumber($resumo['total_afetados'])); ?></strong>
             <small>Total humano registrado.</small>

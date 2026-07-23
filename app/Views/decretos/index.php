@@ -1,8 +1,13 @@
 <?php
-    $totalRegistros = (int) ($paginacao['total'] ?? count($registros));
-    $totalAfetadosPagina = array_sum(array_map(static fn (array $registro): int => (int) ($registro['total_afetados'] ?? 0), $registros));
-    $pgePendentesPagina = count(array_filter($registros, static fn (array $registro): bool => (string) ($registro['status_prazo_pge_calculado'] ?? '') === 'PENDENTE'));
-    $homologadosPagina = count(array_filter($registros, static fn (array $registro): bool => (string) ($registro['homologacao_codigo'] ?? '') === 'HOMOLOGADO'));
+    $resumo = array_merge([
+        'total_registros' => 0,
+        'total_afetados' => 0,
+        'pendentes_pge' => 0,
+        'homologados' => 0,
+        'reconhecidos' => 0,
+    ], is_array($resumo ?? null) ? $resumo : []);
+    $filtrosAtivos = array_filter($filtros ?? [], static fn (mixed $value, string $field): bool => $field !== 'page' && trim((string) $value) !== '', ARRAY_FILTER_USE_BOTH);
+    $descricaoRecorte = $filtrosAtivos === [] ? 'Total de todos os registros cadastrados.' : 'Total conforme os filtros aplicados.';
     $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
     $dash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
     $cobradeSymbolUrl = static function (mixed $path, mixed $codigo): ?string {
@@ -44,20 +49,29 @@
 
 <section class="decree-overview-grid" aria-label="Resumo da listagem">
     <div>
-        <span>Registros filtrados</span>
-        <strong><?= e($totalRegistros); ?></strong>
+        <span>Total de registros</span>
+        <strong><?= e($resumo['total_registros']); ?></strong>
+        <small><?= e($descricaoRecorte); ?></small>
     </div>
     <div>
-        <span>Afetados nesta página</span>
-        <strong><?= e(number_format($totalAfetadosPagina, 0, ',', '.')); ?></strong>
+        <span>Total de afetados</span>
+        <strong><?= e(number_format((int) $resumo['total_afetados'], 0, ',', '.')); ?></strong>
+        <small>Pessoas afetadas nos registros do recorte.</small>
     </div>
     <div>
         <span>PGE pendente</span>
-        <strong><?= e($pgePendentesPagina); ?></strong>
+        <strong><?= e($resumo['pendentes_pge']); ?></strong>
+        <small>Registros com prazo PGE pendente.</small>
     </div>
     <div>
         <span>Homologados</span>
-        <strong><?= e($homologadosPagina); ?></strong>
+        <strong><?= e($resumo['homologados']); ?></strong>
+        <small>Registros com homologação concluída.</small>
+    </div>
+    <div>
+        <span>Reconhecidos</span>
+        <strong><?= e($resumo['reconhecidos']); ?></strong>
+        <small>Registros com reconhecimento federal concluído.</small>
     </div>
 </section>
 

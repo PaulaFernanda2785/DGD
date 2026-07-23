@@ -67,8 +67,8 @@ class PainelController extends Controller
             $query = [];
         }
 
-        $ano = trim((string) ($query['ano'] ?? (string) date('Y')));
-        $ano = preg_match('/^\d{4}$/', $ano) === 1 ? $ano : (string) date('Y');
+        $ano = trim((string) ($query['ano'] ?? ''));
+        $ano = $ano === '' || preg_match('/^\d{4}$/', $ano) === 1 ? $ano : '';
 
         return [
             'ano' => $ano,

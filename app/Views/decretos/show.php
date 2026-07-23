@@ -13,6 +13,26 @@
     $homologacaoDataLabel = (string) ($registro['homologacao_codigo'] ?? '') === 'NAO_HOMOLOGADO'
         ? 'Data da não homologação'
         : 'Data de homologação';
+    $cobradeSimbologiaUrl = static function (mixed $path, mixed $codigo): ?string {
+        $path = trim(str_replace('\\', '/', (string) $path));
+
+        if ($path !== '') {
+            if (preg_match('#^https?://#i', $path) === 1) {
+                return $path;
+            }
+
+            $path = ltrim($path, '/');
+            $path = preg_replace('#^public/#', '', $path) ?? $path;
+            $path = preg_replace('#^cobrade_simbologia/#', 'assets/images/cobrade_simbologia/', $path) ?? $path;
+
+            return url('/' . $path);
+        }
+
+        $codigo = trim((string) $codigo);
+
+        return $codigo !== '' ? url('/assets/images/cobrade_simbologia/simbologia_cobrade_' . str_replace('.', '_', $codigo) . '.png') : null;
+    };
+    $simbologiaUrl = $cobradeSimbologiaUrl($registro['cobrade_simbologia'] ?? null, $registro['cobrade_codigo'] ?? null);
 ?>
 
 <div class="page-header page-header-modern decree-detail-header">
@@ -73,15 +93,44 @@
         <div><strong>Telefone COMPDEC</strong><span><?= e($valueOrDash($registro['compdec_telefone'] ?? null)); ?></span></div>
         <div><strong>E-mail COMPDEC</strong><span><?= e($valueOrDash($registro['compdec_email'] ?? null)); ?></span></div>
         <div><strong>Tipo de decreto</strong><span><?= e($registro['tipo_decreto']); ?></span></div>
+    </div>
+</section>
+
+<section class="detail-section detail-cobrade-section">
+    <div class="detail-section-heading">
+        <div>
+            <span>02</span>
+            <h2>Classificação oficial COBRADE</h2>
+        </div>
+        <p>Enquadramento técnico completo do desastre conforme a Classificação e Codificação Brasileira de Desastres.</p>
+    </div>
+
+    <?php if ($simbologiaUrl !== null): ?>
+        <div class="detail-cobrade-symbol">
+            <img src="<?= e($simbologiaUrl); ?>" alt="Simbologia COBRADE do desastre">
+            <div>
+                <span>Simbologia do desastre</span>
+                <strong><?= e($valueOrDash($registro['cobrade_codigo'] ?? null)); ?></strong>
+                <small><?= e($valueOrDash($registro['cobrade_subtipo'] ?? null)); ?></small>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="detail-card-grid">
+        <div><strong>Grupo COBRADE</strong><span><?= e($valueOrDash($registro['cobrade_grupo'] ?? null)); ?></span></div>
+        <div><strong>Subgrupo COBRADE</strong><span><?= e($valueOrDash($registro['cobrade_subgrupo'] ?? null)); ?></span></div>
+        <div><strong>Tipo COBRADE</strong><span><?= e($valueOrDash($registro['cobrade_tipo'] ?? null)); ?></span></div>
+        <div><strong>Subtipo COBRADE</strong><span><?= e($valueOrDash($registro['cobrade_subtipo'] ?? null)); ?></span></div>
+        <div><strong>Código COBRADE</strong><span><?= e($valueOrDash($registro['cobrade_codigo'] ?? null)); ?></span></div>
+        <div><strong>Descrição COBRADE</strong><span><?= e($valueOrDash($registro['cobrade_descricao'] ?? null)); ?></span></div>
         <div><strong>Data do desastre</strong><span><?= e($formatDate($registro['data_desastre'])); ?></span></div>
-        <div><strong>Grupo COBRADE</strong><span><?= e($registro['cobrade_grupo']); ?></span></div>
     </div>
 </section>
 
 <section class="detail-section detail-institutional-section">
     <div class="detail-section-heading">
         <div>
-            <span>02</span>
+            <span>03</span>
             <h2>Atos institucionais</h2>
         </div>
         <p>Protocolos, decretos, homologação, reconhecimento federal e acompanhamento da PGE.</p>
@@ -107,7 +156,7 @@
 <section class="detail-section detail-damage-section">
     <div class="detail-section-heading">
         <div>
-            <span>03</span>
+            <span>04</span>
             <h2>Danos humanos</h2>
         </div>
         <p>Quantitativos registrados para compor o total de pessoas afetadas.</p>
@@ -130,22 +179,21 @@
     </div>
 </section>
 
-<?php if (!empty($registro['observacoes'])): ?>
-    <section class="detail-section observation-detail-section">
-        <div class="detail-section-heading">
-            <div>
-                <span>04</span>
-                <h2>Observações</h2>
-            </div>
+<section class="detail-section observation-detail-section">
+    <div class="detail-section-heading">
+        <div>
+            <span>05</span>
+            <h2>Observações complementares</h2>
         </div>
-        <p class="detail-observation"><?= nl2br(e($registro['observacoes'])); ?></p>
-    </section>
-<?php endif; ?>
+        <p>Informações adicionais registradas para este decreto.</p>
+    </div>
+    <p class="detail-observation"><?= nl2br(e($valueOrDash($registro['observacoes'] ?? null))); ?></p>
+</section>
 
 <section class="detail-section evidence-detail-section">
     <div class="detail-section-heading">
         <div>
-            <span>05</span>
+            <span>06</span>
             <h2>Anexos</h2>
         </div>
         <p>Documentos vinculados ao registro. É possível selecionar, arrastar ou colar um arquivo para envio.</p>
@@ -218,7 +266,7 @@
 <section class="detail-section history-section">
     <div class="detail-section-heading">
         <div>
-            <span>06</span>
+            <span>07</span>
             <h2>Histórico de edição</h2>
         </div>
         <p>Registro cronológico das alterações, anexos incluídos, usuário responsável e observações informadas.</p>

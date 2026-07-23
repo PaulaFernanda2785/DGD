@@ -17,6 +17,7 @@ $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
 $runtimeBasePath = rtrim(str_replace('/index.php', '', $scriptName), '/');
 $runtimeBaseUrl = $scheme . '://' . $host . $runtimeBasePath;
 $assetBaseUrl = rtrim($runtimeBaseUrl, '/');
+$sidebarCollapsed = ($_COOKIE['dgd_sidebar_collapsed'] ?? '') === '1';
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $basePath = $runtimeBasePath !== '' ? $runtimeBasePath : '';
 $currentPath = '/' . ltrim((string) preg_replace('#^' . preg_quote($basePath, '#') . '#', '', $requestPath), '/');
@@ -49,7 +50,18 @@ $isActive = static function (string $path) use ($currentPath): string {
     <?php endforeach; ?>
     <script src="<?= e($assetBaseUrl . '/assets/js/app.js?v=' . $appJsVersion); ?>" defer></script>
 </head>
-<body>
+<body<?= $sidebarCollapsed ? ' class="sidebar-collapsed"' : ''; ?>>
+    <script>
+        (function () {
+            try {
+                if (!document.body.classList.contains('sidebar-collapsed') && window.localStorage.getItem('dgd.sidebar.collapsed') === '1') {
+                    document.body.classList.add('sidebar-collapsed');
+                }
+            } catch (error) {
+                // A preferencia visual e opcional em navegadores com armazenamento restrito.
+            }
+        }());
+    </script>
     <div class="app-shell">
         <aside class="sidebar" id="app-sidebar" aria-label="Menu principal">
             <div class="brand">
@@ -67,6 +79,7 @@ $isActive = static function (string $path) use ($currentPath): string {
 
                 <?php if (can('decretos.visualizar')): ?>
                     <a href="<?= e(url('/decretos')); ?>" data-initial="D" title="Decretos"<?= $isActive('/decretos'); ?>><span>Decretos</span></a>
+                    <a href="<?= e(url('/tipos-ajuda')); ?>" data-initial="A" title="Tipos de ajuda"<?= $isActive('/tipos-ajuda'); ?>><span>Tipos de ajuda</span></a>
                 <?php endif; ?>
 
                 <?php if (can('compdecs.visualizar')): ?>
@@ -82,7 +95,7 @@ $isActive = static function (string $path) use ($currentPath): string {
                 <?php endif; ?>
             </nav>
 
-            <button type="button" class="sidebar-collapse" data-sidebar-collapse aria-label="Recolher menu" aria-pressed="false">
+            <button type="button" class="sidebar-collapse" data-sidebar-collapse aria-label="<?= $sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'; ?>" aria-pressed="<?= $sidebarCollapsed ? 'true' : 'false'; ?>">
                 <span></span>
             </button>
         </aside>

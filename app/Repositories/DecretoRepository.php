@@ -42,6 +42,31 @@ class DecretoRepository
         ];
     }
 
+    public function resumo(array $filters = []): array
+    {
+        [$where, $params] = $this->buildWhere($filters);
+        $stmt = Database::connection()->prepare(
+            'SELECT
+                COUNT(*) AS total_registros,
+                COALESCE(SUM(total_afetados), 0) AS total_afetados,
+                COALESCE(SUM(CASE WHEN status_prazo_pge_calculado = \'PENDENTE\' THEN 1 ELSE 0 END), 0) AS pendentes_pge,
+                COALESCE(SUM(CASE WHEN homologacao_codigo = \'HOMOLOGADO\' THEN 1 ELSE 0 END), 0) AS homologados,
+                COALESCE(SUM(CASE WHEN reconhecimento_codigo = \'RECONHECIDO\' THEN 1 ELSE 0 END), 0) AS reconhecidos
+             FROM vw_decretos_listagem
+             WHERE ativo = 1' . $where
+        );
+        $stmt->execute($params);
+        $resumo = $stmt->fetch() ?: [];
+
+        return [
+            'total_registros' => (int) ($resumo['total_registros'] ?? 0),
+            'total_afetados' => (int) ($resumo['total_afetados'] ?? 0),
+            'pendentes_pge' => (int) ($resumo['pendentes_pge'] ?? 0),
+            'homologados' => (int) ($resumo['homologados'] ?? 0),
+            'reconhecidos' => (int) ($resumo['reconhecidos'] ?? 0),
+        ];
+    }
+
     public function findById(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM desastres WHERE id = :id AND excluido_em IS NULL LIMIT 1');
@@ -56,6 +81,7 @@ class DecretoRepository
         $stmt = Database::connection()->prepare(
             'SELECT
                 v.*,
+                d.observacoes,
                 cs.descricao AS cobrade_descricao
              FROM vw_decretos_listagem v
              INNER JOIN desastres d ON d.id = v.id

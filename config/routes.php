@@ -11,6 +11,7 @@ use App\Controllers\PainelController;
 use App\Controllers\PasswordRecoveryController;
 use App\Controllers\SenhaController;
 use App\Controllers\TwoFactorController;
+use App\Controllers\TipoAjudaController;
 use App\Controllers\UsuarioController;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\CsrfMiddleware;
@@ -34,6 +35,7 @@ return [
 
     ['GET', '/painel', [PainelController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'painel.visualizar']]],
     ['GET', '/painel/relatorio-impressao', [PainelController::class, 'printReport'], [AuthMiddleware::class, [PermissionMiddleware::class, 'painel.visualizar']]],
+    ['GET', '/tipos-ajuda', [TipoAjudaController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.visualizar']]],
 
     ['GET', '/decretos', [DecretoController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.visualizar']]],
     ['GET', '/decretos/novo', [DecretoController::class, 'create'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.criar']]],

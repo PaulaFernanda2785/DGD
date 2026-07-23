@@ -6,7 +6,7 @@
     $geradoEm ??= new DateTimeImmutable('now');
     $relatorio = is_array($relatorio ?? null) ? $relatorio : [];
     $filters = array_merge([
-        'ano' => (string) date('Y'),
+        'ano' => '',
         'municipio_id' => '',
         'regiao_integracao' => '',
         'tipo_decreto_id' => '',
@@ -39,7 +39,7 @@
         return 'Não informado';
     };
     $filtrosAplicados = [
-        'Ano' => $valor($filters['ano'] ?? null),
+        'Ano' => trim((string) ($filters['ano'] ?? '')) !== '' ? (string) $filters['ano'] : 'Todos os anos',
         'Município' => $findOption($opcoes['municipios'] ?? [], $filters['municipio_id'] ?? ''),
         'Região de integração' => trim((string) ($filters['regiao_integracao'] ?? '')) !== '' ? (string) $filters['regiao_integracao'] : 'Todas',
         'Tipo de decreto' => $findOption($opcoes['tipos_decreto'] ?? [], $filters['tipo_decreto_id'] ?? ''),
@@ -47,9 +47,22 @@
         'Reconhecimento' => $findOption($opcoes['reconhecimentos'] ?? [], $filters['reconhecimento_status_id'] ?? ''),
         'Status PGE' => trim((string) ($filters['status_prazo_pge'] ?? '')) !== '' ? (string) (($opcoes['status_pge'][$filters['status_prazo_pge']] ?? $filters['status_prazo_pge'])) : 'Todos',
     ];
+    $statusPgeHighlight = match ((string) ($filters['status_prazo_pge'] ?? '')) {
+        'APROVADO' => 'decree-print-highlight--success',
+        'NO PRAZO' => 'decree-print-highlight--info',
+        'PENDENTE' => 'decree-print-highlight--warning',
+        'REPROVADO' => 'decree-print-highlight--danger',
+        'NAO REGISTRADO' => 'decree-print-highlight--muted',
+        default => 'decree-print-highlight--muted',
+    };
+    $filterHighlightClasses = [
+        'Ano' => 'decree-print-highlight decree-print-highlight--info',
+        'Status PGE' => 'decree-print-highlight ' . $statusPgeHighlight,
+    ];
     $compdecsComTotal = count(array_filter($mapa['compdecs'], static fn (array $point): bool => (int) ($point['tem_compdec'] ?? 0) === 1));
     $compdecsSemTotal = max(count($mapa['compdecs']) - $compdecsComTotal, 0);
     $totalPontos = count($mapa['compdecs']) + count($mapa['ubms']) + count($mapa['desastres']);
+    $tituloRecorte = trim((string) ($filters['ano'] ?? '')) !== '' ? 'Painel DGD ' . $filters['ano'] : 'Painel DGD — Todos os anos';
     $sectionNumber = 1;
 ?>
 
@@ -72,7 +85,7 @@
     <section class="decree-print-cover panel-print-cover">
         <div>
             <span>Recorte operacional</span>
-            <h2>Painel DGD <?= e($valor($filters['ano'] ?? null)); ?></h2>
+            <h2><?= e($tituloRecorte); ?></h2>
             <p><?= e($numero($resumo['total_desastres'] ?? 0)); ?> desastre(s), <?= e($numero($resumo['municipios_com_registro'] ?? 0)); ?> município(s) com registro e <?= e($numero($totalPontos)); ?> ponto(s) territoriais.</p>
         </div>
         <div class="decree-print-disaster-info panel-print-filter-brief">
@@ -84,13 +97,14 @@
     </section>
 
     <section class="decree-print-summary">
-        <div><span>Desastres</span><strong><?= e($numero($resumo['total_desastres'] ?? 0)); ?></strong></div>
+        <div><span>Total de registros</span><strong><?= e($numero($resumo['total_desastres'] ?? 0)); ?></strong></div>
         <div><span>Municípios</span><strong><?= e($numero($resumo['municipios_com_registro'] ?? 0)); ?></strong></div>
-        <div><span>Homologados</span><strong><?= e($numero($resumo['homologados'] ?? 0)); ?></strong></div>
-        <div><span>Pendências PGE</span><strong><?= e($numero($resumo['pendentes_pge'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--success"><span>Homologados</span><strong><?= e($numero($resumo['homologados'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--success"><span>Reconhecidos</span><strong><?= e($numero($resumo['reconhecidos'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--danger"><span>Pendências PGE</span><strong><?= e($numero($resumo['pendentes_pge'] ?? 0)); ?></strong></div>
         <div><span>Afetados</span><strong><?= e($numero($resumo['total_afetados'] ?? 0)); ?></strong></div>
-        <div><span>Com COMPDEC</span><strong><?= e($numero($compdecsComTotal)); ?></strong></div>
-        <div><span>Sem COMPDEC</span><strong><?= e($numero($compdecsSemTotal)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--success"><span>Com COMPDEC</span><strong><?= e($numero($compdecsComTotal)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--warning"><span>Sem COMPDEC</span><strong><?= e($numero($compdecsSemTotal)); ?></strong></div>
         <div><span>UBMs</span><strong><?= e($numero(count($mapa['ubms']))); ?></strong></div>
     </section>
 
@@ -98,7 +112,7 @@
         <h3><span><?= e(str_pad((string) $sectionNumber++, 2, '0', STR_PAD_LEFT)); ?></span>Filtros aplicados</h3>
         <div class="decree-print-grid">
             <?php foreach ($filtrosAplicados as $label => $value): ?>
-                <div>
+                <div<?= isset($filterHighlightClasses[$label]) ? ' class="' . e($filterHighlightClasses[$label]) . '"' : ''; ?>>
                     <span><?= e($label); ?></span>
                     <strong><?= e($value); ?></strong>
                 </div>
@@ -111,8 +125,8 @@
         <div class="decree-print-grid">
             <div><span>Desastres no mapa</span><strong><?= e($numero(count($mapa['desastres']))); ?></strong></div>
             <div><span>COMPDECs no mapa</span><strong><?= e($numero(count($mapa['compdecs']))); ?></strong></div>
-            <div><span>Com COMPDEC</span><strong><?= e($numero($compdecsComTotal)); ?></strong></div>
-            <div><span>Sem COMPDEC</span><strong><?= e($numero($compdecsSemTotal)); ?></strong></div>
+            <div class="decree-print-highlight decree-print-highlight--success"><span>Com COMPDEC</span><strong><?= e($numero($compdecsComTotal)); ?></strong></div>
+            <div class="decree-print-highlight decree-print-highlight--warning"><span>Sem COMPDEC</span><strong><?= e($numero($compdecsSemTotal)); ?></strong></div>
             <div><span>UBMs atribuídas</span><strong><?= e($numero(count($mapa['ubms']))); ?></strong></div>
             <div><span>Total de pontos</span><strong><?= e($numero($totalPontos)); ?></strong></div>
         </div>
@@ -183,7 +197,10 @@
                         <span><?= e($valor($registro['cobrade_codigo'] ?? null)); ?> - <?= e($valor($registro['cobrade_subtipo'] ?? null)); ?><br><small><?= e($data($registro['data_desastre'] ?? null)); ?></small></span>
                         <span><?= e($valor($registro['homologacao'] ?? null)); ?><br><small><?= e($valor($registro['reconhecimento'] ?? null)); ?></small></span>
                         <span><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?><br><small><?= e($valor($registro['duracao_pge_dias'] ?? null)); ?> dia(s)</small></span>
-                        <span><?= e($numero($registro['total_afetados'] ?? 0)); ?></span>
+                        <span class="panel-print-affected">
+                            <strong><?= e($numero($registro['total_afetados'] ?? 0)); ?></strong>
+                            <small>pessoas afetadas</small>
+                        </span>
                     </div>
                 <?php endforeach; ?>
             </div>

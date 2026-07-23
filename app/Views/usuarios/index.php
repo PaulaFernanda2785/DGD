@@ -101,6 +101,10 @@
                         <span>Situação</span>
                         <?= status_badge($statusText); ?>
                     </div>
+                    <div class="user-card-profile">
+                        <span>Perfil</span>
+                        <strong><?= e($usuario['perfil_nome']); ?></strong>
+                    </div>
                     <div>
                         <span>CPF</span>
                         <strong><?= e($usuario['cpf'] ?? 'Não registrado'); ?></strong>

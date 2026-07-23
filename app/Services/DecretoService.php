@@ -46,6 +46,7 @@ class DecretoService
         $page = max((int) ($filters['page'] ?? 1), 1);
         $resultado = $this->decretos->paginate($filters, $page, 20);
         $resultado['registros'] = $this->pgePrazo->enriquecerRegistros($resultado['registros']);
+        $resultado['resumo'] = $this->decretos->resumo($filters);
 
         return $resultado + [
             'dominios' => $this->formData(),
@@ -132,13 +133,15 @@ class DecretoService
             ];
 
             $id = $this->decretos->create($payload);
+            $this->protocolo->reorganizarAnos([(int) $payload['protocolo_ano']]);
+            $protocoloAtual = $this->decretos->findById($id)['protocolo_dgd'] ?? $payload['protocolo_dgd'];
             $this->auditoria->registrar('decretos', 'criar', [
                 'entidade' => 'desastres',
                 'entidade_id' => $id,
-                'valor_novo' => ['protocolo_dgd' => $payload['protocolo_dgd']],
+                'valor_novo' => ['protocolo_dgd' => $protocoloAtual],
                 'justificativa' => $observacaoHistorico,
             ]);
-            $this->historico->registrar($id, 'Cadastro do decreto', null, $payload['protocolo_dgd'], $observacaoHistorico);
+            $this->historico->registrar($id, 'Cadastro do decreto', null, $protocoloAtual, $observacaoHistorico);
 
             Database::commit();
 
@@ -165,22 +168,36 @@ class DecretoService
         $payload = $this->normalizar($data, $registro) + [
             'atualizado_por' => Auth::id(),
         ];
+        $anoAnterior = (int) $registro['protocolo_ano'];
+        $anoAtualizado = (int) date('Y', strtotime((string) $payload['data_desastre']));
+        $payload['protocolo_ano'] = $anoAtualizado;
+        $payload['protocolo_sequencial'] = 3000000000 + $id;
+        $payload['protocolo_dgd'] = '__TMP_DGD_' . $id;
 
         try {
+            Database::beginTransaction();
             $this->decretos->update($id, $payload);
+            $this->protocolo->reorganizarAnos([$anoAnterior, $anoAtualizado]);
+            $protocoloAtual = $this->decretos->findById($id)['protocolo_dgd'] ?? $registro['protocolo_dgd'];
+            $payloadAuditoria = $payload;
+            $payloadAuditoria['protocolo_dgd'] = $protocoloAtual;
+            unset($payloadAuditoria['protocolo_ano'], $payloadAuditoria['protocolo_sequencial']);
             $this->auditoria->registrar('decretos', 'editar', [
                 'entidade' => 'desastres',
                 'entidade_id' => $id,
                 'valor_anterior' => $registro,
-                'valor_novo' => $payload,
+                'valor_novo' => $payloadAuditoria,
                 'justificativa' => $observacaoHistorico,
             ]);
-            $this->registrarAlteracoes($id, $registro, $payload, $observacaoHistorico);
+            $this->registrarAlteracoes($id, $registro, $payloadAuditoria, $observacaoHistorico);
+
+            Database::commit();
 
             $warnings = $this->salvarAnexosDoFormulario($id, $files, $data, $observacaoHistorico);
 
             return ['success' => true, 'warnings' => $warnings];
         } catch (Throwable) {
+            Database::rollBack();
             return ['success' => false, 'errors' => ['geral' => ['Não foi possível atualizar o desastre.']]];
         }
     }
@@ -497,6 +514,7 @@ class DecretoService
             'tipo_decreto_id' => 'Tipo de decreto',
             'cobrade_subtipo_id' => 'Subtipo COBRADE',
             'data_desastre' => 'Data do desastre',
+            'protocolo_dgd' => 'Protocolo DGD',
             'protocolo_s2id' => 'Protocolo S2ID',
             'numero_decreto_municipal' => 'Número do decreto municipal',
             'data_decreto_municipal' => 'Data do decreto municipal',

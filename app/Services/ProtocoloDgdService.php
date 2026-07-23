@@ -31,6 +31,93 @@ class ProtocoloDgdService
         return $matches[1] . '-' . $this->normalizarMunicipio($municipioNome);
     }
 
+    /**
+     * Reorganiza os protocolos ativos por ano, em ordem de data do desastre.
+     * A data de criação e o ID são usados para desempatar registros do mesmo dia.
+     *
+     * @param list<int> $anos
+     * @return list<array{id: int, protocolo_anterior: string, protocolo_novo: string}>
+     */
+    public function reorganizarAnos(array $anos): array
+    {
+        $anos = array_values(array_unique(array_filter(
+            array_map('intval', $anos),
+            static fn (int $ano): bool => $ano >= 1900 && $ano <= 9999
+        )));
+
+        if ($anos === []) {
+            return [];
+        }
+
+        $pdo = Database::connection();
+        $this->bloquearAnos($anos);
+        $alteracoes = [];
+
+        foreach ($anos as $ano) {
+            $stmt = $pdo->prepare(
+                'SELECT d.id, d.protocolo_dgd, d.data_desastre, m.nome AS municipio
+                 FROM desastres d
+                 INNER JOIN municipios m ON m.id = d.municipio_id
+                 WHERE d.protocolo_ano = :ano
+                   AND d.excluido_em IS NULL
+                 ORDER BY d.data_desastre ASC, d.criado_em ASC, d.id ASC
+                 FOR UPDATE'
+            );
+            $stmt->execute(['ano' => $ano]);
+            $registros = $stmt->fetchAll();
+
+            foreach ($registros as $indice => $registro) {
+                $stmt = $pdo->prepare(
+                    'UPDATE desastres
+                     SET protocolo_dgd = :protocolo, protocolo_sequencial = :sequencial
+                     WHERE id = :id'
+                );
+                $stmt->execute([
+                    'id' => (int) $registro['id'],
+                    'protocolo' => '__TMP_DGD_' . (int) $registro['id'],
+                    'sequencial' => 4000000000 + $indice,
+                ]);
+            }
+
+            foreach ($registros as $indice => $registro) {
+                $sequencial = $indice + 1;
+                $protocolo = $this->montarProtocolo(
+                    $ano,
+                    $sequencial,
+                    (string) $registro['data_desastre'],
+                    (string) $registro['municipio']
+                );
+                $stmt = $pdo->prepare(
+                    'UPDATE desastres
+                     SET protocolo_dgd = :protocolo, protocolo_sequencial = :sequencial
+                     WHERE id = :id'
+                );
+                $stmt->execute([
+                    'id' => (int) $registro['id'],
+                    'protocolo' => $protocolo,
+                    'sequencial' => $sequencial,
+                ]);
+
+                if ($protocolo !== $registro['protocolo_dgd']) {
+                    $alteracoes[] = [
+                        'id' => (int) $registro['id'],
+                        'protocolo_anterior' => (string) $registro['protocolo_dgd'],
+                        'protocolo_novo' => $protocolo,
+                    ];
+                }
+            }
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO sequencias_protocolos (ano, ultimo_sequencial)
+                 VALUES (:ano, :sequencial)
+                 ON DUPLICATE KEY UPDATE ultimo_sequencial = VALUES(ultimo_sequencial)'
+            );
+            $stmt->execute(['ano' => $ano, 'sequencial' => count($registros)]);
+        }
+
+        return $alteracoes;
+    }
+
     private function proximoSequencial(int $ano): int
     {
         $pdo = Database::connection();
@@ -49,6 +136,35 @@ class ProtocoloDgdService
         $stmt->execute(['ano' => $ano, 'sequencial' => $next]);
 
         return $next;
+    }
+
+    /** @param list<int> $anos */
+    private function bloquearAnos(array $anos): void
+    {
+        $pdo = Database::connection();
+
+        foreach ($anos as $ano) {
+            $stmt = $pdo->prepare(
+                'INSERT INTO sequencias_protocolos (ano, ultimo_sequencial)
+                 VALUES (:ano, 0)
+                 ON DUPLICATE KEY UPDATE ano = VALUES(ano)'
+            );
+            $stmt->execute(['ano' => $ano]);
+
+            $stmt = $pdo->prepare('SELECT ano FROM sequencias_protocolos WHERE ano = :ano FOR UPDATE');
+            $stmt->execute(['ano' => $ano]);
+        }
+    }
+
+    private function montarProtocolo(int $ano, int $sequencial, string $dataDesastre, string $municipioNome): string
+    {
+        return sprintf(
+            'DGD-%d-%06d-%s-%s',
+            $ano,
+            $sequencial,
+            date('Ymd', strtotime($dataDesastre)),
+            $this->normalizarMunicipio($municipioNome)
+        );
     }
 
     private function normalizarMunicipio(string $municipio): string

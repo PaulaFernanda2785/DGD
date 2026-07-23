@@ -8,15 +8,20 @@ use PDO;
 
 class Database
 {
-    private static ?PDO $connection = null;
+    /** @var array<string, PDO> */
+    private static array $connections = [];
 
-    public static function connection(): PDO
+    public static function connection(string $name = 'mysql'): PDO
     {
-        if (self::$connection instanceof PDO) {
-            return self::$connection;
+        if (isset(self::$connections[$name])) {
+            return self::$connections[$name];
         }
 
-        $config = config('database.connections.mysql');
+        $config = config('database.connections.' . $name);
+
+        if (!is_array($config)) {
+            throw new \RuntimeException('Conexão de banco não configurada: ' . $name);
+        }
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=%s',
             $config['host'],
@@ -25,14 +30,14 @@ class Database
             $config['charset']
         );
 
-        self::$connection = new PDO(
+        self::$connections[$name] = new PDO(
             $dsn,
             $config['username'],
             $config['password'],
             $config['options']
         );
 
-        return self::$connection;
+        return self::$connections[$name];
     }
 
     public static function beginTransaction(): void

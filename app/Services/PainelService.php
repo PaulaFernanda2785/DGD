@@ -108,7 +108,6 @@ class PainelService
     public function opcoesFiltros(): array
     {
         return [
-            'anos' => $this->anos(),
             'municipios' => $this->municipios(),
             'regioes' => $this->regioes(),
             'tipos_decreto' => $this->tiposDecreto(),
@@ -395,24 +394,6 @@ class PainelService
         }
 
         return [$where, $params];
-    }
-
-    private function anos(): array
-    {
-        try {
-            $stmt = Database::connection()->query(
-                'SELECT DISTINCT protocolo_ano AS ano
-                 FROM vw_decretos_listagem
-                 WHERE ativo = 1
-                 ORDER BY protocolo_ano DESC'
-            );
-
-            $anos = array_column($stmt->fetchAll(), 'ano');
-
-            return $anos !== [] ? $anos : [(int) date('Y')];
-        } catch (\Throwable) {
-            return [(int) date('Y')];
-        }
     }
 
     private function municipios(): array
