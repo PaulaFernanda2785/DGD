@@ -40,7 +40,7 @@ class PainelService
             $resumo = null;
         }
 
-        return array_map('intval', $resumo ?: [
+        $resumo = $resumo ?: [
             'total_desastres' => 0,
             'total_decretos_municipais' => 0,
             'homologacoes_solicitadas' => 0,
@@ -51,7 +51,75 @@ class PainelService
             'pendentes_pge' => 0,
             'total_afetados' => 0,
             'municipios_com_registro' => 0,
-        ]);
+        ];
+        $entregas = $this->resumoEntregas($filters);
+
+        return [
+            'total_desastres' => (int) $resumo['total_desastres'],
+            'total_decretos_municipais' => (int) $resumo['total_decretos_municipais'],
+            'homologacoes_solicitadas' => (int) $resumo['homologacoes_solicitadas'],
+            'homologados' => (int) $resumo['homologados'],
+            'nao_homologados' => (int) $resumo['nao_homologados'],
+            'reconhecidos' => (int) $resumo['reconhecidos'],
+            'enviados_pge' => (int) $resumo['enviados_pge'],
+            'pendentes_pge' => (int) $resumo['pendentes_pge'],
+            'total_afetados' => (int) $resumo['total_afetados'],
+            'municipios_com_registro' => (int) $resumo['municipios_com_registro'],
+        ] + $entregas;
+    }
+
+    public function entregasAjuda(array $filters = []): array
+    {
+        try {
+            [$where, $params] = $this->decretoWhere($filters, 'v');
+            $where .= $this->filtroTipoAjudaEntrega($filters, $params, 'e');
+            $stmt = Database::connection()->prepare(
+                'SELECT
+                    t.nome AS tipo_ajuda_nome,
+                    t.unidade_medida,
+                    COALESCE(SUM(e.quantidade), 0) AS quantidade,
+                    COALESCE(SUM(e.valor_total), 0) AS valor_total,
+                    COUNT(DISTINCT e.desastre_id) AS decretos_com_entrega
+                 FROM decreto_entregas e
+                 INNER JOIN tipos_ajuda t ON t.id = e.tipo_ajuda_id
+                 INNER JOIN vw_decretos_listagem v ON v.id = e.desastre_id
+                 WHERE v.ativo = 1' . $where . '
+                 GROUP BY t.id, t.nome, t.unidade_medida
+                 ORDER BY valor_total DESC, quantidade DESC, t.nome ASC'
+            );
+            $stmt->execute($params);
+
+            return $stmt->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function resumoEntregas(array $filters): array
+    {
+        try {
+            [$where, $params] = $this->decretoWhere($filters, 'v');
+            $where .= $this->filtroTipoAjudaEntrega($filters, $params, 'e');
+            $stmt = Database::connection()->prepare(
+                'SELECT
+                    COALESCE(SUM(e.quantidade), 0) AS quantidade_entregue,
+                    COALESCE(SUM(e.valor_total), 0) AS valor_total_entregue,
+                    COUNT(DISTINCT e.tipo_ajuda_id) AS tipos_ajuda_entregues
+                 FROM decreto_entregas e
+                 INNER JOIN vw_decretos_listagem v ON v.id = e.desastre_id
+                 WHERE v.ativo = 1' . $where
+            );
+            $stmt->execute($params);
+            $resumo = $stmt->fetch() ?: [];
+
+            return [
+                'quantidade_entregue' => (float) ($resumo['quantidade_entregue'] ?? 0),
+                'valor_total_entregue' => (float) ($resumo['valor_total_entregue'] ?? 0),
+                'tipos_ajuda_entregues' => (int) ($resumo['tipos_ajuda_entregues'] ?? 0),
+            ];
+        } catch (\Throwable) {
+            return ['quantidade_entregue' => 0.0, 'valor_total_entregue' => 0.0, 'tipos_ajuda_entregues' => 0];
+        }
     }
 
     public function indicadores(array $filters = []): array
@@ -111,6 +179,7 @@ class PainelService
             'municipios' => $this->municipios(),
             'regioes' => $this->regioes(),
             'tipos_decreto' => $this->tiposDecreto(),
+            'tipos_ajuda' => (new \App\Repositories\TipoAjudaRepository())->listar(['busca' => '', 'status' => 'ativo', 'unidade' => ''])['tipos'],
             'homologacoes' => $this->homologacoes(),
             'reconhecimentos' => $this->reconhecimentos(),
             'status_pge' => [
@@ -130,6 +199,7 @@ class PainelService
             'opcoes' => $this->opcoesFiltros(),
             'resumo' => $this->resumo($filters),
             'indicadores' => $this->indicadores($filters),
+            'entregas_ajuda' => $this->entregasAjuda($filters),
             'mapa' => $this->mapa($filters),
             'recentes' => $this->recentes($filters),
             'registros' => $this->registrosRelatorio($filters),
@@ -189,6 +259,8 @@ class PainelService
                     m.longitude,
                     COUNT(*) AS total_desastres,
                     SUM(COALESCE(v.total_afetados, 0)) AS total_afetados,
+                    COALESCE(SUM((SELECT SUM(entrega_mapa.quantidade) FROM decreto_entregas entrega_mapa WHERE entrega_mapa.desastre_id = v.id)), 0) AS quantidade_entregue,
+                    COALESCE(SUM((SELECT SUM(entrega_mapa.valor_total) FROM decreto_entregas entrega_mapa WHERE entrega_mapa.desastre_id = v.id)), 0) AS valor_total_entregue,
                     SUM(CASE WHEN v.homologacao_codigo = \'HOMOLOGADO\' THEN 1 ELSE 0 END) AS homologados,
                     SUM(CASE WHEN v.status_prazo_pge_calculado = \'PENDENTE\' THEN 1 ELSE 0 END) AS pendentes_pge,
                     MAX(v.data_desastre) AS ultimo_desastre,
@@ -315,6 +387,17 @@ class PainelService
         }
     }
 
+    private function filtroTipoAjudaEntrega(array $filters, array &$params, string $alias): string
+    {
+        if (trim((string) ($filters['tipo_ajuda_id'] ?? '')) === '') {
+            return '';
+        }
+
+        $params['tipo_ajuda_entrega_id'] = (int) $filters['tipo_ajuda_id'];
+
+        return ' AND ' . $alias . '.tipo_ajuda_id = :tipo_ajuda_entrega_id';
+    }
+
     private function decretoWhere(array $filters, string $alias = ''): array
     {
         $prefix = $alias !== '' ? $alias . '.' : '';
@@ -349,6 +432,16 @@ class PainelService
         if (trim((string) ($filters['reconhecimento_status_id'] ?? '')) !== '') {
             $where .= ' AND ' . $prefix . 'reconhecimento_status_id = :reconhecimento_status_id';
             $params['reconhecimento_status_id'] = (int) $filters['reconhecimento_status_id'];
+        }
+
+        if (trim((string) ($filters['tipo_ajuda_id'] ?? '')) !== '') {
+            $where .= ' AND EXISTS (
+                SELECT 1
+                FROM decreto_entregas entrega_filtro
+                WHERE entrega_filtro.desastre_id = ' . $prefix . 'id
+                  AND entrega_filtro.tipo_ajuda_id = :tipo_ajuda_id
+            )';
+            $params['tipo_ajuda_id'] = (int) $filters['tipo_ajuda_id'];
         }
 
         if (trim((string) ($filters['status_prazo_pge'] ?? '')) !== '') {

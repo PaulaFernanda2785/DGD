@@ -17,7 +17,11 @@ class TipoAjudaRepository
     {
         $where = ['1 = 1'];
         $params = [];
-        if (($filtros['busca'] ?? '') !== '') { $where[] = '(nome LIKE :busca OR unidade_medida LIKE :busca)'; $params['busca'] = '%' . $filtros['busca'] . '%'; }
+        if (($filtros['busca'] ?? '') !== '') {
+            $where[] = '(nome LIKE :busca_nome OR unidade_medida LIKE :busca_unidade)';
+            $params['busca_nome'] = '%' . $filtros['busca'] . '%';
+            $params['busca_unidade'] = '%' . $filtros['busca'] . '%';
+        }
         if (in_array($filtros['status'] ?? '', ['ativo', 'inativo'], true)) { $where[] = 'ativo = :ativo'; $params['ativo'] = $filtros['status'] === 'ativo' ? 1 : 0; }
         if (($filtros['unidade'] ?? '') !== '') { $where[] = 'unidade_medida = :unidade'; $params['unidade'] = $filtros['unidade']; }
         $pdo = Database::connection();

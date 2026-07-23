@@ -2424,6 +2424,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (point.layer === 'desastres') {
                 rows.push('<div><b>Registros</b><span>' + escapeHtml(point.total_desastres || 0) + '</span></div>');
                 rows.push('<div><b>Afetados</b><span>' + escapeHtml(point.total_afetados || 0) + '</span></div>');
+                rows.push('<div><b>Quantidade entregue</b><span>' + escapeHtml(Number(point.quantidade_entregue || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })) + '</span></div>');
+                rows.push('<div><b>Valor das entregas</b><span>' + escapeHtml(Number(point.valor_total_entregue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })) + '</span></div>');
                 rows.push('<div><b>Homologados</b><span>' + escapeHtml(point.homologados || 0) + '</span></div>');
 
                 if (point.cobrade_tipo) {

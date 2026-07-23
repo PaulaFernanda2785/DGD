@@ -8,6 +8,7 @@ $filters = array_merge([
     'municipio_id' => '',
     'regiao_integracao' => '',
     'tipo_decreto_id' => '',
+    'tipo_ajuda_id' => '',
     'homologacao_status_id' => '',
     'reconhecimento_status_id' => '',
     'status_prazo_pge' => '',
@@ -23,6 +24,9 @@ $resumo = array_merge([
     'pendentes_pge' => 0,
     'total_afetados' => 0,
     'municipios_com_registro' => 0,
+    'quantidade_entregue' => 0,
+    'valor_total_entregue' => 0,
+    'tipos_ajuda_entregues' => 0,
 ], is_array($resumo ?? null) ? $resumo : []);
 $mapa = array_merge([
     'compdecs' => [],
@@ -33,6 +37,12 @@ $compdecsComTotal = count(array_filter($mapa['compdecs'], static fn (array $poin
 $compdecsSemTotal = max(count($mapa['compdecs']) - $compdecsComTotal, 0);
 $totalPontos = count($mapa['compdecs']) + count($mapa['ubms']) + count($mapa['desastres']);
 $formatNumber = static fn (mixed $value): string => number_format((float) $value, 0, ',', '.');
+$formatCurrency = static fn (mixed $value): string => 'R$ ' . number_format((float) $value, 2, ',', '.');
+$formatQuantity = static function (mixed $value): string {
+    $quantity = number_format((float) $value, 2, ',', '.');
+
+    return rtrim(rtrim($quantity, '0'), ',');
+};
 $formatDate = static function (?string $date): string {
     if (!$date) {
         return '-';
@@ -130,6 +140,19 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
                 <small>Afeta os indicadores de desastres.</small>
             </label>
 
+            <label class="modern-field" for="panel_tipo_ajuda">
+                <span>Tipo de ajuda</span>
+                <select id="panel_tipo_ajuda" name="tipo_ajuda_id">
+                    <option value="">Todos</option>
+                    <?php foreach (($opcoes['tipos_ajuda'] ?? []) as $tipoAjuda): ?>
+                        <option value="<?= e($tipoAjuda['id'] ?? ''); ?>"<?= (string) $filters['tipo_ajuda_id'] === (string) ($tipoAjuda['id'] ?? '') ? ' selected' : ''; ?>>
+                            <?= e($tipoAjuda['nome'] ?? ''); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <small>Filtra decretos com esse item entregue.</small>
+            </label>
+
             <label class="modern-field" for="panel_homologacao">
                 <span>Homologação</span>
                 <select id="panel_homologacao" name="homologacao_status_id">
@@ -222,6 +245,16 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
             <strong><?= e($formatNumber($resumo['total_afetados'])); ?></strong>
             <small>Total humano registrado.</small>
         </article>
+        <article class="panel-indicator-aid">
+            <span>Quantidade entregue</span>
+            <strong><?= e($formatNumber($resumo['quantidade_entregue'])); ?></strong>
+            <small><?= e($formatNumber($resumo['tipos_ajuda_entregues'])); ?> tipo(s) de ajuda no recorte.</small>
+        </article>
+        <article class="panel-indicator-aid-value">
+            <span>Valor das entregas</span>
+            <strong><?= e($formatCurrency($resumo['valor_total_entregue'])); ?></strong>
+            <small>Valor total dos itens de ajuda humanitária.</small>
+        </article>
     </section>
 
     <section class="panel-map-section" aria-label="Mapa territorial do DGD">
@@ -268,6 +301,35 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
                     <span><i data-layer="cluster"></i>Agrupado D/C/U</span>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="panel-aid-section" aria-label="Itens de ajuda humanitária entregues">
+        <div class="section-heading">
+            <div>
+                <span>Ajuda humanitária</span>
+                <h2>Itens entregues no recorte</h2>
+            </div>
+            <small>Quantidades e valores consolidados por tipo de item.</small>
+        </div>
+
+        <div class="panel-aid-grid">
+            <?php foreach (($entregasAjuda ?? []) as $entrega): ?>
+                <article>
+                    <div>
+                        <span>Tipo de ajuda</span>
+                        <h3><?= e($entrega['tipo_ajuda_nome'] ?? 'Item entregue'); ?></h3>
+                    </div>
+                    <dl>
+                        <div><dt>Quantidade</dt><dd><?= e($formatQuantity($entrega['quantidade'] ?? 0)); ?> <?= e($entrega['unidade_medida'] ?? ''); ?></dd></div>
+                        <div><dt>Valor entregue</dt><dd><?= e($formatCurrency($entrega['valor_total'] ?? 0)); ?></dd></div>
+                        <div><dt>Decretos</dt><dd><?= e($formatNumber($entrega['decretos_com_entrega'] ?? 0)); ?></dd></div>
+                    </dl>
+                </article>
+            <?php endforeach; ?>
+            <?php if (($entregasAjuda ?? []) === []): ?>
+                <div class="panel-empty-state">Nenhum item de ajuda humanitária foi registrado para o recorte atual.</div>
+            <?php endif; ?>
         </div>
     </section>
 

@@ -2,6 +2,12 @@
     $valor = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : 'Não informado';
     $data = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : 'Não informado';
     $numero = static fn (mixed $value): string => number_format((float) ($value ?? 0), 0, ',', '.');
+    $moeda = static fn (mixed $value): string => 'R$ ' . number_format((float) ($value ?? 0), 2, ',', '.');
+    $quantidade = static function (mixed $value): string {
+        $numeroFormatado = number_format((float) ($value ?? 0), 2, ',', '.');
+
+        return rtrim(rtrim($numeroFormatado, '0'), ',');
+    };
     $usuario = \App\Core\Auth::user();
     $geradoEm ??= new DateTimeImmutable('now');
     $relatorio = is_array($relatorio ?? null) ? $relatorio : [];
@@ -10,6 +16,7 @@
         'municipio_id' => '',
         'regiao_integracao' => '',
         'tipo_decreto_id' => '',
+        'tipo_ajuda_id' => '',
         'homologacao_status_id' => '',
         'reconhecimento_status_id' => '',
         'status_prazo_pge' => '',
@@ -20,6 +27,7 @@
     $mapa = array_merge(['compdecs' => [], 'ubms' => [], 'desastres' => []], is_array($relatorio['mapa'] ?? null) ? $relatorio['mapa'] : []);
     $registros = is_array($relatorio['registros'] ?? null) ? $relatorio['registros'] : [];
     $recentes = is_array($relatorio['recentes'] ?? null) ? $relatorio['recentes'] : [];
+    $entregasAjuda = is_array($relatorio['entregas_ajuda'] ?? null) ? $relatorio['entregas_ajuda'] : [];
     $findOption = static function (array $items, mixed $id, string $idKey = 'id', string $labelKey = 'nome'): string {
         $id = (string) $id;
 
@@ -43,6 +51,7 @@
         'Município' => $findOption($opcoes['municipios'] ?? [], $filters['municipio_id'] ?? ''),
         'Região de integração' => trim((string) ($filters['regiao_integracao'] ?? '')) !== '' ? (string) $filters['regiao_integracao'] : 'Todas',
         'Tipo de decreto' => $findOption($opcoes['tipos_decreto'] ?? [], $filters['tipo_decreto_id'] ?? ''),
+        'Tipo de ajuda' => $findOption($opcoes['tipos_ajuda'] ?? [], $filters['tipo_ajuda_id'] ?? ''),
         'Homologação' => $findOption($opcoes['homologacoes'] ?? [], $filters['homologacao_status_id'] ?? ''),
         'Reconhecimento' => $findOption($opcoes['reconhecimentos'] ?? [], $filters['reconhecimento_status_id'] ?? ''),
         'Status PGE' => trim((string) ($filters['status_prazo_pge'] ?? '')) !== '' ? (string) (($opcoes['status_pge'][$filters['status_prazo_pge']] ?? $filters['status_prazo_pge'])) : 'Todos',
@@ -103,6 +112,8 @@
         <div class="decree-print-highlight decree-print-highlight--success"><span>Reconhecidos</span><strong><?= e($numero($resumo['reconhecidos'] ?? 0)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--danger"><span>Pendências PGE</span><strong><?= e($numero($resumo['pendentes_pge'] ?? 0)); ?></strong></div>
         <div><span>Afetados</span><strong><?= e($numero($resumo['total_afetados'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--success"><span>Quantidade entregue</span><strong><?= e($numero($resumo['quantidade_entregue'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--info"><span>Valor das entregas</span><strong><?= e($moeda($resumo['valor_total_entregue'] ?? 0)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--success"><span>Com COMPDEC</span><strong><?= e($numero($compdecsComTotal)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--warning"><span>Sem COMPDEC</span><strong><?= e($numero($compdecsSemTotal)); ?></strong></div>
         <div><span>UBMs</span><strong><?= e($numero(count($mapa['ubms']))); ?></strong></div>
@@ -130,6 +141,30 @@
             <div><span>UBMs atribuídas</span><strong><?= e($numero(count($mapa['ubms']))); ?></strong></div>
             <div><span>Total de pontos</span><strong><?= e($numero($totalPontos)); ?></strong></div>
         </div>
+    </section>
+
+    <section class="decree-print-section">
+        <h3><span><?= e(str_pad((string) $sectionNumber++, 2, '0', STR_PAD_LEFT)); ?></span>Entregas de ajuda humanitária</h3>
+        <?php if ($entregasAjuda !== []): ?>
+            <div class="decree-print-table">
+                <div class="decree-print-row panel-print-aid-row decree-print-row-head">
+                    <span>Tipo de ajuda</span>
+                    <span>Quantidade</span>
+                    <span>Valor entregue</span>
+                    <span>Decretos</span>
+                </div>
+                <?php foreach ($entregasAjuda as $entrega): ?>
+                    <div class="decree-print-row panel-print-aid-row">
+                        <span><?= e($valor($entrega['tipo_ajuda_nome'] ?? null)); ?><br><small><?= e($valor($entrega['unidade_medida'] ?? null)); ?></small></span>
+                        <span><?= e($quantidade($entrega['quantidade'] ?? 0)); ?> <?= e($valor($entrega['unidade_medida'] ?? null)); ?></span>
+                        <span><?= e($moeda($entrega['valor_total'] ?? 0)); ?></span>
+                        <span><?= e($numero($entrega['decretos_com_entrega'] ?? 0)); ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <p class="decree-print-empty">Nenhum item de ajuda humanitária foi registrado para o recorte atual.</p>
+        <?php endif; ?>
     </section>
 
     <section class="decree-print-section">
