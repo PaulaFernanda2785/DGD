@@ -385,6 +385,8 @@ CREATE TABLE desastres (
     protocolo_s2id VARCHAR(80) NULL,
     numero_decreto_municipal VARCHAR(80) NULL,
     data_decreto_municipal DATE NULL,
+    data_publicacao_decreto DATE NULL,
+    dias_vigencia_decreto SMALLINT UNSIGNED NULL,
     numero_decreto_homologacao_estadual VARCHAR(80) NULL,
     data_decreto_homologacao DATE NULL,
     homologacao_status_id TINYINT UNSIGNED NOT NULL DEFAULT 1,

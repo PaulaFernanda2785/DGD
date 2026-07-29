@@ -5,6 +5,9 @@
         'pendentes_pge' => 0,
         'homologados' => 0,
         'reconhecidos' => 0,
+        'decretos_vigentes' => 0,
+        'decretos_vence_hoje' => 0,
+        'decretos_vencidos' => 0,
         'quantidade_entregue' => 0,
         'valor_total_entregue' => 0,
     ], is_array($resumo ?? null) ? $resumo : []);
@@ -80,6 +83,21 @@
         <strong><?= e($resumo['reconhecidos']); ?></strong>
         <small>Registros com reconhecimento federal concluído.</small>
     </div>
+    <div class="decree-overview-card--vigente">
+        <span>Decretos vigentes</span>
+        <strong><?= e($resumo['decretos_vigentes']); ?></strong>
+        <small>Mais de um dia restante no recorte.</small>
+    </div>
+    <div class="decree-overview-card--vence-hoje">
+        <span>Decretos vencem hoje</span>
+        <strong><?= e($resumo['decretos_vence_hoje']); ?></strong>
+        <small>Registros no último dia de vigência.</small>
+    </div>
+    <div class="decree-overview-card--vencido">
+        <span>Decretos vencidos</span>
+        <strong><?= e($resumo['decretos_vencidos']); ?></strong>
+        <small>Registros com vigência encerrada.</small>
+    </div>
     <div>
         <span>Quantidade entregue</span>
         <strong><?= e(number_format((float) $resumo['quantidade_entregue'], 0, ',', '.')); ?></strong>
@@ -107,8 +125,15 @@
             $pgeResultadoData = in_array($pgeResultadoCodigo, ['APROVADO', 'REPROVADO'], true)
                 ? ($registro['data_decreto_homologacao'] ?? $registro['data_conclusao_pge'] ?? null)
                 : ($registro['data_conclusao_pge'] ?? null);
+            $vigenciaCodigo = (string) ($registro['vigencia_status_codigo'] ?? 'NAO_INFORMADO');
+            $vigenciaCardClass = match ($vigenciaCodigo) {
+                'VIGENTE' => 'decree-card--vigente',
+                'VENCE_HOJE' => 'decree-card--vence-hoje',
+                'VENCIDO' => 'decree-card--vencido',
+                default => 'decree-card--sem-vigencia',
+            };
         ?>
-        <article class="decree-card">
+        <article class="decree-card <?= e($vigenciaCardClass); ?>">
             <header class="decree-card-header">
                 <div class="decree-card-title">
                     <span><?= e($registro['protocolo_ano'] . '/' . $registro['protocolo_sequencial']); ?></span>
@@ -131,6 +156,21 @@
             </header>
 
             <div class="decree-card-body">
+                <div class="decree-validity-card-summary">
+                    <div>
+                        <span>Status da vigência</span>
+                        <?= status_badge($registro['vigencia_status'] ?? 'Aguardando dados'); ?>
+                    </div>
+                    <div>
+                        <span>Dias restantes</span>
+                        <strong><?= e($dash($registro['vigencia_dias_restantes'] ?? null)); ?></strong>
+                    </div>
+                    <div>
+                        <span>Data final da vigência</span>
+                        <strong><?= e($formatDate($registro['data_fim_vigencia'] ?? null)); ?></strong>
+                    </div>
+                </div>
+
                 <div class="decree-main-info">
                     <div class="decree-disaster-info">
                         <span>Tipo de desastre</span>

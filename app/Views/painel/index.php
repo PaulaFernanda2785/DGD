@@ -12,6 +12,7 @@ $filters = array_merge([
     'homologacao_status_id' => '',
     'reconhecimento_status_id' => '',
     'status_prazo_pge' => '',
+    'status_vigencia' => '',
 ], is_array($filters ?? null) ? $filters : []);
 $opcoes = is_array($opcoes ?? null) ? $opcoes : [];
 $resumo = array_merge([
@@ -22,6 +23,9 @@ $resumo = array_merge([
     'reconhecidos' => 0,
     'enviados_pge' => 0,
     'pendentes_pge' => 0,
+    'decretos_vigentes' => 0,
+    'decretos_vence_hoje' => 0,
+    'decretos_vencidos' => 0,
     'total_afetados' => 0,
     'municipios_com_registro' => 0,
     'quantidade_entregue' => 0,
@@ -53,6 +57,25 @@ $formatDate = static function (?string $date): string {
     } catch (Throwable) {
         return $date;
     }
+};
+$vigenciaCardClass = static fn (mixed $codigo): string => match ((string) $codigo) {
+    'VIGENTE' => 'panel-recent--vigente',
+    'VENCE_HOJE' => 'panel-recent--vence-hoje',
+    'VENCIDO' => 'panel-recent--vencido',
+    default => 'panel-recent--sem-dados',
+};
+$vigenciaPrazoTexto = static function (array $registro): string {
+    $codigo = (string) ($registro['vigencia_status_codigo'] ?? '');
+    $dias = (int) ($registro['vigencia_dias_restantes'] ?? 0);
+    $diasAbsolutos = abs($dias);
+    $unidade = $diasAbsolutos === 1 ? 'dia' : 'dias';
+
+    return match ($codigo) {
+        'VIGENTE' => $dias . ' ' . ($dias === 1 ? 'dia restante' : 'dias restantes'),
+        'VENCE_HOJE' => 'Último dia de vigência',
+        'VENCIDO' => 'Vencido há ' . $diasAbsolutos . ' ' . $unidade,
+        default => 'Prazo não informado',
+    };
 };
 $reportQuery = http_build_query(array_filter($filters, static fn (mixed $value): bool => trim((string) $value) !== ''));
 $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $reportQuery : ''));
@@ -190,6 +213,17 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
                 <small>Prazo calculado pela regra atual.</small>
             </label>
 
+            <label class="modern-field" for="panel_vigencia">
+                <span>Status da vigência</span>
+                <select id="panel_vigencia" name="status_vigencia">
+                    <option value="">Todos</option>
+                    <?php foreach (($opcoes['status_vigencia'] ?? []) as $codigo => $label): ?>
+                        <option value="<?= e($codigo); ?>"<?= (string) $filters['status_vigencia'] === (string) $codigo ? ' selected' : ''; ?>><?= e($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small>Situação dinâmica da vigência do decreto.</small>
+            </label>
+
             </div>
 
             <div class="panel-filter-actions">
@@ -239,6 +273,21 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
             <span>Pendências PGE</span>
             <strong><?= e($formatNumber($resumo['pendentes_pge'])); ?></strong>
             <small>Fora do prazo calculado.</small>
+        </article>
+        <article class="panel-indicator-validity-active">
+            <span>Decretos vigentes</span>
+            <strong><?= e($formatNumber($resumo['decretos_vigentes'])); ?></strong>
+            <small>Com dois ou mais dias restantes.</small>
+        </article>
+        <article class="panel-indicator-validity-today">
+            <span>Decretos que vencem hoje</span>
+            <strong><?= e($formatNumber($resumo['decretos_vence_hoje'])); ?></strong>
+            <small>No último dia de vigência.</small>
+        </article>
+        <article class="panel-indicator-validity-expired">
+            <span>Decretos vencidos</span>
+            <strong><?= e($formatNumber($resumo['decretos_vencidos'])); ?></strong>
+            <small>Com prazo de vigência encerrado.</small>
         </article>
         <article class="panel-indicator-neutral">
             <span>Afetados</span>
@@ -368,15 +417,47 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
 
             <div class="panel-recent-list">
                 <?php foreach ($recentes as $registro): ?>
-                    <article>
+                    <article class="<?= e($vigenciaCardClass($registro['vigencia_status_codigo'] ?? null)); ?>">
                         <div>
                             <a href="<?= e(url('/decretos/' . $registro['id'])); ?>"><?= e($registro['protocolo_dgd']); ?></a>
                             <strong><?= e($registro['municipio']); ?></strong>
                             <span><?= e($registro['cobrade_tipo'] ?? 'Desastre'); ?> · <?= e($formatDate($registro['data_desastre'] ?? null)); ?></span>
                         </div>
-                        <div class="panel-recent-status">
-                            <?= status_badge($registro['homologacao'] ?? null); ?>
-                            <?= status_badge($registro['status_envio_pge'] ?? null); ?>
+                        <div class="panel-recent-status" aria-label="Situações do decreto">
+                            <div class="panel-recent-status-group panel-recent-status-group--institutional">
+                                <div class="panel-recent-status-heading">
+                                    <strong>Institucional</strong>
+                                    <small>Tramitação oficial</small>
+                                </div>
+                                <div class="panel-recent-status-pair">
+                                    <div>
+                                        <span>Homologação</span>
+                                        <?= status_badge($registro['homologacao'] ?? null); ?>
+                                    </div>
+                                    <div>
+                                        <span>Reconhecimento</span>
+                                        <?= status_badge($registro['reconhecimento'] ?? null); ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel-recent-status-group">
+                                <div class="panel-recent-status-heading">
+                                    <strong>Status PGE</strong>
+                                    <small>Situação do prazo</small>
+                                </div>
+                                <?= status_badge($registro['status_prazo_pge_calculado'] ?? null); ?>
+                            </div>
+
+                            <div class="panel-recent-status-group panel-recent-status-group--validity">
+                                <div class="panel-recent-status-heading">
+                                    <strong>Vigência do decreto</strong>
+                                    <small>Prazo legal</small>
+                                </div>
+                                <?= status_badge($registro['vigencia_status'] ?? null); ?>
+                                <span class="panel-recent-validity-meta"><?= e($vigenciaPrazoTexto($registro)); ?></span>
+                                <small class="panel-recent-validity-end">Data final: <?= e($formatDate($registro['data_fim_vigencia'] ?? null)); ?></small>
+                            </div>
                         </div>
                     </article>
                 <?php endforeach; ?>

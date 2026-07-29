@@ -80,6 +80,25 @@
 | Total de afetados | Soma obitos, feridos, enfermos, desabrigados, desalojados e outros. |
 | Status prazo PGE | Calculado, nao editavel. |
 | Status envio PGE | Editavel somente por Admin/Gestor. |
+| Informar data de publicação e dias de vigência no novo cadastro | Os dois valores são salvos e exibidos no detalhe e no relatório do decreto. |
+| Alterar data de publicação e dias de vigência na edição | Os valores atualizados são persistidos e registrados no histórico. |
+| Informar data de publicação futura | O cadastro é recusado com mensagem de validação. |
+| Informar vigência decimal, negativa, zero ou maior que 65535 | O cadastro é recusado com mensagem de validação. |
+| Publicação hoje com 30 dias de vigência | O formulário exibe `Decreto vigente`, 30 dias restantes e a data final calculada. |
+| Data de referência 29 dias após uma publicação com 30 dias de vigência | O sistema exibe `Vence hoje` e 1 dia restante. |
+| Dia seguinte ao último dia vigente | O sistema exibe `Decreto vencido` e -1 dia restante, sem passar pelo dia zero. |
+| Abrir detalhe, impressão ou PDF | Status, dias restantes e data final usam o mesmo cálculo apresentado no formulário. |
+| Abrir a listagem de decretos | Cada card exibe status da vigência, dias restantes e data final, com destaque verde, amarelo ou vermelho. |
+| Filtrar por `Decreto vigente`, `Vence hoje` ou `Decreto vencido` | A paginação e os resultados mostram somente o status selecionado. |
+| Conferir os indicadores de vigência | Os totais de vigentes, vencem hoje e vencidos respeitam os demais filtros ativos. |
+| Executar `2026_07_29_create_decreto_vigencia_view.sql` duas vezes | A segunda execução termina sem erro e mantém a view atualizada. |
+| Aplicar qualquer filtro após a migração no deploy | A listagem responde sem erro interno, inclusive para decretos com dias negativos. |
+| Abrir detalhe, impressão e PDF | O status da vigência aparece entre os indicadores principais. |
+| Abrir o Painel | Os cards exibem totais de decretos vigentes, que vencem hoje e vencidos com cores distintas. |
+| Filtrar o Painel por status de vigência | Indicadores, registros recentes, mapa e relatório respeitam o status selecionado. |
+| Conferir registros recentes do Painel | Cada card separa Institucional, Status PGE e Vigência; homologação e reconhecimento possuem rótulos próprios e o prazo vencido é apresentado em linguagem natural. |
+| Abrir um ponto de desastre no mapa | O modal mostra status da vigência, dias restantes, data final e status PGE do decreto mais recente do município. |
+| Gerar relatório ou PDF do Painel | Os indicadores de vigência aparecem no resumo e os status institucional, PGE e vigência têm destaque por cor nas tabelas. |
 
 ---
 

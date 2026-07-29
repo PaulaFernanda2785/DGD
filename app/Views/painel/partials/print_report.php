@@ -20,6 +20,7 @@
         'homologacao_status_id' => '',
         'reconhecimento_status_id' => '',
         'status_prazo_pge' => '',
+        'status_vigencia' => '',
     ], is_array($relatorio['filters'] ?? null) ? $relatorio['filters'] : []);
     $opcoes = is_array($relatorio['opcoes'] ?? null) ? $relatorio['opcoes'] : [];
     $resumo = is_array($relatorio['resumo'] ?? null) ? $relatorio['resumo'] : [];
@@ -55,6 +56,7 @@
         'Homologação' => $findOption($opcoes['homologacoes'] ?? [], $filters['homologacao_status_id'] ?? ''),
         'Reconhecimento' => $findOption($opcoes['reconhecimentos'] ?? [], $filters['reconhecimento_status_id'] ?? ''),
         'Status PGE' => trim((string) ($filters['status_prazo_pge'] ?? '')) !== '' ? (string) (($opcoes['status_pge'][$filters['status_prazo_pge']] ?? $filters['status_prazo_pge'])) : 'Todos',
+        'Status da vigência' => trim((string) ($filters['status_vigencia'] ?? '')) !== '' ? (string) (($opcoes['status_vigencia'][$filters['status_vigencia']] ?? $filters['status_vigencia'])) : 'Todos',
     ];
     $statusPgeHighlight = match ((string) ($filters['status_prazo_pge'] ?? '')) {
         'APROVADO' => 'decree-print-highlight--success',
@@ -67,7 +69,32 @@
     $filterHighlightClasses = [
         'Ano' => 'decree-print-highlight decree-print-highlight--info',
         'Status PGE' => 'decree-print-highlight ' . $statusPgeHighlight,
+        'Status da vigência' => 'decree-print-highlight ' . match ((string) ($filters['status_vigencia'] ?? '')) {
+            'VIGENTE' => 'decree-print-highlight--success',
+            'VENCE_HOJE' => 'decree-print-highlight--warning',
+            'VENCIDO' => 'decree-print-highlight--danger',
+            default => 'decree-print-highlight--muted',
+        },
     ];
+    $statusHighlight = static function (mixed $codigo, mixed $rotulo = null): string {
+        $status = strtoupper(trim((string) ($codigo ?: $rotulo)));
+        $status = strtr($status, ['Á' => 'A', 'Ã' => 'A', 'Â' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Õ' => 'O', 'Ô' => 'O', 'Ú' => 'U', 'Ç' => 'C']);
+
+        if (str_contains($status, 'VENCIDO') || str_contains($status, 'NAO_HOMOLOGADO') || str_contains($status, 'NAO HOMOLOGADO') || str_contains($status, 'REPROVADO')) {
+            return 'decree-print-highlight decree-print-highlight--danger';
+        }
+        if (str_contains($status, 'VENCE_HOJE') || str_contains($status, 'VENCE HOJE') || str_contains($status, 'PENDENTE') || str_contains($status, 'SOLICITADO')) {
+            return 'decree-print-highlight decree-print-highlight--warning';
+        }
+        if (str_contains($status, 'VIGENTE') || $status === 'HOMOLOGADO' || $status === 'RECONHECIDO' || $status === 'APROVADO') {
+            return 'decree-print-highlight decree-print-highlight--success';
+        }
+        if ($status === 'NO PRAZO' || str_contains($status, 'ENVIADO')) {
+            return 'decree-print-highlight decree-print-highlight--info';
+        }
+
+        return 'decree-print-highlight decree-print-highlight--muted';
+    };
     $compdecsComTotal = count(array_filter($mapa['compdecs'], static fn (array $point): bool => (int) ($point['tem_compdec'] ?? 0) === 1));
     $compdecsSemTotal = max(count($mapa['compdecs']) - $compdecsComTotal, 0);
     $totalPontos = count($mapa['compdecs']) + count($mapa['ubms']) + count($mapa['desastres']);
@@ -111,6 +138,9 @@
         <div class="decree-print-highlight decree-print-highlight--success"><span>Homologados</span><strong><?= e($numero($resumo['homologados'] ?? 0)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--success"><span>Reconhecidos</span><strong><?= e($numero($resumo['reconhecidos'] ?? 0)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--danger"><span>Pendências PGE</span><strong><?= e($numero($resumo['pendentes_pge'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--success"><span>Decretos vigentes</span><strong><?= e($numero($resumo['decretos_vigentes'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--warning"><span>Vencem hoje</span><strong><?= e($numero($resumo['decretos_vence_hoje'] ?? 0)); ?></strong></div>
+        <div class="decree-print-highlight decree-print-highlight--danger"><span>Decretos vencidos</span><strong><?= e($numero($resumo['decretos_vencidos'] ?? 0)); ?></strong></div>
         <div><span>Afetados</span><strong><?= e($numero($resumo['total_afetados'] ?? 0)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--success"><span>Quantidade entregue</span><strong><?= e($numero($resumo['quantidade_entregue'] ?? 0)); ?></strong></div>
         <div class="decree-print-highlight decree-print-highlight--info"><span>Valor das entregas</span><strong><?= e($moeda($resumo['valor_total_entregue'] ?? 0)); ?></strong></div>
@@ -197,14 +227,23 @@
                     <span>Protocolo</span>
                     <span>Município</span>
                     <span>Desastre</span>
-                    <span>Status</span>
+                    <span>Institucional</span>
+                    <span>PGE</span>
+                    <span>Vigência</span>
                 </div>
                 <?php foreach ($recentes as $registro): ?>
                     <div class="decree-print-row panel-print-recent-row">
                         <span><?= e($valor($registro['protocolo_dgd'] ?? null)); ?></span>
                         <span><?= e($valor($registro['municipio'] ?? null)); ?></span>
                         <span><?= e($valor($registro['cobrade_tipo'] ?? 'Desastre')); ?> • <?= e($data($registro['data_desastre'] ?? null)); ?></span>
-                        <span><?= e($valor($registro['homologacao'] ?? null)); ?> / <?= e($valor($registro['status_envio_pge'] ?? null)); ?></span>
+                        <span class="<?= e($statusHighlight($registro['homologacao_codigo'] ?? null, $registro['homologacao'] ?? null)); ?>">
+                            <?= e($valor($registro['homologacao'] ?? null)); ?><br><small><?= e($valor($registro['reconhecimento'] ?? null)); ?></small>
+                        </span>
+                        <span class="<?= e($statusHighlight($registro['status_prazo_pge_calculado'] ?? null)); ?>"><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?></span>
+                        <span class="<?= e($statusHighlight($registro['vigencia_status_codigo'] ?? null, $registro['vigencia_status'] ?? null)); ?>">
+                            <?= e($valor($registro['vigencia_status'] ?? null)); ?><br>
+                            <small><?= e($valor($registro['vigencia_dias_restantes'] ?? null)); ?> dia(s) · fim <?= e($data($registro['data_fim_vigencia'] ?? null)); ?></small>
+                        </span>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -223,6 +262,7 @@
                     <span>Desastre</span>
                     <span>Institucional</span>
                     <span>PGE</span>
+                    <span>Vigência</span>
                     <span>Afetados</span>
                 </div>
                 <?php foreach ($registros as $registro): ?>
@@ -230,8 +270,12 @@
                         <span><?= e($valor($registro['protocolo_dgd'] ?? null)); ?></span>
                         <span><?= e($valor($registro['municipio'] ?? null)); ?><br><small><?= e($valor($registro['compdec_regiao_integracao'] ?? null)); ?></small></span>
                         <span><?= e($valor($registro['cobrade_codigo'] ?? null)); ?> - <?= e($valor($registro['cobrade_subtipo'] ?? null)); ?><br><small><?= e($data($registro['data_desastre'] ?? null)); ?></small></span>
-                        <span><?= e($valor($registro['homologacao'] ?? null)); ?><br><small><?= e($valor($registro['reconhecimento'] ?? null)); ?></small></span>
-                        <span><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?><br><small><?= e($valor($registro['duracao_pge_dias'] ?? null)); ?> dia(s)</small></span>
+                        <span class="<?= e($statusHighlight($registro['homologacao_codigo'] ?? null, $registro['homologacao'] ?? null)); ?>"><?= e($valor($registro['homologacao'] ?? null)); ?><br><small><?= e($valor($registro['reconhecimento'] ?? null)); ?></small></span>
+                        <span class="<?= e($statusHighlight($registro['status_prazo_pge_calculado'] ?? null)); ?>"><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?><br><small><?= e($valor($registro['duracao_pge_dias'] ?? null)); ?> dia(s)</small></span>
+                        <span class="<?= e($statusHighlight($registro['vigencia_status_codigo'] ?? null, $registro['vigencia_status'] ?? null)); ?>">
+                            <?= e($valor($registro['vigencia_status'] ?? null)); ?><br>
+                            <small><?= e($valor($registro['vigencia_dias_restantes'] ?? null)); ?> dia(s) · fim <?= e($data($registro['data_fim_vigencia'] ?? null)); ?></small>
+                        </span>
                         <span class="panel-print-affected">
                             <strong><?= e($numero($registro['total_afetados'] ?? 0)); ?></strong>
                             <small>pessoas afetadas</small>

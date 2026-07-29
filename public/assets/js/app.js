@@ -1799,6 +1799,99 @@ function initCobradeCascade() {
 
 document.addEventListener('DOMContentLoaded', initCobradeCascade);
 document.addEventListener('DOMContentLoaded', initPgeStatusSync);
+document.addEventListener('DOMContentLoaded', initDecreeValidityPreview);
+
+function initDecreeValidityPreview() {
+    document.querySelectorAll('.decree-form').forEach(function (form) {
+        var publicationInput = form.querySelector('[data-decree-publication-date]');
+        var validityInput = form.querySelector('[data-decree-validity-days]');
+        var statusContainer = form.querySelector('[data-decree-validity-status]');
+        var remainingContainer = form.querySelector('[data-decree-validity-remaining]');
+        var endContainer = form.querySelector('[data-decree-validity-end]');
+
+        if (!(publicationInput instanceof HTMLInputElement) || !(validityInput instanceof HTMLInputElement)) {
+            return;
+        }
+
+        var render = function () {
+            var result = calculateDecreeValidity(
+                publicationInput.value,
+                validityInput.value,
+                form.getAttribute('data-server-today') || ''
+            );
+            renderPgeStatusPreview(statusContainer, {
+                label: result.label,
+                className: result.className
+            });
+
+            if (remainingContainer instanceof HTMLElement) {
+                remainingContainer.textContent = result.remaining === null ? '-' : String(result.remaining);
+            }
+
+            if (endContainer instanceof HTMLElement) {
+                endContainer.textContent = result.endDate || '-';
+            }
+        };
+
+        publicationInput.addEventListener('input', render);
+        publicationInput.addEventListener('change', render);
+        validityInput.addEventListener('input', render);
+        validityInput.addEventListener('change', render);
+        render();
+    });
+}
+
+function calculateDecreeValidity(publicationValue, validityValue, todayValue) {
+    var publicationParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(publicationValue);
+    var todayParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayValue);
+    var validityDays = Number(validityValue);
+
+    if (!publicationParts || !todayParts || !Number.isInteger(validityDays) || validityDays < 1 || validityDays > 65535) {
+        return { label: 'Aguardando dados', className: 'badge-warning', remaining: null, endDate: '' };
+    }
+
+    var publicationUtc = Date.UTC(
+        Number(publicationParts[1]),
+        Number(publicationParts[2]) - 1,
+        Number(publicationParts[3])
+    );
+    var publicationCheck = new Date(publicationUtc);
+
+    if (
+        publicationCheck.getUTCFullYear() !== Number(publicationParts[1])
+        || publicationCheck.getUTCMonth() !== Number(publicationParts[2]) - 1
+        || publicationCheck.getUTCDate() !== Number(publicationParts[3])
+    ) {
+        return { label: 'Data inválida', className: 'badge-danger', remaining: null, endDate: '' };
+    }
+
+    var todayUtc = Date.UTC(
+        Number(todayParts[1]),
+        Number(todayParts[2]) - 1,
+        Number(todayParts[3])
+    );
+
+    if (publicationUtc > todayUtc) {
+        return { label: 'Data futura inválida', className: 'badge-danger', remaining: null, endDate: '' };
+    }
+
+    var elapsedDays = Math.round((todayUtc - publicationUtc) / 86400000);
+    var calculatedRemainingDays = validityDays - elapsedDays;
+    var endDate = new Date(publicationUtc + (validityDays - 1) * 86400000);
+    var endDateFormatted = String(endDate.getUTCDate()).padStart(2, '0')
+        + '/' + String(endDate.getUTCMonth() + 1).padStart(2, '0')
+        + '/' + endDate.getUTCFullYear();
+
+    if (calculatedRemainingDays > 1) {
+        return { label: 'Decreto vigente', className: 'badge-success', remaining: calculatedRemainingDays, endDate: endDateFormatted };
+    }
+
+    if (calculatedRemainingDays === 1) {
+        return { label: 'Vence hoje', className: 'badge-warning', remaining: 1, endDate: endDateFormatted };
+    }
+
+    return { label: 'Decreto vencido', className: 'badge-danger', remaining: calculatedRemainingDays - 1, endDate: endDateFormatted };
+}
 
 function updateAffectedTotal() {
     var total = 0;
@@ -2282,6 +2375,35 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        function formatPanelDate(value) {
+            var match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+            return match ? match[3] + '/' + match[2] + '/' + match[1] : 'N\u00e3o informado';
+        }
+
+        function panelStatusClass(value) {
+            var statusValue = String(value || '').toUpperCase();
+
+            if (statusValue.indexOf('VENCIDO') >= 0 || statusValue.indexOf('REPROVADO') >= 0) {
+                return 'is-danger';
+            }
+            if (statusValue.indexOf('VENCE HOJE') >= 0 || statusValue.indexOf('PENDENTE') >= 0) {
+                return 'is-warning';
+            }
+            if (statusValue.indexOf('VIGENTE') >= 0 || statusValue.indexOf('APROVADO') >= 0) {
+                return 'is-success';
+            }
+            if (statusValue.indexOf('NO PRAZO') >= 0) {
+                return 'is-info';
+            }
+
+            return 'is-muted';
+        }
+
+        function statusValue(value) {
+            return '<span class="panel-map-status-value ' + panelStatusClass(value) + '">' + escapeHtml(value || 'N\u00e3o informado') + '</span>';
+        }
+
         function setStatus(message, warning) {
             if (!(status instanceof HTMLElement)) {
                 return;
@@ -2422,6 +2544,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (point.layer === 'desastres') {
+                rows.push('<div class="panel-map-popup-context"><b>Indicadores do decreto recente</b><span>' + escapeHtml(point.protocolo_dgd || 'N\u00e3o informado') + '</span></div>');
+                rows.push('<div><b>Status da vig\u00eancia</b>' + statusValue(point.vigencia_status) + '</div>');
+                rows.push('<div><b>Dias restantes</b><span>' + escapeHtml(point.vigencia_dias_restantes === '' || point.vigencia_dias_restantes === null ? 'N\u00e3o informado' : point.vigencia_dias_restantes) + '</span></div>');
+                rows.push('<div><b>Fim da vig\u00eancia</b><span>' + escapeHtml(formatPanelDate(point.data_fim_vigencia)) + '</span></div>');
+                rows.push('<div><b>Status PGE</b>' + statusValue(point.status_prazo_pge_calculado) + '</div>');
                 rows.push('<div><b>Registros</b><span>' + escapeHtml(point.total_desastres || 0) + '</span></div>');
                 rows.push('<div><b>Afetados</b><span>' + escapeHtml(point.total_afetados || 0) + '</span></div>');
                 rows.push('<div><b>Quantidade entregue</b><span>' + escapeHtml(Number(point.quantidade_entregue || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })) + '</span></div>');

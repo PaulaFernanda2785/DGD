@@ -157,15 +157,15 @@ function status_badge(?string $text): string
 
     $class = 'badge-muted';
 
-    if (str_contains($normalized, 'homologado') || str_contains($normalized, 'reconhecido') || str_contains($normalized, 'concluido') || str_contains($normalized, 'aprovado') || $normalized === 'ativo') {
+    if (str_contains($normalized, 'homologado') || str_contains($normalized, 'reconhecido') || str_contains($normalized, 'concluido') || str_contains($normalized, 'aprovado') || str_contains($normalized, 'vigente') || $normalized === 'ativo') {
         $class = 'badge-success';
     }
 
-    if (str_contains($normalized, 'pendente') || str_contains($normalized, 'aguardando') || str_contains($normalized, 'preparacao') || str_contains($normalized, 'prazo')) {
+    if (str_contains($normalized, 'pendente') || str_contains($normalized, 'aguardando') || str_contains($normalized, 'preparacao') || str_contains($normalized, 'prazo') || str_contains($normalized, 'vence hoje')) {
         $class = 'badge-warning';
     }
 
-    if (str_contains($normalized, 'nao homologado') || str_contains($normalized, 'nao reconhecido') || str_contains($normalized, 'indeferido') || str_contains($normalized, 'reprovado') || $normalized === 'inativo') {
+    if (str_contains($normalized, 'nao homologado') || str_contains($normalized, 'nao reconhecido') || str_contains($normalized, 'indeferido') || str_contains($normalized, 'reprovado') || str_contains($normalized, 'vencido') || $normalized === 'inativo') {
         $class = 'badge-danger';
     }
 

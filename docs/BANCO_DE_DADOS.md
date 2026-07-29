@@ -24,6 +24,8 @@
 12. `database/migrations/2026_07_08_add_cobrade_simbologia_to_decretos_view.sql` - inclui `cobrade_simbologia` na view de listagem para exibir a imagem simbolica do desastre.
 13. `database/migrations/2026_07_08_align_pge_status_view_rule.sql` - alinha `status_prazo_pge_calculado` ao mesmo marco final de `duracao_pge_dias`.
 14. `database/migrations/2026_07_15_update_ubm_official_coordinates.sql` - cria as colunas de geolocalizacao quando necessario e substitui as coordenadas das UBMs pela base oficial recebida.
+15. `database/migrations/2026_07_29_add_decreto_publicacao_vigencia.sql` - adiciona a data de publicação e a quantidade inteira de dias de vigência do decreto.
+16. `database/migrations/2026_07_29_create_decreto_vigencia_view.sql` - corrige instalações sem as colunas e cria a view dinâmica `vw_decretos_vigencia`, usada pelos filtros e indicadores.
 
 ---
 
@@ -104,6 +106,11 @@ O arquivo `database/install.sql` foi gerado como SQL concatenado, sem depender d
 12. `usuarios.two_factor_*` controla credenciamento e validacao TOTP.
 13. `compdecs` e a fonte oficial para regiao de integracao, prefeito, coordenador, telefone, e-mail e `ubm_nome`.
 14. `desastres.compdec_*` guarda snapshot dos dados da COMPDEC usados no cadastro.
+15. `desastres.data_publicacao_decreto` armazena a data oficial de publicação e `desastres.dias_vigencia_decreto` armazena a vigência inteira entre 1 e 65535 dias.
+16. O status da vigência, os dias restantes e a data final são calculados em tempo de execução; não existem colunas de status duplicadas que possam ficar desatualizadas.
+17. A contagem não exibe dia zero: no dia 1 o decreto mostra `Vence hoje`; no dia seguinte passa para `Decreto vencido` com -1 dia.
+18. O filtro e os indicadores da listagem calculam a vigência diretamente sobre `desastres`, usando `CURRENT_DATE`, para manter os totais e a paginação atualizados sem armazenar status derivado.
+19. `vw_decretos_vigencia` converte `dias_vigencia_decreto` para inteiro assinado antes da subtração, permitindo dias negativos no MySQL/MariaDB sem estouro numérico.
 
 ---
 

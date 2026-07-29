@@ -28,6 +28,7 @@ class DecretoService
     private DecretoHistoricoService $historico;
     private AnexoService $anexoService;
     private PgePrazoService $pgePrazo;
+    private DecretoVigenciaService $decretoVigencia;
 
     public function __construct()
     {
@@ -42,13 +43,16 @@ class DecretoService
         $this->historico = new DecretoHistoricoService();
         $this->anexoService = new AnexoService();
         $this->pgePrazo = new PgePrazoService();
+        $this->decretoVigencia = new DecretoVigenciaService();
     }
 
     public function listar(array $filters): array
     {
         $page = max((int) ($filters['page'] ?? 1), 1);
         $resultado = $this->decretos->paginate($filters, $page, 20);
-        $resultado['registros'] = $this->pgePrazo->enriquecerRegistros($resultado['registros']);
+        $resultado['registros'] = $this->decretoVigencia->enriquecerRegistros(
+            $this->pgePrazo->enriquecerRegistros($resultado['registros'])
+        );
         $resultado['resumo'] = $this->decretos->resumo($filters);
 
         return $resultado + [
@@ -83,7 +87,9 @@ class DecretoService
             throw new HttpException(404, 'Registro de desastre não encontrado.');
         }
 
-        $registro = $this->pgePrazo->enriquecerRegistro($registro);
+        $registro = $this->decretoVigencia->enriquecerRegistro(
+            $this->pgePrazo->enriquecerRegistro($registro)
+        );
 
         $protocoloCorrigido = $this->protocolo->corrigirMunicipioEmProtocolo(
             (string) $registro['protocolo_dgd'],
@@ -112,7 +118,11 @@ class DecretoService
 
         $calculados = $this->decretos->detalhe($id) ?? [];
 
-        return $this->preencherHierarquiaCobrade($this->pgePrazo->enriquecerRegistro($registro + $calculados)) + ['entregas' => $this->entregas->porDecreto($id)];
+        $registro = $this->decretoVigencia->enriquecerRegistro(
+            $this->pgePrazo->enriquecerRegistro($registro + $calculados)
+        );
+
+        return $this->preencherHierarquiaCobrade($registro) + ['entregas' => $this->entregas->porDecreto($id)];
     }
 
     public function cadastrar(array $data, array $files = []): array
@@ -317,6 +327,32 @@ class DecretoService
             $errors['data_desastre'][] = 'A data do desastre não pode ser futura.';
         }
 
+        $dataPublicacaoDecreto = trim((string) ($data['data_publicacao_decreto'] ?? ''));
+        $dataPublicacaoValida = $dataPublicacaoDecreto === ''
+            || (($dataConvertida = \DateTimeImmutable::createFromFormat('!Y-m-d', $dataPublicacaoDecreto)) !== false
+                && $dataConvertida->format('Y-m-d') === $dataPublicacaoDecreto);
+
+        if (!$dataPublicacaoValida) {
+            $errors['data_publicacao_decreto'][] = 'Informe uma data de publicação válida.';
+        }
+
+        if ($dataPublicacaoValida && $dataPublicacaoDecreto !== '' && strtotime($dataPublicacaoDecreto) > strtotime('today')) {
+            $errors['data_publicacao_decreto'][] = 'A data de publicação do decreto não pode ser futura.';
+        }
+
+        $diasVigenciaDecreto = trim((string) ($data['dias_vigencia_decreto'] ?? ''));
+
+        if (
+            $diasVigenciaDecreto !== ''
+            && (
+                filter_var($diasVigenciaDecreto, FILTER_VALIDATE_INT) === false
+                || (int) $diasVigenciaDecreto < 1
+                || (int) $diasVigenciaDecreto > 65535
+            )
+        ) {
+            $errors['dias_vigencia_decreto'][] = 'Informe a vigência em dias inteiros, entre 1 e 65535.';
+        }
+
         if (($data['municipio_id'] ?? '') !== '' && ($data['ubm_id'] ?? '') !== '') {
             $ubm = $this->dominios->findUbmForMunicipio((int) $data['ubm_id'], (int) $data['municipio_id']);
 
@@ -412,6 +448,8 @@ class DecretoService
             'protocolo_s2id' => $strOrNull($data['protocolo_s2id'] ?? null),
             'numero_decreto_municipal' => $strOrNull($data['numero_decreto_municipal'] ?? null),
             'data_decreto_municipal' => $strOrNull($data['data_decreto_municipal'] ?? null),
+            'data_publicacao_decreto' => $strOrNull($data['data_publicacao_decreto'] ?? null),
+            'dias_vigencia_decreto' => $intOrNull($data['dias_vigencia_decreto'] ?? null),
             'numero_decreto_homologacao_estadual' => $strOrNull($data['numero_decreto_homologacao_estadual'] ?? null),
             'data_decreto_homologacao' => $strOrNull($data['data_decreto_homologacao'] ?? null),
             'homologacao_status_id' => (int) ($data['homologacao_status_id'] ?? 1),
@@ -528,6 +566,8 @@ class DecretoService
             'protocolo_s2id' => 'Protocolo S2ID',
             'numero_decreto_municipal' => 'Número do decreto municipal',
             'data_decreto_municipal' => 'Data do decreto municipal',
+            'data_publicacao_decreto' => 'Data da publicação do decreto',
+            'dias_vigencia_decreto' => 'Dias de vigência do decreto',
             'numero_decreto_homologacao_estadual' => 'Número do decreto estadual',
             'data_decreto_homologacao' => 'Data de homologação',
             'homologacao_status_id' => 'Homologação',

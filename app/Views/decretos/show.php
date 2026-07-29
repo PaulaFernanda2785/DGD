@@ -13,6 +13,12 @@
     $homologacaoDataLabel = (string) ($registro['homologacao_codigo'] ?? '') === 'NAO_HOMOLOGADO'
         ? 'Data da não homologação'
         : 'Data de homologação';
+    $vigenciaIndicatorClass = match ((string) ($registro['vigencia_status_codigo'] ?? '')) {
+        'VIGENTE' => 'detail-validity-indicator--vigente',
+        'VENCE_HOJE' => 'detail-validity-indicator--vence-hoje',
+        'VENCIDO' => 'detail-validity-indicator--vencido',
+        default => 'detail-validity-indicator--sem-dados',
+    };
     $cobradeSimbologiaUrl = static function (mixed $path, mixed $codigo): ?string {
         $path = trim(str_replace('\\', '/', (string) $path));
 
@@ -72,6 +78,11 @@
     <div>
         <span>Status PGE</span>
         <?= status_badge($registro['status_prazo_pge_calculado']); ?>
+    </div>
+    <div class="<?= e($vigenciaIndicatorClass); ?>">
+        <span>Status da vigência</span>
+        <?= status_badge($registro['vigencia_status'] ?? 'Aguardando dados'); ?>
+        <small><?= e(($registro['vigencia_dias_restantes'] ?? null) !== null ? $registro['vigencia_dias_restantes'] . ' dia(s) restante(s)' : 'Informe publicação e vigência'); ?></small>
     </div>
 </section>
 
@@ -140,6 +151,11 @@
         <div><strong>Protocolo S2ID</strong><span><?= e($valueOrDash($registro['protocolo_s2id'] ?? null)); ?></span></div>
         <div><strong>Decreto municipal</strong><span><?= e($valueOrDash($registro['numero_decreto_municipal'] ?? null)); ?></span></div>
         <div><strong>Data do decreto municipal</strong><span><?= e($formatDate($registro['data_decreto_municipal'] ?? null)); ?></span></div>
+        <div><strong>Data da publicação do decreto</strong><span><?= e($formatDate($registro['data_publicacao_decreto'] ?? null)); ?></span></div>
+        <div><strong>Dias de vigência do decreto</strong><span><?= e($valueOrDash($registro['dias_vigencia_decreto'] ?? null)); ?></span></div>
+        <div><strong>Status da vigência</strong><span><?= status_badge($registro['vigencia_status'] ?? 'Aguardando dados'); ?></span></div>
+        <div><strong>Dias restantes</strong><span><?= e($valueOrDash($registro['vigencia_dias_restantes'] ?? null)); ?></span></div>
+        <div><strong>Data final da vigência</strong><span><?= e($formatDate($registro['data_fim_vigencia'] ?? null)); ?></span></div>
         <div><strong>Homologação</strong><span><?= status_badge($registro['homologacao']); ?></span></div>
         <div><strong><?= e($homologacaoDataLabel); ?></strong><span><?= e($formatDate($registro['data_decreto_homologacao'] ?? null)); ?></span></div>
         <div><strong>Reconhecimento</strong><span><?= status_badge($registro['reconhecimento']); ?></span></div>

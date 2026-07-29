@@ -3,6 +3,7 @@
 SET NAMES utf8mb4;
 
 DROP VIEW IF EXISTS vw_painel_resumo;
+DROP VIEW IF EXISTS vw_decretos_vigencia;
 DROP VIEW IF EXISTS vw_decretos_listagem;
 
 CREATE VIEW vw_decretos_listagem AS
@@ -123,6 +124,36 @@ INNER JOIN status_envio_pge sep ON sep.id = d.status_envio_pge_id
 INNER JOIN status_recurso rr ON rr.id = d.recurso_resposta_status_id
 INNER JOIN status_recurso rc ON rc.id = d.recurso_reconstrucao_status_id
 LEFT JOIN usuarios analista ON analista.id = d.analista_id
+WHERE d.excluido_em IS NULL;
+
+CREATE VIEW vw_decretos_vigencia AS
+SELECT
+    d.id,
+    d.data_publicacao_decreto,
+    d.dias_vigencia_decreto,
+    CASE
+        WHEN d.data_publicacao_decreto IS NULL OR d.dias_vigencia_decreto IS NULL THEN 'NAO_INFORMADO'
+        WHEN CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto) > 1 THEN 'VIGENTE'
+        WHEN CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto) = 1 THEN 'VENCE_HOJE'
+        ELSE 'VENCIDO'
+    END AS vigencia_status_codigo,
+    CASE
+        WHEN d.data_publicacao_decreto IS NULL OR d.dias_vigencia_decreto IS NULL THEN 'Aguardando dados'
+        WHEN CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto) > 1 THEN 'Decreto vigente'
+        WHEN CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto) = 1 THEN 'Vence hoje'
+        ELSE 'Decreto vencido'
+    END AS vigencia_status,
+    CASE
+        WHEN d.data_publicacao_decreto IS NULL OR d.dias_vigencia_decreto IS NULL THEN NULL
+        WHEN CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto) >= 1
+            THEN CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto)
+        ELSE CAST(d.dias_vigencia_decreto AS SIGNED) - DATEDIFF(CURRENT_DATE, d.data_publicacao_decreto) - 1
+    END AS vigencia_dias_restantes,
+    CASE
+        WHEN d.data_publicacao_decreto IS NULL OR d.dias_vigencia_decreto IS NULL THEN NULL
+        ELSE ADDDATE(d.data_publicacao_decreto, CAST(d.dias_vigencia_decreto AS SIGNED) - 1)
+    END AS data_fim_vigencia
+FROM desastres d
 WHERE d.excluido_em IS NULL;
 
 CREATE VIEW vw_painel_resumo AS

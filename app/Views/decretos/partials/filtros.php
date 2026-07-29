@@ -58,6 +58,16 @@
     </div>
 
     <div class="field">
+        <label for="filtro_vigencia">Status da vigência</label>
+        <select id="filtro_vigencia" name="vigencia_status">
+            <option value="">Todos</option>
+            <option value="VIGENTE" <?= (string) ($filtros['vigencia_status'] ?? '') === 'VIGENTE' ? 'selected' : ''; ?>>Decreto vigente</option>
+            <option value="VENCE_HOJE" <?= (string) ($filtros['vigencia_status'] ?? '') === 'VENCE_HOJE' ? 'selected' : ''; ?>>Vence hoje</option>
+            <option value="VENCIDO" <?= (string) ($filtros['vigencia_status'] ?? '') === 'VENCIDO' ? 'selected' : ''; ?>>Decreto vencido</option>
+        </select>
+    </div>
+
+    <div class="field">
         <label for="filtro_pge">Envio à PGE</label>
         <select id="filtro_pge" name="status_envio_pge_id">
             <option value="">Todos</option>

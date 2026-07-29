@@ -19,8 +19,19 @@ class DecretoRepository
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        $sql = 'SELECT * FROM vw_decretos_listagem WHERE ativo = 1' . $where .
-            ' ORDER BY protocolo_ano DESC, protocolo_sequencial DESC LIMIT :limit OFFSET :offset';
+        $sql = 'SELECT
+                    pagina.*,
+                    vigencia_dados.data_publicacao_decreto,
+                    vigencia_dados.dias_vigencia_decreto
+                FROM (
+                    SELECT *
+                    FROM vw_decretos_listagem
+                    WHERE ativo = 1' . $where . '
+                    ORDER BY protocolo_ano DESC, protocolo_sequencial DESC
+                    LIMIT :limit OFFSET :offset
+                ) pagina
+                INNER JOIN vw_decretos_vigencia vigencia_dados ON vigencia_dados.id = pagina.id
+                ORDER BY pagina.protocolo_ano DESC, pagina.protocolo_sequencial DESC';
         $stmt = Database::connection()->prepare($sql);
 
         foreach ($params as $key => $value) {
@@ -108,7 +119,10 @@ class DecretoRepository
                 COALESCE(SUM(total_afetados), 0) AS total_afetados,
                 COALESCE(SUM(CASE WHEN status_prazo_pge_calculado = \'PENDENTE\' THEN 1 ELSE 0 END), 0) AS pendentes_pge,
                 COALESCE(SUM(CASE WHEN homologacao_codigo = \'HOMOLOGADO\' THEN 1 ELSE 0 END), 0) AS homologados,
-                COALESCE(SUM(CASE WHEN reconhecimento_codigo = \'RECONHECIDO\' THEN 1 ELSE 0 END), 0) AS reconhecidos
+                COALESCE(SUM(CASE WHEN reconhecimento_codigo = \'RECONHECIDO\' THEN 1 ELSE 0 END), 0) AS reconhecidos,
+                COALESCE(SUM(CASE WHEN (' . $this->vigenciaStatusSubquery('vigencia_resumo') . ') = \'VIGENTE\' THEN 1 ELSE 0 END), 0) AS decretos_vigentes,
+                COALESCE(SUM(CASE WHEN (' . $this->vigenciaStatusSubquery('vigencia_resumo') . ') = \'VENCE_HOJE\' THEN 1 ELSE 0 END), 0) AS decretos_vence_hoje,
+                COALESCE(SUM(CASE WHEN (' . $this->vigenciaStatusSubquery('vigencia_resumo') . ') = \'VENCIDO\' THEN 1 ELSE 0 END), 0) AS decretos_vencidos
              FROM vw_decretos_listagem
              WHERE ativo = 1' . $where
         );
@@ -140,6 +154,9 @@ class DecretoRepository
             'pendentes_pge' => (int) ($resumo['pendentes_pge'] ?? 0),
             'homologados' => (int) ($resumo['homologados'] ?? 0),
             'reconhecidos' => (int) ($resumo['reconhecidos'] ?? 0),
+            'decretos_vigentes' => (int) ($resumo['decretos_vigentes'] ?? 0),
+            'decretos_vence_hoje' => (int) ($resumo['decretos_vence_hoje'] ?? 0),
+            'decretos_vencidos' => (int) ($resumo['decretos_vencidos'] ?? 0),
             'quantidade_entregue' => (float) ($entregas['quantidade_entregue'] ?? 0),
             'valor_total_entregue' => (float) ($entregas['valor_total_entregue'] ?? 0),
         ];
@@ -160,6 +177,8 @@ class DecretoRepository
             'SELECT
                 v.*,
                 d.observacoes,
+                d.data_publicacao_decreto,
+                d.dias_vigencia_decreto,
                 cs.descricao AS cobrade_descricao
              FROM vw_decretos_listagem v
              INNER JOIN desastres d ON d.id = v.id
@@ -310,6 +329,17 @@ class DecretoRepository
             $params['status_prazo_pge'] = $filters['status_prazo_pge'];
         }
 
+        $vigenciaStatus = strtoupper(trim((string) ($filters['vigencia_status'] ?? '')));
+        if (in_array($vigenciaStatus, ['VIGENTE', 'VENCE_HOJE', 'VENCIDO'], true)) {
+            $where .= ' AND EXISTS (
+                SELECT 1
+                FROM vw_decretos_vigencia vigencia_filtro
+                WHERE vigencia_filtro.id = vw_decretos_listagem.id
+                  AND BINARY vigencia_filtro.vigencia_status_codigo = BINARY :vigencia_status
+            )';
+            $params['vigencia_status'] = $vigenciaStatus;
+        }
+
         if (!empty($filters['data_desastre_inicio'])) {
             $where .= ' AND data_desastre >= :data_desastre_inicio';
             $params['data_desastre_inicio'] = $filters['data_desastre_inicio'];
@@ -321,5 +351,12 @@ class DecretoRepository
         }
 
         return [$where, $params];
+    }
+
+    private function vigenciaStatusSubquery(string $alias): string
+    {
+        return 'SELECT ' . $alias . '.vigencia_status_codigo
+                FROM vw_decretos_vigencia ' . $alias . '
+                WHERE ' . $alias . '.id = vw_decretos_listagem.id';
     }
 }

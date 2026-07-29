@@ -70,6 +70,10 @@ class PainelController extends Controller
 
         $ano = trim((string) ($query['ano'] ?? ''));
         $ano = $ano === '' || preg_match('/^\d{4}$/', $ano) === 1 ? $ano : '';
+        $statusVigencia = strtoupper(trim((string) ($query['status_vigencia'] ?? '')));
+        $statusVigencia = in_array($statusVigencia, ['VIGENTE', 'VENCE_HOJE', 'VENCIDO'], true)
+            ? $statusVigencia
+            : '';
 
         return [
             'ano' => $ano,
@@ -80,6 +84,7 @@ class PainelController extends Controller
             'homologacao_status_id' => $this->positiveInt($query['homologacao_status_id'] ?? null),
             'reconhecimento_status_id' => $this->positiveInt($query['reconhecimento_status_id'] ?? null),
             'status_prazo_pge' => trim((string) ($query['status_prazo_pge'] ?? '')),
+            'status_vigencia' => $statusVigencia,
         ];
     }
 

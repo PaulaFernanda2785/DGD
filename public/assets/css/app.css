@@ -2036,7 +2036,7 @@ textarea {
 
 .decree-filter-panel {
     align-items: end;
-    grid-template-columns: 110px minmax(170px, 0.8fr) minmax(230px, 1.2fr) repeat(3, minmax(170px, 1fr)) auto;
+    grid-template-columns: repeat(4, minmax(170px, 1fr));
     padding: 16px;
     border: 1px solid #dde5ee;
     border-radius: 8px;
@@ -2064,6 +2064,8 @@ textarea {
 .decree-filter-actions {
     display: flex;
     gap: 8px;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
     min-width: 0;
 }
 
@@ -2073,7 +2075,7 @@ textarea {
     }
 
     .decree-filter-actions {
-        grid-column: 4;
+        grid-column: 1 / -1;
         justify-content: flex-end;
     }
 
@@ -2444,6 +2446,9 @@ textarea {
 }
 
 .decree-card {
+    --vigencia-accent: #64748b;
+    --vigencia-border: #cbd5e1;
+    --vigencia-soft: #f8fafc;
     border-color: #cbd8e3;
     border-left: 4px solid #d5e7e3;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
@@ -2453,8 +2458,98 @@ textarea {
 
 .decree-card:focus-within,
 .decree-card:hover {
-    border-color: #8fc5bb;
+    border-color: var(--vigencia-accent);
     box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.decree-card--vigente {
+    --vigencia-accent: #15803d;
+    --vigencia-border: #86c99a;
+    --vigencia-soft: #f0fdf4;
+}
+
+.decree-card--vence-hoje {
+    --vigencia-accent: #b45309;
+    --vigencia-border: #f3bd72;
+    --vigencia-soft: #fffbeb;
+}
+
+.decree-card--vencido {
+    --vigencia-accent: #b42318;
+    --vigencia-border: #efa19b;
+    --vigencia-soft: #fff4f3;
+}
+
+.decree-card--vigente,
+.decree-card--vence-hoje,
+.decree-card--vencido,
+.decree-card--sem-vigencia {
+    border-color: var(--vigencia-border);
+    border-left: 7px solid var(--vigencia-accent);
+    background:
+        linear-gradient(90deg, var(--vigencia-soft) 0, rgba(255, 255, 255, 0.96) 24%, #fff 100%);
+    box-shadow:
+        0 12px 28px rgba(15, 23, 42, 0.06),
+        inset 0 4px 0 var(--vigencia-accent);
+}
+
+.decree-validity-card-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--vigencia-border);
+    border-radius: 8px;
+    background: var(--vigencia-soft);
+}
+
+.decree-validity-card-summary > div {
+    display: grid;
+    align-content: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--vigencia-border);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.decree-validity-card-summary span {
+    color: #52606d;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.decree-validity-card-summary strong {
+    color: #172331;
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+.decree-validity-card-summary .status-badge {
+    justify-self: start;
+}
+
+.decree-overview-card--vigente {
+    border-left-color: #15803d !important;
+    background: #f0fdf4 !important;
+}
+
+.decree-overview-card--vence-hoje {
+    border-left-color: #b45309 !important;
+    background: #fffbeb !important;
+}
+
+.decree-overview-card--vencido {
+    border-left-color: #b42318 !important;
+    background: #fff4f3 !important;
+}
+
+@media (max-width: 760px) {
+    .decree-validity-card-summary {
+        grid-template-columns: 1fr;
+    }
 }
 
 .decree-card-title > span {
@@ -2668,9 +2763,30 @@ textarea {
     overflow-wrap: anywhere;
 }
 
+.decree-validity-panel {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+}
+
+.decree-validity-panel [data-decree-validity-status] {
+    display: flex;
+    align-items: center;
+    min-height: 26px;
+}
+
+.decree-validity-panel [data-decree-validity-remaining] {
+    font-size: 22px;
+    line-height: 1.15;
+}
+
 .pge-consistency-panel > div:nth-child(2),
 .pge-consistency-panel > div:nth-child(3) {
     display: none;
+}
+
+.decree-validity-panel > div:nth-child(2),
+.decree-validity-panel > div:nth-child(3) {
+    display: grid;
 }
 
 .decree-empty-state {
@@ -4531,7 +4647,7 @@ tbody tr:hover {
 .detail-hero {
     display: grid;
     gap: 14px;
-    grid-template-columns: 1.1fr 1.6fr 0.8fr 0.8fr;
+    grid-template-columns: 1.1fr 1.5fr 0.75fr 0.8fr 1fr;
     margin-bottom: 18px;
 }
 
@@ -4675,6 +4791,36 @@ tbody tr:hover {
 
 .detail-hero-modern > div:nth-child(4) {
     border-left-color: #b45309;
+}
+
+.detail-validity-indicator--vigente {
+    background: #f0fdf4 !important;
+    border-left-color: #15803d !important;
+}
+
+.detail-validity-indicator--vence-hoje {
+    background: #fffbeb !important;
+    border-left-color: #b45309 !important;
+}
+
+.detail-validity-indicator--vencido {
+    background: #fff4f3 !important;
+    border-left-color: #b42318 !important;
+}
+
+.detail-validity-indicator--sem-dados {
+    background: #f8fafc !important;
+    border-left-color: #64748b !important;
+}
+
+.detail-hero-modern .detail-validity-indicator--vigente small,
+.detail-hero-modern .detail-validity-indicator--vence-hoje small,
+.detail-hero-modern .detail-validity-indicator--vencido small,
+.detail-hero-modern .detail-validity-indicator--sem-dados small {
+    color: #52606d;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.3;
 }
 
 .detail-hero-modern span {
@@ -5677,11 +5823,11 @@ tbody tr:hover {
 }
 
 .panel-print-recent-row {
-    grid-template-columns: 0.75fr 0.7fr minmax(0, 1fr) minmax(0, 0.85fr);
+    grid-template-columns: 0.68fr 0.62fr minmax(0, 0.9fr) 0.72fr 0.56fr minmax(0, 0.82fr);
 }
 
 .panel-print-register-row {
-    grid-template-columns: 0.72fr 0.75fr minmax(0, 1.25fr) minmax(0, 0.8fr) 0.55fr 0.58fr;
+    grid-template-columns: 0.6fr 0.62fr minmax(0, 1fr) 0.7fr 0.5fr minmax(0, 0.76fr) 0.46fr;
 }
 
 .panel-print-affected {
@@ -5990,11 +6136,11 @@ tbody tr:hover {
 }
 
 .decree-print-paged-report.is-measuring .panel-print-recent-row {
-    grid-template-columns: 0.75fr 0.7fr minmax(0, 1fr) minmax(0, 0.85fr);
+    grid-template-columns: 0.68fr 0.62fr minmax(0, 0.9fr) 0.72fr 0.56fr minmax(0, 0.82fr);
 }
 
 .decree-print-paged-report.is-measuring .panel-print-register-row {
-    grid-template-columns: 0.72fr 0.75fr minmax(0, 1.25fr) minmax(0, 0.8fr) 0.55fr 0.58fr;
+    grid-template-columns: 0.6fr 0.62fr minmax(0, 1fr) 0.7fr 0.5fr minmax(0, 0.76fr) 0.46fr;
 }
 
 @media (max-width: 920px) {
@@ -6155,11 +6301,11 @@ tbody tr:hover {
     }
 
     body.is-printing-decree-report .panel-print-recent-row {
-        grid-template-columns: 0.75fr 0.7fr minmax(0, 1fr) minmax(0, 0.85fr);
+        grid-template-columns: 0.68fr 0.62fr minmax(0, 0.9fr) 0.72fr 0.56fr minmax(0, 0.82fr);
     }
 
 body.is-printing-decree-report .panel-print-register-row {
-    grid-template-columns: 0.72fr 0.75fr minmax(0, 1.25fr) minmax(0, 0.8fr) 0.55fr 0.58fr;
+    grid-template-columns: 0.6fr 0.62fr minmax(0, 1fr) 0.7fr 0.5fr minmax(0, 0.76fr) 0.46fr;
 }
 
     body.is-printing-decree-report .decree-print-footer {
@@ -7810,6 +7956,33 @@ body.is-printing-decree-report .panel-print-register-row {
     color: #b45309;
 }
 
+.panel-indicator-validity-active {
+    background: linear-gradient(135deg, #ecfdf5, #ffffff) !important;
+    border-left-color: #15803d !important;
+}
+
+.panel-indicator-validity-active strong {
+    color: #166534;
+}
+
+.panel-indicator-validity-today {
+    background: linear-gradient(135deg, #fffbeb, #ffffff) !important;
+    border-left-color: #d97706 !important;
+}
+
+.panel-indicator-validity-today strong {
+    color: #a16207;
+}
+
+.panel-indicator-validity-expired {
+    background: linear-gradient(135deg, #fef2f2, #ffffff) !important;
+    border-left-color: #dc2626 !important;
+}
+
+.panel-indicator-validity-expired strong {
+    color: #b91c1c;
+}
+
 .panel-indicator-compdec-ok {
     border-left-color: #0f766e !important;
 }
@@ -8255,6 +8428,47 @@ body.is-printing-decree-report .panel-print-register-row {
     text-align: right;
 }
 
+.panel-map-popup .panel-map-status-value {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 4px 8px;
+}
+
+.panel-map-popup .panel-map-status-value.is-success {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.panel-map-popup .panel-map-status-value.is-warning {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    color: #92400e;
+}
+
+.panel-map-popup .panel-map-status-value.is-danger {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+.panel-map-popup .panel-map-status-value.is-info {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+    color: #075985;
+}
+
+.panel-map-popup .panel-map-status-value.is-muted {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.panel-map-popup .panel-map-popup-context {
+    border-bottom: 1px dashed #cbd5e1;
+    padding-bottom: 7px;
+}
+
 .panel-map-popup a {
     align-items: center;
     background: linear-gradient(135deg, var(--color-primary), #0f5f86);
@@ -8459,11 +8673,46 @@ body.is-printing-decree-report .panel-print-register-row {
     transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
+.panel-recent-list article {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(180px, 0.58fr) minmax(460px, 1.42fr);
+    padding: 14px;
+}
+
 .panel-ranking-list article:hover,
 .panel-recent-list article:hover {
     border-color: #8fc5bb;
     border-left-color: #007c70;
     box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07);
+}
+
+.panel-recent-list article.panel-recent--vigente {
+    background: linear-gradient(105deg, #ecfdf5, #ffffff 58%);
+    border-color: #86efac;
+    border-left-color: #15803d;
+}
+
+.panel-recent-list article.panel-recent--vence-hoje {
+    background: linear-gradient(105deg, #fffbeb, #ffffff 58%);
+    border-color: #fcd34d;
+    border-left-color: #d97706;
+}
+
+.panel-recent-list article.panel-recent--vencido {
+    background: linear-gradient(105deg, #fef2f2, #ffffff 58%);
+    border-color: #fca5a5;
+    border-left-color: #dc2626;
+}
+
+.panel-recent-list article.panel-recent--sem-dados {
+    border-left-color: #64748b;
+}
+
+.panel-recent-list .panel-recent-validity-meta {
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 900;
 }
 
 .panel-ranking-list article > div,
@@ -8507,12 +8756,109 @@ body.is-printing-decree-report .panel-print-register-row {
 }
 
 .panel-recent-status {
-    align-items: flex-end;
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 auto;
-    gap: 6px;
+    align-items: stretch;
+    display: grid;
+    flex: initial;
+    gap: 8px;
+    grid-template-columns: minmax(230px, 1.35fr) minmax(125px, 0.7fr) minmax(170px, 0.9fr);
     min-width: 0;
+}
+
+.panel-recent-status-group {
+    align-content: start;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+}
+
+.panel-recent-status-heading {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+    display: grid;
+    gap: 1px;
+    padding-bottom: 6px;
+}
+
+.panel-recent-status-heading strong {
+    color: #172331;
+    font-size: 0.76rem;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.panel-recent-status-heading small,
+.panel-recent-validity-end {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+
+.panel-recent-status-pair {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel-recent-status-pair > div {
+    align-content: start;
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.panel-recent-status-pair > div > span {
+    color: #52606d;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.panel-recent-status .status-badge {
+    justify-content: center;
+    min-height: 28px;
+    overflow-wrap: anywhere;
+    text-align: center;
+    white-space: normal;
+    width: 100%;
+}
+
+.panel-recent-status .badge-muted {
+    color: #364152;
+}
+
+.panel-recent-status .badge-success {
+    color: #05603a;
+}
+
+.panel-recent-status .badge-warning {
+    color: #93370d;
+}
+
+.panel-recent-status .badge-danger {
+    color: #912018;
+}
+
+.panel-recent-status .badge-info {
+    color: #175cd3;
+}
+
+.panel-recent-status-group--validity {
+    border-color: currentColor;
+}
+
+.panel-recent--vigente .panel-recent-status-group--validity {
+    color: #15803d;
+}
+
+.panel-recent--vence-hoje .panel-recent-status-group--validity {
+    color: #b45309;
+}
+
+.panel-recent--vencido .panel-recent-status-group--validity {
+    color: #b91c1c;
 }
 
 .panel-empty-state {
@@ -8873,5 +9219,38 @@ body.is-printing-decree-report .panel-print-register-row {
 
     .panel-aid-grid dl div:last-child {
         grid-column: auto;
+    }
+}
+
+@media (max-width: 980px) {
+    .panel-recent-list article {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-recent-status {
+        align-items: stretch;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-self: stretch;
+        width: 100%;
+    }
+
+    .panel-recent-status-group--institutional {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 560px) {
+    .panel-recent-status {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-recent-status-group--institutional {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 390px) {
+    .panel-recent-status-pair {
+        grid-template-columns: 1fr;
     }
 }

@@ -1,4 +1,4 @@
-<form method="post" action="<?= e($action); ?>" enctype="multipart/form-data" class="form-grid decree-form decree-form-modern" data-history-modal data-history-summary="<?= e(!empty($registro['id']) ? 'Edição do decreto ' . ($registro['protocolo_dgd'] ?? '') : 'Cadastro de novo decreto'); ?>">
+<form method="post" action="<?= e($action); ?>" enctype="multipart/form-data" class="form-grid decree-form decree-form-modern" data-history-modal data-history-summary="<?= e(!empty($registro['id']) ? 'Edição do decreto ' . ($registro['protocolo_dgd'] ?? '') : 'Cadastro de novo decreto'); ?>" data-server-today="<?= e(date('Y-m-d')); ?>">
     <?php
         $formatDate = static fn (mixed $value): string => !empty($value) ? date('d/m/Y', strtotime((string) $value)) : '-';
         $dash = static fn (mixed $value): string => trim((string) $value) !== '' ? (string) $value : '-';
@@ -238,10 +238,26 @@
                     <span>Decreto municipal</span>
                     <small>Identificação do processo e do ato municipal.</small>
                 </div>
-                <div class="institutional-grid three-cols">
+                <div class="institutional-grid">
                     <div class="field"><label>Protocolo S2ID</label><input name="protocolo_s2id" value="<?= e(old('protocolo_s2id', $registro['protocolo_s2id'] ?? '')); ?>"></div>
                     <div class="field"><label>Número do decreto municipal</label><input name="numero_decreto_municipal" value="<?= e(old('numero_decreto_municipal', $registro['numero_decreto_municipal'] ?? '')); ?>"></div>
                     <div class="field"><label>Data do decreto municipal</label><input name="data_decreto_municipal" type="date" value="<?= e(old('data_decreto_municipal', $registro['data_decreto_municipal'] ?? '')); ?>"></div>
+                    <div class="field"><label>Data da publicação do decreto</label><input name="data_publicacao_decreto" type="date" value="<?= e(old('data_publicacao_decreto', $registro['data_publicacao_decreto'] ?? '')); ?>" data-decree-publication-date></div>
+                    <div class="field"><label>Dias de vigência do decreto</label><input name="dias_vigencia_decreto" type="number" min="1" max="65535" step="1" inputmode="numeric" value="<?= e(old('dias_vigencia_decreto', $registro['dias_vigencia_decreto'] ?? '')); ?>" data-decree-validity-days></div>
+                </div>
+                <div class="pge-consistency-panel decree-validity-panel" data-decree-validity-preview aria-live="polite">
+                    <div>
+                        <span>Status da vigência</span>
+                        <div data-decree-validity-status><?= status_badge($registro['vigencia_status'] ?? 'Aguardando dados'); ?></div>
+                    </div>
+                    <div>
+                        <span>Dias restantes</span>
+                        <strong data-decree-validity-remaining><?= e($dash($registro['vigencia_dias_restantes'] ?? null)); ?></strong>
+                    </div>
+                    <div>
+                        <span>Data final da vigência</span>
+                        <strong data-decree-validity-end><?= e($formatDate($registro['data_fim_vigencia'] ?? null)); ?></strong>
+                    </div>
                 </div>
             </div>
 

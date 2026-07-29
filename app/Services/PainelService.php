@@ -18,21 +18,25 @@ class PainelService
     public function resumo(array $filters = []): array
     {
         try {
-            [$where, $params] = $this->decretoWhere($filters);
+            [$where, $params] = $this->decretoWhere($filters, 'v');
             $stmt = Database::connection()->prepare(
                 'SELECT
                     COUNT(*) AS total_desastres,
-                    SUM(CASE WHEN numero_decreto_municipal IS NOT NULL AND numero_decreto_municipal <> \'\' THEN 1 ELSE 0 END) AS total_decretos_municipais,
-                    SUM(CASE WHEN homologacao_codigo = \'SOLICITADO\' THEN 1 ELSE 0 END) AS homologacoes_solicitadas,
-                    SUM(CASE WHEN homologacao_codigo = \'HOMOLOGADO\' THEN 1 ELSE 0 END) AS homologados,
-                    SUM(CASE WHEN homologacao_codigo = \'NAO_HOMOLOGADO\' THEN 1 ELSE 0 END) AS nao_homologados,
-                    SUM(CASE WHEN reconhecimento_codigo = \'RECONHECIDO\' THEN 1 ELSE 0 END) AS reconhecidos,
-                    SUM(CASE WHEN homologacao_codigo = \'ENVIADO_PGE\' THEN 1 ELSE 0 END) AS enviados_pge,
-                    SUM(CASE WHEN status_prazo_pge_calculado = \'PENDENTE\' THEN 1 ELSE 0 END) AS pendentes_pge,
-                    SUM(COALESCE(total_afetados, 0)) AS total_afetados,
-                    COUNT(DISTINCT municipio_id) AS municipios_com_registro
-                 FROM vw_decretos_listagem
-                 WHERE ativo = 1' . $where
+                    SUM(CASE WHEN v.numero_decreto_municipal IS NOT NULL AND v.numero_decreto_municipal <> \'\' THEN 1 ELSE 0 END) AS total_decretos_municipais,
+                    SUM(CASE WHEN v.homologacao_codigo = \'SOLICITADO\' THEN 1 ELSE 0 END) AS homologacoes_solicitadas,
+                    SUM(CASE WHEN v.homologacao_codigo = \'HOMOLOGADO\' THEN 1 ELSE 0 END) AS homologados,
+                    SUM(CASE WHEN v.homologacao_codigo = \'NAO_HOMOLOGADO\' THEN 1 ELSE 0 END) AS nao_homologados,
+                    SUM(CASE WHEN v.reconhecimento_codigo = \'RECONHECIDO\' THEN 1 ELSE 0 END) AS reconhecidos,
+                    SUM(CASE WHEN v.homologacao_codigo = \'ENVIADO_PGE\' THEN 1 ELSE 0 END) AS enviados_pge,
+                    SUM(CASE WHEN v.status_prazo_pge_calculado = \'PENDENTE\' THEN 1 ELSE 0 END) AS pendentes_pge,
+                    SUM(CASE WHEN vig.vigencia_status_codigo = \'VIGENTE\' THEN 1 ELSE 0 END) AS decretos_vigentes,
+                    SUM(CASE WHEN vig.vigencia_status_codigo = \'VENCE_HOJE\' THEN 1 ELSE 0 END) AS decretos_vence_hoje,
+                    SUM(CASE WHEN vig.vigencia_status_codigo = \'VENCIDO\' THEN 1 ELSE 0 END) AS decretos_vencidos,
+                    SUM(COALESCE(v.total_afetados, 0)) AS total_afetados,
+                    COUNT(DISTINCT v.municipio_id) AS municipios_com_registro
+                 FROM vw_decretos_listagem v
+                 INNER JOIN vw_decretos_vigencia vig ON vig.id = v.id
+                 WHERE v.ativo = 1' . $where
             );
             $stmt->execute($params);
             $resumo = $stmt->fetch();
@@ -49,6 +53,9 @@ class PainelService
             'reconhecidos' => 0,
             'enviados_pge' => 0,
             'pendentes_pge' => 0,
+            'decretos_vigentes' => 0,
+            'decretos_vence_hoje' => 0,
+            'decretos_vencidos' => 0,
             'total_afetados' => 0,
             'municipios_com_registro' => 0,
         ];
@@ -63,6 +70,9 @@ class PainelService
             'reconhecidos' => (int) $resumo['reconhecidos'],
             'enviados_pge' => (int) $resumo['enviados_pge'],
             'pendentes_pge' => (int) $resumo['pendentes_pge'],
+            'decretos_vigentes' => (int) $resumo['decretos_vigentes'],
+            'decretos_vence_hoje' => (int) $resumo['decretos_vence_hoje'],
+            'decretos_vencidos' => (int) $resumo['decretos_vencidos'],
             'total_afetados' => (int) $resumo['total_afetados'],
             'municipios_com_registro' => (int) $resumo['municipios_com_registro'],
         ] + $entregas;
@@ -148,12 +158,20 @@ class PainelService
     public function recentes(array $filters = []): array
     {
         try {
-            [$where, $params] = $this->decretoWhere($filters);
+            [$where, $params] = $this->decretoWhere($filters, 'v');
             $stmt = Database::connection()->prepare(
-                'SELECT id, protocolo_dgd, municipio, data_desastre, homologacao, reconhecimento, cobrade_tipo, status_envio_pge
-                 FROM vw_decretos_listagem
-                 WHERE ativo = 1' . $where . '
-                 ORDER BY criado_em DESC
+                'SELECT
+                    v.id, v.protocolo_dgd, v.municipio, v.data_desastre,
+                    v.homologacao_codigo, v.homologacao,
+                    v.reconhecimento_codigo, v.reconhecimento,
+                    v.cobrade_tipo, v.status_envio_pge, v.status_prazo_pge_calculado,
+                    vig.data_publicacao_decreto, vig.dias_vigencia_decreto,
+                    vig.vigencia_status_codigo, vig.vigencia_status,
+                    vig.vigencia_dias_restantes, vig.data_fim_vigencia
+                 FROM vw_decretos_listagem v
+                 INNER JOIN vw_decretos_vigencia vig ON vig.id = v.id
+                 WHERE v.ativo = 1' . $where . '
+                 ORDER BY v.criado_em DESC
                  LIMIT 8'
             );
             $stmt->execute($params);
@@ -189,6 +207,11 @@ class PainelService
                 'REPROVADO' => 'Reprovado',
                 'NAO REGISTRADO' => 'Não registrado',
             ],
+            'status_vigencia' => [
+                'VIGENTE' => 'Decreto vigente',
+                'VENCE_HOJE' => 'Vence hoje',
+                'VENCIDO' => 'Decreto vencido',
+            ],
         ];
     }
 
@@ -209,32 +232,23 @@ class PainelService
     private function registrosRelatorio(array $filters): array
     {
         try {
-            [$where, $params] = $this->decretoWhere($filters);
+            [$where, $params] = $this->decretoWhere($filters, 'v');
             $stmt = Database::connection()->prepare(
                 'SELECT
-                    id,
-                    protocolo_dgd,
-                    municipio,
-                    compdec_regiao_integracao,
-                    ubm_atuante,
-                    tipo_decreto,
-                    cobrade_codigo,
-                    cobrade_subtipo,
-                    data_desastre,
-                    numero_decreto_municipal,
-                    homologacao_codigo,
-                    homologacao,
-                    data_decreto_homologacao,
-                    reconhecimento,
-                    status_envio_pge,
-                    data_envio_pge,
-                    data_conclusao_pge,
-                    duracao_pge_dias,
-                    status_prazo_pge_calculado,
-                    total_afetados
-                 FROM vw_decretos_listagem
-                 WHERE ativo = 1' . $where . '
-                 ORDER BY protocolo_ano DESC, protocolo_sequencial DESC
+                    v.id, v.protocolo_dgd, v.municipio, v.compdec_regiao_integracao,
+                    v.ubm_atuante, v.tipo_decreto, v.cobrade_codigo, v.cobrade_subtipo,
+                    v.data_desastre, v.numero_decreto_municipal,
+                    v.homologacao_codigo, v.homologacao, v.data_decreto_homologacao,
+                    v.reconhecimento_codigo, v.reconhecimento,
+                    v.status_envio_pge, v.data_envio_pge, v.data_conclusao_pge,
+                    v.duracao_pge_dias, v.status_prazo_pge_calculado, v.total_afetados,
+                    vig.data_publicacao_decreto, vig.dias_vigencia_decreto,
+                    vig.vigencia_status_codigo, vig.vigencia_status,
+                    vig.vigencia_dias_restantes, vig.data_fim_vigencia
+                 FROM vw_decretos_listagem v
+                 INNER JOIN vw_decretos_vigencia vig ON vig.id = v.id
+                 WHERE v.ativo = 1' . $where . '
+                 ORDER BY v.protocolo_ano DESC, v.protocolo_sequencial DESC
                  LIMIT 200'
             );
             $stmt->execute($params);
@@ -263,11 +277,20 @@ class PainelService
                     COALESCE(SUM((SELECT SUM(entrega_mapa.valor_total) FROM decreto_entregas entrega_mapa WHERE entrega_mapa.desastre_id = v.id)), 0) AS valor_total_entregue,
                     SUM(CASE WHEN v.homologacao_codigo = \'HOMOLOGADO\' THEN 1 ELSE 0 END) AS homologados,
                     SUM(CASE WHEN v.status_prazo_pge_calculado = \'PENDENTE\' THEN 1 ELSE 0 END) AS pendentes_pge,
+                    SUM(CASE WHEN vig.vigencia_status_codigo = \'VIGENTE\' THEN 1 ELSE 0 END) AS decretos_vigentes,
+                    SUM(CASE WHEN vig.vigencia_status_codigo = \'VENCE_HOJE\' THEN 1 ELSE 0 END) AS decretos_vence_hoje,
+                    SUM(CASE WHEN vig.vigencia_status_codigo = \'VENCIDO\' THEN 1 ELSE 0 END) AS decretos_vencidos,
                     MAX(v.data_desastre) AS ultimo_desastre,
                     SUBSTRING_INDEX(GROUP_CONCAT(v.protocolo_dgd ORDER BY v.criado_em DESC SEPARATOR \'||\'), \'||\', 1) AS protocolo_dgd,
+                    SUBSTRING_INDEX(GROUP_CONCAT(vig.vigencia_status_codigo ORDER BY v.criado_em DESC SEPARATOR \'||\'), \'||\', 1) AS vigencia_status_codigo,
+                    SUBSTRING_INDEX(GROUP_CONCAT(vig.vigencia_status ORDER BY v.criado_em DESC SEPARATOR \'||\'), \'||\', 1) AS vigencia_status,
+                    SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(CAST(vig.vigencia_dias_restantes AS CHAR), \'\') ORDER BY v.criado_em DESC SEPARATOR \'||\'), \'||\', 1) AS vigencia_dias_restantes,
+                    SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(DATE_FORMAT(vig.data_fim_vigencia, \'%Y-%m-%d\'), \'\') ORDER BY v.criado_em DESC SEPARATOR \'||\'), \'||\', 1) AS data_fim_vigencia,
+                    SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(v.status_prazo_pge_calculado, \'NAO REGISTRADO\') ORDER BY v.criado_em DESC SEPARATOR \'||\'), \'||\', 1) AS status_prazo_pge_calculado,
                     MAX(v.cobrade_tipo) AS cobrade_tipo,
                     MAX(v.cobrade_simbologia) AS cobrade_simbologia
                  FROM vw_decretos_listagem v
+                 INNER JOIN vw_decretos_vigencia vig ON vig.id = v.id
                  INNER JOIN municipios m ON m.id = v.municipio_id
                  WHERE v.ativo = 1
                    AND m.latitude IS NOT NULL
@@ -447,6 +470,16 @@ class PainelService
         if (trim((string) ($filters['status_prazo_pge'] ?? '')) !== '') {
             $where .= ' AND ' . $prefix . 'status_prazo_pge_calculado = :status_prazo_pge';
             $params['status_prazo_pge'] = trim((string) $filters['status_prazo_pge']);
+        }
+
+        if (trim((string) ($filters['status_vigencia'] ?? '')) !== '') {
+            $where .= ' AND EXISTS (
+                SELECT 1
+                FROM vw_decretos_vigencia vigencia_filtro
+                WHERE vigencia_filtro.id = ' . $prefix . 'id
+                  AND BINARY vigencia_filtro.vigencia_status_codigo = BINARY :status_vigencia
+            )';
+            $params['status_vigencia'] = trim((string) $filters['status_vigencia']);
         }
 
         return [$where, $params];

@@ -87,6 +87,7 @@
             || str_contains($status, 'NAO_RECONHECIDO')
             || str_contains($status, 'REPROVADO')
             || str_contains($status, 'INDEFERIDO')
+            || str_contains($status, 'VENCIDO')
         ) {
             return 'decree-print-highlight decree-print-highlight--danger';
         }
@@ -96,6 +97,7 @@
             || str_contains($status, 'RECONHECIDO')
             || str_contains($status, 'APROVADO')
             || str_contains($status, 'CONCLUIDO')
+            || str_contains($status, 'VIGENTE')
         ) {
             return 'decree-print-highlight decree-print-highlight--success';
         }
@@ -113,6 +115,7 @@
             || str_contains($status, 'SOLICITADO')
             || str_contains($status, 'PREPARACAO')
             || str_contains($status, 'AGUARDANDO')
+            || str_contains($status, 'VENCE_HOJE')
         ) {
             return 'decree-print-highlight decree-print-highlight--warning';
         }
@@ -125,6 +128,7 @@
         'Reconhecimento federal' => $classeDestaque('reconhecimento', $registro['reconhecimento_codigo'] ?? null, $registro['reconhecimento'] ?? null),
         'Envio à PGE' => $classeDestaque('envio_pge', $registro['status_envio_pge_codigo'] ?? null, $registro['status_envio_pge'] ?? null),
         'Status PGE' => $classeDestaque('status_pge', $registro['status_prazo_pge_calculado'] ?? null, $registro['status_prazo_pge_calculado'] ?? null),
+        'Status da vigência' => $classeDestaque('vigencia', $registro['vigencia_status_codigo'] ?? null, $registro['vigencia_status'] ?? null),
     ];
     $blocos = [
         'Dados do município e COMPDEC' => [
@@ -150,6 +154,11 @@
             'Protocolo S2ID' => $valor($registro['protocolo_s2id'] ?? null),
             'Número do decreto municipal' => $valor($registro['numero_decreto_municipal'] ?? null),
             'Data do decreto municipal' => $data($registro['data_decreto_municipal'] ?? null),
+            'Data da publicação do decreto' => $data($registro['data_publicacao_decreto'] ?? null),
+            'Dias de vigência do decreto' => $valor($registro['dias_vigencia_decreto'] ?? null),
+            'Status da vigência' => $valor($registro['vigencia_status'] ?? null),
+            'Dias restantes' => $valor($registro['vigencia_dias_restantes'] ?? null),
+            'Data final da vigência' => $data($registro['data_fim_vigencia'] ?? null),
             'Dias do decreto' => $valor($registro['total_dias_decreto'] ?? null),
             'Homologação' => $valor($registro['homologacao'] ?? null),
             $homologacaoDataLabel => $data($registro['data_decreto_homologacao'] ?? null),
@@ -213,6 +222,7 @@
         <div><span>Protocolo DGD</span><strong><?= e($registro['protocolo_dgd'] ?? 'Não informado'); ?></strong></div>
         <div class="<?= e($destaquesRelatorio['Tipo de decreto']); ?>"><span>Tipo de decreto</span><strong><?= e($valor($registro['tipo_decreto'] ?? null)); ?></strong></div>
         <div class="<?= e($destaquesRelatorio['Status PGE']); ?>"><span>Status PGE</span><strong><?= e($valor($registro['status_prazo_pge_calculado'] ?? null)); ?></strong></div>
+        <div class="<?= e($destaquesRelatorio['Status da vigência']); ?>"><span>Status da vigência</span><strong><?= e($valor($registro['vigencia_status'] ?? null)); ?></strong></div>
         <div><span>Total de afetados</span><strong><?= e($numero($registro['total_afetados'] ?? 0)); ?></strong></div>
     </section>
 
