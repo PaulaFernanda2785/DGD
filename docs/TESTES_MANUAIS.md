@@ -62,6 +62,7 @@
 | Operador acessa edicao | Bloqueado. |
 | Operador acessa `/tipos-ajuda` diretamente | Bloqueado com 403 e o item não aparece no menu. |
 | Admin ou Gestor acessa `/tipos-ajuda` | Permitido. |
+| Aplicar filtro sem resultado em `/tipos-ajuda` | O estado vazio ocupa toda a largura, explica que não houve correspondência e oferece o botão `Limpar filtros`. |
 | Listagem | Maximo de 20 registros por pagina. |
 | Abrir detalhe de decreto | Exibe layout em secoes modernas, cards de resumo, danos humanos e anexos sem sobreposicao. |
 | Protocolo de municipio com acento | Municipio como Belem/Sao Felix do Xingu gera protocolo com BELEM/SAO_FELIX_DO_XINGU, sem underscore indevido no acento. |
