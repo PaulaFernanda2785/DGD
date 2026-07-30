@@ -365,7 +365,7 @@ Perfis oficiais previstos:
 |---|---|---|
 | `ADMIN` | Admin | Administração geral do sistema. |
 | `GESTOR` | Gestor | Gestão operacional dos desastres, decretos e status críticos. |
-| `OPERADOR` | Operador | Cadastro inicial e consulta operacional controlada. |
+| `OPERADOR` | Operador | Consulta operacional controlada. |
 
 ---
 
@@ -1412,7 +1412,7 @@ WHERE ativo = 1;
 INSERT INTO perfis (id, codigo, nome, descricao, nivel_acesso, ativo) VALUES
 (1, 'ADMIN', 'Admin', 'Administrador geral do sistema.', 3, 1),
 (2, 'GESTOR', 'Gestor', 'Gestor responsável por análise, edição e acompanhamento dos desastres.', 2, 1),
-(3, 'OPERADOR', 'Operador', 'Operador responsável por cadastro inicial e consulta controlada.', 1, 1);
+(3, 'OPERADOR', 'Operador', 'Operador responsável por consulta controlada.', 1, 1);
 ```
 
 ---
@@ -1465,14 +1465,13 @@ WHERE codigo IN (
     'auditoria.visualizar'
 );
 
--- Operador: cadastro inicial e consulta controlada
+-- Operador: consulta operacional controlada
 INSERT INTO perfil_permissoes (perfil_id, permissao_id)
 SELECT 3, id FROM permissoes
 WHERE codigo IN (
     'painel.visualizar',
     'decretos.visualizar',
     'decretos.detalhe',
-    'decretos.criar',
     'anexos.upload',
     'senha.alterar_propria'
 );

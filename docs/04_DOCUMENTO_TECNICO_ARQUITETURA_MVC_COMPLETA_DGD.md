@@ -1423,7 +1423,6 @@ return [
         'painel.visualizar',
         'decretos.visualizar',
         'decretos.detalhar',
-        'decretos.criar',
         'anexos.visualizar',
         'anexos.enviar',
     ],

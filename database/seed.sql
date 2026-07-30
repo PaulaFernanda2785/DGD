@@ -6,7 +6,7 @@ SET NAMES utf8mb4;
 INSERT INTO perfis (id, codigo, nome, descricao, nivel_acesso) VALUES
 (1, 'ADMIN', 'Admin', 'Administracao geral do sistema.', 3),
 (2, 'GESTOR', 'Gestor', 'Gestao operacional dos desastres, decretos e status criticos.', 2),
-(3, 'OPERADOR', 'Operador', 'Cadastro inicial e consulta operacional controlada.', 1);
+(3, 'OPERADOR', 'Operador', 'Consulta operacional controlada.', 1);
 
 INSERT INTO permissoes (id, codigo, modulo, acao, descricao) VALUES
 (1, 'painel.visualizar', 'painel', 'visualizar', 'Visualizar painel.'),
@@ -35,7 +35,7 @@ INSERT INTO perfil_permissoes (perfil_id, permissao_id) VALUES
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 14), (2, 15), (2, 17), (2, 18);
 
 INSERT INTO perfil_permissoes (perfil_id, permissao_id) VALUES
-(3, 1), (3, 2), (3, 3), (3, 4), (3, 8), (3, 14);
+(3, 1), (3, 2), (3, 3), (3, 8), (3, 14);
 
 INSERT INTO tipos_decreto (id, codigo, nome, duracao_padrao_dias, ordem) VALUES
 (1, 'SITUACAO_EMERGENCIA', 'Situação de Emergência', 180, 1),

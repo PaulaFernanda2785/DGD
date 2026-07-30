@@ -79,6 +79,9 @@ $isActive = static function (string $path) use ($currentPath): string {
 
                 <?php if (can('decretos.visualizar')): ?>
                     <a href="<?= e(url('/decretos')); ?>" data-initial="D" title="Decretos"<?= $isActive('/decretos'); ?>><span>Decretos</span></a>
+                <?php endif; ?>
+
+                <?php if (can('decretos.editar')): ?>
                     <a href="<?= e(url('/tipos-ajuda')); ?>" data-initial="A" title="Tipos de ajuda"<?= $isActive('/tipos-ajuda'); ?>><span>Tipos de ajuda</span></a>
                 <?php endif; ?>
 

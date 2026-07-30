@@ -322,11 +322,11 @@ $reportUrl = url('/painel/relatorio-impressao' . ($reportQuery !== '' ? '?' . $r
                     <span><i></i><strong>Desastres</strong><small>Decretos registrados</small></span>
                 </label>
                 <label class="panel-layer-option panel-layer-compdecs">
-                    <input type="checkbox" data-panel-layer-toggle value="compdecs" checked>
+                    <input type="checkbox" data-panel-layer-toggle value="compdecs">
                     <span><i></i><strong>COMPDECs</strong><small>Com e sem cadastro</small></span>
                 </label>
                 <label class="panel-layer-option panel-layer-ubms">
-                    <input type="checkbox" data-panel-layer-toggle value="ubms" checked>
+                    <input type="checkbox" data-panel-layer-toggle value="ubms">
                     <span><i></i><strong>UBM</strong><small>Unidades atuantes</small></span>
                 </label>
             </div>

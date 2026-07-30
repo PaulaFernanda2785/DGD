@@ -253,7 +253,7 @@ O Documento 05 mostra insert com placeholder de hash.
 7. Permissoes por perfil aplicadas no backend.
 8. Admin acessa Usuarios.
 9. Gestor e Operador nao acessam Usuarios.
-10. Operador cadastra desastre, mas nao edita depois.
+10. Operador consulta desastres, mas nao pode criar ou editar decretos.
 11. Protocolo DGD gerado automaticamente em transacao.
 12. Total de afetados calculado automaticamente.
 13. Status de prazo PGE calculado automaticamente.

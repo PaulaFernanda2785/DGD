@@ -91,7 +91,7 @@ A versão inicial do DGD utilizará três perfis oficiais:
 |---:|---|---|---|
 | 1 | Admin | Administrativo e técnico | Controle completo do sistema. |
 | 2 | Gestor | Gestão operacional | Gerenciamento técnico-administrativo dos registros de desastre/decreto. |
-| 3 | Operador | Operacional | Cadastro inicial, consulta e acompanhamento básico dos registros. |
+| 3 | Operador | Operacional | Consulta e acompanhamento básico dos registros. |
 
 ---
 
@@ -209,7 +209,7 @@ O Gestor possui poder de alteração sobre campos que afetam interpretação adm
 
 ### 5.3 Perfil Operador
 
-O perfil **Operador** representa o usuário de uso operacional cotidiano, com foco em cadastro inicial, consulta e acompanhamento de informações.
+O perfil **Operador** representa o usuário de uso operacional cotidiano, com foco em consulta e acompanhamento de informações.
 
 Esse perfil deve permitir alimentação básica do sistema sem conceder poderes administrativos ou decisórios sobre status críticos.
 
@@ -264,7 +264,7 @@ Permitir que qualquer operador altere status críticos pode gerar inconsistênci
 |---|---|---|---|---|---|---|
 | Admin | Completo | Completo | Sim | Sim | Sim | Sim |
 | Gestor | Operacional completo | Completo | Não | Sim | Sim | Sim |
-| Operador | Operacional limitado | Consulta e cadastro inicial | Não | Não | Não | Não |
+| Operador | Operacional limitado | Consulta controlada | Não | Não | Não | Não |
 
 ---
 
@@ -290,7 +290,7 @@ Para padronizar a matriz, as permissões serão classificadas da seguinte forma:
 | Painel | Sim | Sim | Sim | Conteúdo pode variar conforme perfil. |
 | Decretos — Listagem | Sim | Sim | Sim | Todos consultam registros. |
 | Decretos — Filtros | Sim | Sim | Sim | Todos podem pesquisar. |
-| Decretos — Cadastro | Sim | Sim | Sim | Operador realiza cadastro inicial. |
+| Decretos — Cadastro | Sim | Sim | Não | Operador não pode criar decretos. |
 | Decretos — Detalhe | Sim | Sim | Sim | Operador visualiza sem editar status críticos. |
 | Decretos — Edição | Sim | Sim | Não | Conforme especificação da listagem. |
 | Decretos — Exclusão | Sim | Sim | Não | Exclusão lógica recomendada. |
@@ -339,7 +339,7 @@ Para padronizar a matriz, as permissões serão classificadas da seguinte forma:
 | Visualizar pendências de reconhecimento | Sim | Sim | Sim | Operador apenas acompanha. |
 | Visualizar pendências PGE | Sim | Sim | Sim | Operador apenas acompanha. |
 | Visualizar desastres recentes | Sim | Sim | Sim | Respeitando filtros gerais do sistema. |
-| Acessar atalho para novo cadastro | Sim | Sim | Sim | Operador pode cadastrar registro inicial. |
+| Acessar atalho para novo cadastro | Sim | Sim | Não | Atalho oculto para Operador. |
 | Acessar atalho para edição | Sim | Sim | Não | Operador deve ir para detalhe. |
 | Acessar atalho para usuários | Sim | Não | Não | Restrito ao Admin. |
 
@@ -404,7 +404,7 @@ O módulo **Decretos** é o núcleo funcional do DGD. Nele serão cadastrados e 
 | Acessar módulo Decretos | Sim | Sim | Sim | Todos os usuários autenticados. |
 | Visualizar listagem | Sim | Sim | Sim | Listagem padrão. |
 | Aplicar filtros | Sim | Sim | Sim | Por município, ano, status etc. |
-| Cadastrar desastre | Sim | Sim | Sim | Operador pode realizar cadastro inicial. |
+| Cadastrar desastre | Sim | Sim | Não | Restrito a Admin e Gestor. |
 | Visualizar detalhe | Sim | Sim | Sim | Todos podem consultar. |
 | Editar desastre | Sim | Sim | Não | Conforme regra definida. |
 | Excluir desastre | Sim | Sim | Não | Exclusão lógica com justificativa. |
@@ -412,7 +412,7 @@ O módulo **Decretos** é o núcleo funcional do DGD. Nele serão cadastrados e 
 | Alterar reconhecimento na listagem | Sim | Sim | Não | Campo crítico. |
 | Alterar status de envio à PGE na listagem | Sim | Sim | Não | Campo crítico. |
 | Alterar analista | Sim | Sim | Não | Deve ser usuário com perfil Gestor. |
-| Inserir anexos | Sim | Sim | Parcial | Operador insere no cadastro inicial. |
+| Inserir anexos | Sim | Sim | Parcial | Operador pode anexar documentos em registros que pode consultar. |
 | Remover anexos | Sim | Sim | Não | Remoção deve ser auditada. |
 | Visualizar anexos | Sim | Sim | Sim | Conforme controle de autenticação. |
 
@@ -474,7 +474,7 @@ O Operador visualiza:
 
 1. Ver detalhe.
 2. Filtros.
-3. Cadastro inicial.
+3. Consulta dos dados institucionais permitidos.
 
 O Operador não visualiza:
 
@@ -482,6 +482,8 @@ O Operador não visualiza:
 2. Botão excluir.
 3. Campos editáveis de status.
 4. Controles de alteração de analista.
+5. Botão ou formulário de novo cadastro.
+6. Página de Tipos de ajuda.
 
 ---
 
@@ -640,12 +642,12 @@ Valores previstos:
 
 | Campo/Ação | Admin | Gestor | Operador | Regra |
 |---|---:|---:|---:|---|
-| Número de óbitos | Sim | Sim | Sim | Operador informa no cadastro inicial. |
-| Número de feridos | Sim | Sim | Sim | Operador informa no cadastro inicial. |
-| Número de enfermos | Sim | Sim | Sim | Operador informa no cadastro inicial. |
-| Número de desabrigados | Sim | Sim | Sim | Operador informa no cadastro inicial. |
-| Número de desalojados | Sim | Sim | Sim | Operador informa no cadastro inicial. |
-| Número de outros afetados | Sim | Sim | Sim | Operador informa no cadastro inicial. |
+| Número de óbitos | Sim | Sim | Não | Operador não acessa o cadastro. |
+| Número de feridos | Sim | Sim | Não | Operador não acessa o cadastro. |
+| Número de enfermos | Sim | Sim | Não | Operador não acessa o cadastro. |
+| Número de desabrigados | Sim | Sim | Não | Operador não acessa o cadastro. |
+| Número de desalojados | Sim | Sim | Não | Operador não acessa o cadastro. |
+| Número de outros afetados | Sim | Sim | Não | Operador não acessa o cadastro. |
 | Total de afetados | Automático | Automático | Automático | Soma automática dos campos numéricos. |
 
 Regra de cálculo:
@@ -665,10 +667,10 @@ Nenhum perfil deve editar manualmente o total de afetados.
 
 | Tipo de anexo/Ação | Admin | Gestor | Operador | Regra |
 |---|---:|---:|---:|---|
-| Decreto municipal — inserir | Sim | Sim | Sim | Operador pode inserir no cadastro inicial. |
+| Decreto municipal — inserir | Sim | Sim | Não | Operador não acessa o cadastro. |
 | Ofício de homologação — inserir | Sim | Sim | Parcial | Preferencialmente Admin/Gestor após cadastro. |
 | Parecer estadual — inserir | Sim | Sim | Não | Documento técnico-administrativo. |
-| Parecer municipal — inserir | Sim | Sim | Parcial | Operador pode anexar no cadastro inicial, se disponível. |
+| Parecer municipal — inserir | Sim | Sim | Não | Operador não acessa o cadastro. |
 | Outros documentos — inserir | Sim | Sim | Parcial | Conforme natureza do documento. |
 | Visualizar anexos | Sim | Sim | Sim | Usuário autenticado. |
 | Remover anexos | Sim | Sim | Não | Deve exigir justificativa e auditoria. |
@@ -849,8 +851,8 @@ A tabela abaixo apresenta a proposta de controle de acesso por rota PHP.
 | `/logout` | Encerrar sessão | Sim | Sim | Sim |
 | `/painel` | Painel inicial | Sim | Sim | Sim |
 | `/decretos` | Listagem de decretos/desastres | Sim | Sim | Sim |
-| `/decretos/novo` | Cadastro de desastre | Sim | Sim | Sim |
-| `/decretos/salvar` | Gravar novo desastre | Sim | Sim | Sim |
+| `/decretos/novo` | Cadastro de desastre | Sim | Sim | Não |
+| `/decretos/salvar` | Gravar novo desastre | Sim | Sim | Não |
 | `/decretos/detalhe/{id}` | Ver detalhe | Sim | Sim | Sim |
 | `/decretos/editar/{id}` | Formulário de edição | Sim | Sim | Não |
 | `/decretos/atualizar/{id}` | Gravar edição | Sim | Sim | Não |
@@ -900,7 +902,7 @@ Para facilitar implementação no padrão MVC, recomenda-se definir permissões 
 |---|---|---|
 | `DECREE_LIST` | Listar decretos/desastres | Admin, Gestor, Operador |
 | `DECREE_FILTER` | Aplicar filtros | Admin, Gestor, Operador |
-| `DECREE_CREATE` | Cadastrar desastre | Admin, Gestor, Operador |
+| `DECREE_CREATE` | Cadastrar desastre | Admin, Gestor |
 | `DECREE_DETAIL` | Visualizar detalhe | Admin, Gestor, Operador |
 | `DECREE_EDIT` | Editar desastre | Admin, Gestor |
 | `DECREE_DELETE` | Excluir logicamente desastre | Admin, Gestor |
@@ -1105,7 +1107,7 @@ Usuário inativo não pode acessar o sistema, independentemente do perfil.
 
 ### 25.2 RPERM-002 — Cadastro de desastre
 
-Admin, Gestor e Operador podem cadastrar um novo desastre.
+Somente Admin e Gestor podem cadastrar um novo desastre.
 
 ### 25.3 RPERM-003 — Edição de desastre
 
@@ -1157,7 +1159,7 @@ Somente Admin pode redefinir senha de outro usuário.
 
 ### 25.15 RPERM-015 — Anexos
 
-Admin e Gestor podem inserir e remover anexos. Operador pode inserir anexos no cadastro inicial, mas não pode remover anexos.
+Admin e Gestor podem inserir e remover anexos. Operador pode inserir anexos em registros consultáveis, mas não pode remover anexos.
 
 ### 25.16 RPERM-016 — Campos automáticos
 
@@ -1391,7 +1393,7 @@ Ou, preferencialmente, como registros em tabela de perfis:
 |---:|---|---|
 | 1 | Admin | Acesso completo ao sistema. |
 | 2 | Gestor | Gestão operacional dos registros. |
-| 3 | Operador | Cadastro inicial e consulta. |
+| 3 | Operador | Consulta operacional controlada. |
 
 ### 31.2 Verificação por função helper
 
@@ -1422,7 +1424,6 @@ function usuarioPode(string $permissao): bool
         ],
         'Operador' => [
             'DECREE_LIST',
-            'DECREE_CREATE',
             'DECREE_DETAIL'
         ]
     ];
@@ -1490,14 +1491,14 @@ Campos mínimos recomendados:
 
 ## 33. Pontos de atenção
 
-### 33.1 Operador com permissão de cadastro
+### 33.1 Operador sem permissão de cadastro
 
-Permitir que Operador cadastre registros é útil para agilidade, mas gera risco de cadastro incompleto ou incorreto. Para reduzir esse risco:
+O Operador não pode cadastrar registros. A criação de decretos é restrita a Admin e Gestor para reduzir risco de cadastro incompleto ou incorreto.
 
-1. Campos obrigatórios devem ser bem definidos.
-2. Campos críticos devem ser bloqueados para o Operador após o cadastro.
-3. Gestor deve revisar e complementar registros quando necessário.
-4. O sistema deve registrar quem cadastrou o registro.
+1. O menu e os botões de novo cadastro devem permanecer ocultos.
+2. As rotas GET e POST de criação devem responder com bloqueio 403.
+3. O catálogo de Tipos de ajuda não deve ficar disponível.
+4. Admin e Gestor mantêm a responsabilidade pelo cadastro.
 
 ### 33.2 Edição rápida na listagem
 
@@ -1546,7 +1547,7 @@ O Documento 03 será considerado atendido na implementação quando:
 4. O menu Usuários aparecer somente para Admin.
 5. O botão Editar em Decretos aparecer somente para Admin e Gestor.
 6. O botão Excluir em Decretos aparecer somente para Admin e Gestor.
-7. Operador conseguir cadastrar novo registro de desastre.
+7. Operador receber bloqueio 403 ao tentar cadastrar novo registro de desastre.
 8. Operador conseguir visualizar listagem e detalhe.
 9. Operador não conseguir acessar edição por URL direta.
 10. Operador não conseguir excluir por URL direta.
@@ -1569,7 +1570,7 @@ O Documento 03 será considerado atendido na implementação quando:
 |---|---|---:|---:|---:|---:|---:|
 | Admin | Administração completa | Sim | Sim | Sim | Sim | Sim |
 | Gestor | Gestão dos registros | Sim | Sim | Sim | Sim | Não |
-| Operador | Cadastro inicial e consulta | Sim | Não | Não | Não | Não |
+| Operador | Consulta operacional | Não | Não | Não | Não | Não |
 
 ---
 

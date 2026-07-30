@@ -42,7 +42,6 @@ return [
         'painel.visualizar',
         'decretos.visualizar',
         'decretos.detalhe',
-        'decretos.criar',
         'anexos.upload',
         'senha.alterar_propria',
     ],

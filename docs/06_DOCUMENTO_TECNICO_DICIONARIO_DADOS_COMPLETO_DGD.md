@@ -139,7 +139,7 @@ Perfis oficiais:
 |---|---:|---:|---|
 | `ADMIN` | Admin | 3 | Administração geral do sistema. |
 | `GESTOR` | Gestor | 2 | Gestão operacional, edição e acompanhamento de desastres/decretos. |
-| `OPERADOR` | Operador | 1 | Cadastro inicial e consulta operacional controlada. |
+| `OPERADOR` | Operador | 1 | Consulta operacional controlada. |
 
 ### 6.2. Dicionário de campos
 
@@ -224,7 +224,7 @@ Relaciona perfis com permissões. É uma tabela associativa de muitos-para-muito
 1. A combinação `perfil_id` + `permissao_id` deve ser única.
 2. O Admin deve possuir todas as permissões.
 3. O Gestor deve possuir permissões de gestão operacional, mas não necessariamente administração de domínios e usuários.
-4. O Operador deve possuir permissões de cadastro inicial e consulta, sem edição posterior de campos críticos.
+4. O Operador deve possuir somente permissões de consulta operacional, sem criação ou edição de decretos.
 
 ---
 
@@ -1337,7 +1337,7 @@ Alimenta os indicadores básicos do Painel.
 | Campo de tela | Campo real | Obrigatório | Perfil que preenche/edita |
 |---|---|---:|---|
 | Protocolo DGD | `protocolo_dgd` | Auto | Sistema. Apenas leitura. |
-| Município | `municipio_id` | Sim | Operador no cadastro inicial; Gestor/Admin na edição. |
+| Município | `municipio_id` | Sim | Gestor/Admin no cadastro e na edição. |
 | UBM atuante | `ubm_id` | Não | Operador/Gestor/Admin. |
 | Tipo de decreto | `tipo_decreto_id` | Sim | Operador/Gestor/Admin. |
 | Data do desastre | `data_desastre` | Sim | Operador/Gestor/Admin. |
@@ -1493,21 +1493,15 @@ Alimenta os indicadores básicos do Painel.
 
 ---
 
-## 44. Campos que o Operador pode preencher no cadastro inicial
+## 44. Acesso operacional do perfil Operador
 
-| Campo | Observação |
+| Ação | Regra |
 |---|---|
-| `municipio_id` | Obrigatório. |
-| `ubm_id` | Opcional. |
-| `tipo_decreto_id` | Obrigatório. |
-| `cobrade_subtipo_id` | Obrigatório. |
-| `data_desastre` | Obrigatório. |
-| `protocolo_s2id` | Opcional. |
-| `numero_decreto_municipal` | Recomendado. |
-| `data_decreto_municipal` | Recomendado quando houver decreto. |
-| Campos de afetados | Obrigatórios com padrão zero. |
-| Anexos | Permitido conforme permissão `anexos.upload`. |
-| `observacoes` | Opcional. |
+| Consultar painel e decretos | Permitido. |
+| Visualizar detalhe | Permitido. |
+| Criar ou editar decreto | Bloqueado. |
+| Acessar Tipos de ajuda | Bloqueado. |
+| Enviar anexos | Permitido conforme `anexos.upload`. |
 
 ---
 

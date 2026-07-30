@@ -186,7 +186,7 @@ Regras de perfil:
 
 1. Admin possui acesso completo.
 2. Gestor gerencia operacionalmente decretos/desastres, status, anexos e auditoria, mas não administra usuários nem domínios amplos.
-3. Operador pode acessar Painel, consultar Decretos, ver detalhe, cadastrar registro inicial e anexar documentos no cadastro inicial, mas não pode editar registros após gravação, excluir, alterar status críticos, alterar PGE, alterar reconhecimento, alterar homologação, alterar recursos ou administrar usuários.
+3. Operador pode acessar Painel, consultar Decretos, ver detalhes e anexar documentos permitidos, mas não pode criar ou editar decretos, acessar Tipos de ajuda, excluir, alterar status críticos, alterar PGE, reconhecimento, homologação, recursos ou administrar usuários.
 
 Use os códigos canônicos de permissão em notação pontuada:
 
@@ -926,7 +926,7 @@ Checklist obrigatório:
 6. Operador não acessa Usuários.
 7. Admin cadastra desastre.
 8. Gestor cadastra e edita desastre.
-9. Operador cadastra desastre, mas não edita depois.
+9. Operador consulta desastres, mas não pode criar ou editar decretos.
 10. Protocolo DGD é automático e único.
 11. Total de afetados soma corretamente.
 12. Status de prazo PGE calcula corretamente.

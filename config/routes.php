@@ -35,7 +35,7 @@ return [
 
     ['GET', '/painel', [PainelController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'painel.visualizar']]],
     ['GET', '/painel/relatorio-impressao', [PainelController::class, 'printReport'], [AuthMiddleware::class, [PermissionMiddleware::class, 'painel.visualizar']]],
-    ['GET', '/tipos-ajuda', [TipoAjudaController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.visualizar']]],
+    ['GET', '/tipos-ajuda', [TipoAjudaController::class, 'index'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar']]],
     ['GET', '/tipos-ajuda/novo', [TipoAjudaController::class, 'form'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar']]],
     ['POST', '/tipos-ajuda', [TipoAjudaController::class, 'save'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar'], CsrfMiddleware::class]],
     ['GET', '/tipos-ajuda/{id}/editar', [TipoAjudaController::class, 'form'], [AuthMiddleware::class, [PermissionMiddleware::class, 'decretos.editar']]],

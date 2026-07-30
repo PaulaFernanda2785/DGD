@@ -58,8 +58,10 @@
 | Abrir formulario de novo cadastro | Exibe cabecalho moderno, secoes numeradas, campos obrigatorios identificados, dados da COMPDEC, COBRADE e anexos na mesma tela. |
 | Redimensionar formulario de novo cadastro | Layout se ajusta sem sobrepor textos ou campos em desktop, notebook, tablet e celular. |
 | Gestor cadastra desastre | Permitido. |
-| Operador cadastra desastre | Permitido. |
+| Operador acessa `/decretos/novo` ou envia `POST /decretos` | Bloqueado com 403; o botão de novo cadastro não é exibido. |
 | Operador acessa edicao | Bloqueado. |
+| Operador acessa `/tipos-ajuda` diretamente | Bloqueado com 403 e o item não aparece no menu. |
+| Admin ou Gestor acessa `/tipos-ajuda` | Permitido. |
 | Listagem | Maximo de 20 registros por pagina. |
 | Abrir detalhe de decreto | Exibe layout em secoes modernas, cards de resumo, danos humanos e anexos sem sobreposicao. |
 | Protocolo de municipio com acento | Municipio como Belem/Sao Felix do Xingu gera protocolo com BELEM/SAO_FELIX_DO_XINGU, sem underscore indevido no acento. |
@@ -98,6 +100,7 @@
 | Filtrar o Painel por status de vigência | Indicadores, registros recentes, mapa e relatório respeitam o status selecionado. |
 | Conferir registros recentes do Painel | Cada card separa Institucional, Status PGE e Vigência; homologação e reconhecimento possuem rótulos próprios e o prazo vencido é apresentado em linguagem natural. |
 | Abrir um ponto de desastre no mapa | O modal mostra status da vigência, dias restantes, data final e status PGE do decreto mais recente do município. |
+| Abrir ou recarregar a página Painel | Somente a camada Desastres inicia ativa; COMPDECs e UBMs iniciam desmarcadas e podem ser ativadas manualmente. |
 | Gerar relatório ou PDF do Painel | Os indicadores de vigência aparecem no resumo e os status institucional, PGE e vigência têm destaque por cor nas tabelas. |
 
 ---
